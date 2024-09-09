@@ -22,7 +22,8 @@ struct Cli {
 pub struct AppState {
     pub pool: PgPool,
     pub root_dir: PathBuf,
-    thumbnail_dir: PathBuf,
+    pub thumbnail_dir: PathBuf,
+    pub ipp: usize,
 }
 
 #[actix_web::main]
@@ -34,10 +35,11 @@ async fn main() -> std::io::Result<()> {
     let config_root_dir = config.get("default", "root").unwrap();
     let root_dir = Path::new(&config_root_dir).to_path_buf();
     let thumbnail_dir = root_dir.join("thumbnail");
-    let db_path = config.get("default", "db").unwrap();
-    let port = config.get("default", "port").unwrap();
+    let db_path = config.get("default", "db").unwrap_or("".to_string());
+    let port = config.get("default", "port").unwrap_or("10000".to_string());
+    let ipp:usize = config.get("default", "ipp").unwrap_or("24".to_string()).parse().unwrap_or(24);
 
-    let pool = PgPool::connect(&env::var("DATABASE_URL").unwrap_or_default())
+    let pool = PgPool::connect(&db_path)
         .await;
     if pool.is_err() {
         eprintln!("Failed to connect to {db_path}");
@@ -54,8 +56,10 @@ async fn main() -> std::io::Result<()> {
                 pool: pool.clone(),
                 root_dir: root_dir.clone(),
                 thumbnail_dir: thumbnail_dir.clone(),
+                ipp
             }))
-            .service(character::users)
+            .service(character::characters)
+            .service(character::add_character)
             .service(Files::new("/img", root_dir.clone()))
             .service(Files::new(
                 "/css",
