@@ -42,7 +42,7 @@ async fn main() -> std::io::Result<()> {
     let pool = PgPool::connect(&db_path)
         .await;
     if pool.is_err() {
-        eprintln!("Failed to connect to {db_path}");
+        log::error!("Failed to connect to {db_path}");
         return Ok(());
     }
     let pool = pool.unwrap();
@@ -59,7 +59,10 @@ async fn main() -> std::io::Result<()> {
                 ipp
             }))
             .service(character::characters)
+            .service(character::character)
             .service(character::add_character)
+            .service(character::update_character)
+            .service(character::delete_character)
             .service(Files::new("/img", root_dir.clone()))
             .service(Files::new(
                 "/css",
