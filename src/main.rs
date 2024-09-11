@@ -1,17 +1,17 @@
 mod db;
 mod route;
 
-use std::env;
+use crate::route::character;
 use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use clap::Parser;
 use configparser::ini::Ini;
-use std::path::{Path, PathBuf};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPool;
+use std::env;
+use std::path::{Path, PathBuf};
 use tera::Tera;
-use crate::route::character;
 
 #[derive(Parser)]
 struct Cli {
@@ -37,10 +37,13 @@ async fn main() -> std::io::Result<()> {
     let thumbnail_dir = root_dir.join("thumbnail");
     let db_path = config.get("default", "db").unwrap_or("".to_string());
     let port = config.get("default", "port").unwrap_or("10000".to_string());
-    let ipp:usize = config.get("default", "ipp").unwrap_or("24".to_string()).parse().unwrap_or(24);
+    let ipp: usize = config
+        .get("default", "ipp")
+        .unwrap_or("24".to_string())
+        .parse()
+        .unwrap_or(24);
 
-    let pool = PgPool::connect(&db_path)
-        .await;
+    let pool = PgPool::connect(&db_path).await;
     if pool.is_err() {
         log::error!("Failed to connect to {db_path}");
         return Ok(());
@@ -56,7 +59,7 @@ async fn main() -> std::io::Result<()> {
                 pool: pool.clone(),
                 root_dir: root_dir.clone(),
                 thumbnail_dir: thumbnail_dir.clone(),
-                ipp
+                ipp,
             }))
             .service(character::characters)
             .service(character::character)
@@ -64,14 +67,8 @@ async fn main() -> std::io::Result<()> {
             .service(character::update_character)
             .service(character::delete_character)
             .service(Files::new("/img", root_dir.clone()))
-            .service(Files::new(
-                "/css",
-                concat!(env!("CARGO_MANIFEST_DIR"), "/res/css"),
-            ))
-            .service(Files::new(
-                "/js",
-                concat!(env!("CARGO_MANIFEST_DIR"), "/res/js"),
-            ))
+            .service(Files::new("/css", concat!(env!("CARGO_MANIFEST_DIR"), "/res/css")))
+            .service(Files::new("/js", concat!(env!("CARGO_MANIFEST_DIR"), "/res/js")))
     })
     .bind(format!("0.0.0.0:{}", port))?
     .run()

@@ -1,12 +1,12 @@
-use std::path::PathBuf;
-use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
+use actix_multipart::form::MultipartForm;
 use actix_web::{get, post, web, HttpResponse, Responder};
+use std::path::PathBuf;
 
-use crate::{AppState};
-use crate::route::{redirect, save_file};
 use crate::db;
+use crate::route::{redirect, save_file};
+use crate::AppState;
 
 #[derive(MultipartForm)]
 struct CharacterForm {
@@ -16,7 +16,7 @@ struct CharacterForm {
 }
 
 #[get("/characters")]
-pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>)-> impl Responder {
+pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
 
     if let Ok(characters) = db::character::get_all(&data.pool).await {
@@ -28,7 +28,11 @@ pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>)-
 }
 
 #[get("/character/{username}")]
-pub async fn character(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>, username: web::Path<String>) -> impl Responder {
+pub async fn character(
+    data: web::Data<AppState>,
+    tmpl: web::Data<tera::Tera>,
+    username: web::Path<String>,
+) -> impl Responder {
     let mut ctx = tera::Context::new();
 
     if let Ok(char) = db::character::get(&data.pool, &username.into_inner()).await {
@@ -40,7 +44,10 @@ pub async fn character(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>, u
 }
 
 #[post("/add/character")]
-pub async fn add_character(data: web::Data<AppState>, MultipartForm(form): MultipartForm<CharacterForm>) -> impl Responder {
+pub async fn add_character(
+    data: web::Data<AppState>,
+    MultipartForm(form): MultipartForm<CharacterForm>,
+) -> impl Responder {
     if let Err(e) = db::character::add(&data.pool, form.username.0.as_str(), form.name.0.as_str()).await {
         log::error!("Failed to add character {}: {}", &form.username.0, e);
         return redirect!("/characters");
@@ -53,7 +60,10 @@ pub async fn add_character(data: web::Data<AppState>, MultipartForm(form): Multi
 }
 
 #[post("/update/character")]
-pub async fn update_character(data: web::Data<AppState>, MultipartForm(form): MultipartForm<CharacterForm>) -> impl Responder {
+pub async fn update_character(
+    data: web::Data<AppState>,
+    MultipartForm(form): MultipartForm<CharacterForm>,
+) -> impl Responder {
     let url = format!("/character/{}", form.username.0);
 
     if let Err(e) = db::character::update(&data.pool, form.username.0.as_str(), form.name.0.as_str()).await {
@@ -70,7 +80,7 @@ pub async fn update_character(data: web::Data<AppState>, MultipartForm(form): Mu
 #[get("/delete/character/{username}")]
 pub async fn delete_character(data: web::Data<AppState>, username: web::Path<String>) -> impl Responder {
     let name = username.into_inner().clone();
-    if let Err(e) =  db::character::delete(&data.pool, name.clone().as_str()).await {
+    if let Err(e) = db::character::delete(&data.pool, name.clone().as_str()).await {
         log::error!("Failed to delete character {}: {}", name, e);
     }
     redirect!("/characters")

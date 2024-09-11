@@ -1,2 +1,2 @@
 pub mod character;
-mod post;
+pub(crate) mod post;
