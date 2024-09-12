@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
@@ -15,6 +16,8 @@ struct PostForm {
     media: Option<TempFile>,
     reaction: Text<i32>,
     parent: Option<Text<i32>>,
+    feeling: Option<Text<String>>,
+    is_with: Option<Text<String>>,
 }
 
 #[derive(Serialize)]
@@ -27,6 +30,8 @@ struct CtxPost {
     pub reaction: i32,
     pub media: String,
     pub created_at: String,
+    pub feeling: String,
+    pub is_with: String,
 }
 
 impl CtxPost {
@@ -42,6 +47,8 @@ impl CtxPost {
             reaction: post.reaction,
             media: post.media,
             created_at,
+            feeling: post.feeling,
+            is_with: post.is_with,
         }
     }
 }
@@ -74,16 +81,22 @@ pub async fn add_post(data: web::Data<AppState>, MultipartForm(form): MultipartF
         Some(_p.0)
     } else { None };
 
-    let mut media = String::new();
-
-    let file_name = format!("{}.png", );
-    save_file(&data.root_dir, form.media, file_name.as_str());
-
-    if let Err(e) = db::post::add(&data.pool, parent, form.content.0, form.character.0, media, form.reaction.0).await {
-        log::error!("Failed to add post: {}", e);
-        return redirect!("/");
+    if let Ok(media) = save_file(&data.root_dir, form.media, "") {
+        if let Err(e) = db::post::add(&data.pool, parent, form.content.0, form.character.0, media, form.reaction.0).await {
+            log::error!("Failed to add post: {}", e);
+            return redirect!("/");
+        }
     }
-
 
     redirect!("/")
 }
+
+#[get("/delete/post/{id}")]
+pub async fn delete_post(data: web::Data<AppState>, id: web::Path<i32>) -> impl Responder {
+    let id = id.into_inner();
+    if let Err(e) = db::post::delete(&data.pool, id).await {
+        log::error!("Failed to delete post {}: {}", id, e);
+    }
+    redirect!("/characters")
+}
+

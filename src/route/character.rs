@@ -71,7 +71,7 @@ pub async fn update_character(
         return redirect!(url);
     }
 
-    let file_name = format!("{}.png", form.username.0.as_str());
+    let file_name = format!("{}.png", form.username.0);
     save_avatar(&data.root_dir, form.avatar, file_name.as_str());
 
     redirect!(url)
@@ -88,5 +88,7 @@ pub async fn delete_character(data: web::Data<AppState>, username: web::Path<Str
 
 fn save_avatar(root_dir: &PathBuf, avatar: Option<TempFile>, file_name: &str) {
     let path = root_dir.join("avatar");
-    save_file(&path, avatar, file_name);
+    if save_file(&path, avatar, file_name).is_ok() {
+        log::info!("Saved avatar successfully");
+    }
 }

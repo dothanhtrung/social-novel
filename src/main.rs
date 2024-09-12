@@ -1,7 +1,6 @@
 mod db;
 mod route;
 
-use crate::route::character;
 use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
@@ -13,6 +12,9 @@ use std::env;
 use std::path::{Path, PathBuf};
 use tera::Tera;
 
+use crate::route::index;
+use crate::route::character;
+
 #[derive(Parser)]
 struct Cli {
     #[clap(short, long, default_value = "config.ini")]
@@ -23,7 +25,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub root_dir: PathBuf,
     pub thumbnail_dir: PathBuf,
-    pub ipp: usize,
+    pub ipp: i64,
 }
 
 #[actix_web::main]
@@ -37,7 +39,7 @@ async fn main() -> std::io::Result<()> {
     let thumbnail_dir = root_dir.join("thumbnail");
     let db_path = config.get("default", "db").unwrap_or("".to_string());
     let port = config.get("default", "port").unwrap_or("10000".to_string());
-    let ipp: usize = config
+    let ipp: i64 = config
         .get("default", "ipp")
         .unwrap_or("24".to_string())
         .parse()
@@ -50,6 +52,8 @@ async fn main() -> std::io::Result<()> {
     }
     let pool = pool.unwrap();
 
+    println!("Server will start at :{port}");
+
     HttpServer::new(move || {
         let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/res/html/**/*")).unwrap();
 
@@ -61,6 +65,9 @@ async fn main() -> std::io::Result<()> {
                 thumbnail_dir: thumbnail_dir.clone(),
                 ipp,
             }))
+            .service(index::index)
+            .service(index::add_post)
+            .service(index::delete_post)
             .service(character::characters)
             .service(character::character)
             .service(character::add_character)

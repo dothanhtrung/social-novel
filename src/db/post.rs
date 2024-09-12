@@ -12,6 +12,8 @@ pub struct Post {
     pub reaction: i32,
     pub media: String,
     pub created_at: PrimitiveDateTime,
+    pub feeling: String,
+    pub is_with: String,
 }
 
 pub async fn count_all(pool: &PgPool) -> Result<i64, Error> {
@@ -19,11 +21,11 @@ pub async fn count_all(pool: &PgPool) -> Result<i64, Error> {
     Ok(rec.count.unwrap_or_default())
 }
 
-pub async fn get_by_page(pool: &PgPool, ipp: usize, page: i64) -> Result<Vec<Post>, Error> {
+pub async fn get_by_page(pool: &PgPool, ipp: i64, page: i64) -> Result<Vec<Post>, Error> {
     let offset = ipp * (page - 1);
     sqlx::query_as!(
         Post,
-        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at FROM post LEFT JOIN character ON post.character = character.username ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
         offset as i64,
         ipp as i64
     )
@@ -34,7 +36,7 @@ pub async fn get_by_page(pool: &PgPool, ipp: usize, page: i64) -> Result<Vec<Pos
 pub async fn get_by_parent(pool: &PgPool, parent: i32) -> Result<Vec<Post>, Error> {
     sqlx::query_as!(
         Post,
-        r#"SELECT * FROM post WHERE parent = $1 ORDER BY created_at DESC"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent = $1 ORDER BY created_at DESC"#,
         parent
     )
     .fetch_all(pool)
