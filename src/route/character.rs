@@ -23,7 +23,7 @@ pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>) 
         ctx.insert("characters", &characters);
     }
 
-    let template = tmpl.render("characters.html", &ctx).unwrap_or("Not found".into());
+    let template = tmpl.render("characters.gohtml", &ctx).unwrap_or("Not found".into());
     HttpResponse::Ok().content_type("text/html").body(template)
 }
 
@@ -39,7 +39,7 @@ pub async fn character(
         ctx.insert("character", &char);
     }
 
-    let template = tmpl.render("character.html", &ctx).unwrap_or("Not found".into());
+    let template = tmpl.render("character.gohtml", &ctx).unwrap_or("Not found".into());
     HttpResponse::Ok().content_type("text/html").body(template)
 }
 

@@ -1,8 +1,8 @@
 use actix_multipart::form::tempfile::TempFile;
+use md5::{Digest, Md5};
 use std::fs;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
-use md5::{Md5, Digest};
 
 pub mod character;
 pub mod index;
@@ -54,5 +54,5 @@ pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &
 
         return Ok(saved_name);
     }
-    Err(())
+    Ok(String::new())
 }

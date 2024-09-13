@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% include "include/header.html" %}
+    {% include "include/header.gohtml" %}
     <title>Social Novel - {{character.name}}</title>
 </head>
 <body>
 
-{% include "include/dashboard.html" %}
+{% include "include/dashboard.gohtml" %}
 
 <form action="/update/character" method="post" enctype="multipart/form-data">
     <div class="space-y-12">

@@ -12,8 +12,8 @@ use std::env;
 use std::path::{Path, PathBuf};
 use tera::Tera;
 
-use crate::route::index;
 use crate::route::character;
+use crate::route::index;
 
 #[derive(Parser)]
 struct Cli {

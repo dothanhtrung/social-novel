@@ -25,7 +25,7 @@ pub async fn get_by_page(pool: &PgPool, ipp: i64, page: i64) -> Result<Vec<Post>
     let offset = ipp * (page - 1);
     sqlx::query_as!(
         Post,
-        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent is NULL ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
         offset as i64,
         ipp as i64
     )
@@ -36,7 +36,7 @@ pub async fn get_by_page(pool: &PgPool, ipp: i64, page: i64) -> Result<Vec<Post>
 pub async fn get_by_parent(pool: &PgPool, parent: i32) -> Result<Vec<Post>, Error> {
     sqlx::query_as!(
         Post,
-        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent = $1 ORDER BY created_at DESC"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent = $1 ORDER BY created_at ASC"#,
         parent
     )
     .fetch_all(pool)
