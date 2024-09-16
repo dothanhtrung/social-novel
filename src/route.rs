@@ -1,8 +1,9 @@
 use actix_multipart::form::tempfile::TempFile;
 use md5::{Digest, Md5};
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufReader, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub mod character;
 pub mod index;
@@ -15,8 +16,8 @@ macro_rules! redirect {
 
 pub(crate) use redirect;
 
-pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &str) -> Result<String, ()> {
-    let mut saved_name = String::from(file_name);
+pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &str) -> Result<(String, String), ()> {
+    let mut md5sum = String::new();
 
     if let Some(f) = temp_file {
         if !target_dir.exists() {
@@ -26,8 +27,14 @@ pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &
             }
         }
 
-        if file_name.is_empty() {
-            let mut hasher = Md5::new();
+
+        let mut hasher = Md5::new();
+        let temp_file_name = f.file_name.unwrap_or_default();
+        let extension = Path::new(temp_file_name.as_str())
+            .extension()
+            .unwrap_or(OsStr::new("png"))
+            .to_str()
+            .unwrap_or("png");
             let open_f = f.file.reopen().map_err(|_| {
                 log::error!("Failed to reopen temp file");
                 ()
@@ -38,9 +45,14 @@ pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &
                 log::error!("Failed to read temp file");
                 ()
             })?;
-            hasher.update(&buf);
-            saved_name = format!("{:x}", hasher.finalize());
-        }
+        hasher.update(&buf);
+        md5sum = format!("{:x}", hasher.finalize());
+
+        let mut saved_name = if file_name.is_empty() {
+            format!("{}.{}", md5sum, extension)
+        } else {
+            String::from(file_name)
+        };
 
         let path = target_dir.join(saved_name.as_str());
         if let Err(e) = f.file.persist(&path) {
@@ -52,7 +64,9 @@ pub fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &
             }
         }
 
-        return Ok(saved_name);
+        return Ok((md5sum, saved_name));
     }
-    Ok(String::new())
+    Ok((String::new(), String::new()))
 }
+
+pub fn delete_file(file_path: String) {}

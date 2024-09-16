@@ -8,7 +8,7 @@ pub struct Character {
 }
 
 pub async fn get_all(pool: &PgPool) -> Result<Vec<Character>, Error> {
-    sqlx::query_as!(Character, r#"SELECT * FROM character ORDER BY username DESC"#)
+    sqlx::query_as!(Character, r#"SELECT * FROM character ORDER BY username ASC"#)
         .fetch_all(pool)
         .await
 }

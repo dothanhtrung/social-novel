@@ -8,6 +8,7 @@ use actix_web::cookie::time::{format_description, PrimitiveDateTime};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use actix_web::web::post;
 
 #[derive(MultipartForm)]
 struct PostForm {
@@ -45,7 +46,7 @@ impl CtxPost {
             username: post.character,
             name: post.character_name,
             reaction: post.reaction,
-            media: post.media,
+            media: post.media.unwrap_or_default(),
             created_at,
             feeling: post.feeling,
             is_with: post.is_with,
@@ -98,9 +99,16 @@ pub async fn index(
 pub async fn add_post(data: web::Data<AppState>, MultipartForm(form): MultipartForm<PostForm>) -> impl Responder {
     let parent = if let Some(_p) = form.parent { Some(_p.0) } else { None };
 
-    if let Ok(media) = save_file(&data.root_dir, form.media, "") {
+    let post_dir = &data.root_dir.join("post");
+    if let Ok((md5sum, filename)) = save_file(&post_dir, form.media, "") {
+        let path_file = post_dir.join(filename);
+        if let Err(e) = db::media::add(&data.pool, md5sum.as_str(), path_file.to_str().unwrap_or_default()).await {
+            log::error!("Failed to add media: {}", e);
+            return redirect!("/");
+        }
+
         let reaction = if let Some(r) = form.reaction { r.0 } else { 0 };
-        if let Err(e) = db::post::add(&data.pool, parent, form.content.0, form.character.0, media, reaction).await {
+        if let Err(e) = db::post::add(&data.pool, parent, form.content.0, form.character.0, md5sum, reaction).await {
             log::error!("Failed to add post: {}", e);
             return redirect!("/");
         }
@@ -115,5 +123,5 @@ pub async fn delete_post(data: web::Data<AppState>, id: web::Path<i32>) -> impl 
     if let Err(e) = db::post::delete(&data.pool, id).await {
         log::error!("Failed to delete post {}: {}", id, e);
     }
-    redirect!("/characters")
+    redirect!("/")
 }

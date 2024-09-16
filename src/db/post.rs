@@ -1,4 +1,5 @@
 use serde::Serialize;
+use sqlx::postgres::PgQueryResult;
 use sqlx::types::time::{PrimitiveDateTime, Time};
 use sqlx::{Error, PgPool};
 
@@ -10,7 +11,7 @@ pub struct Post {
     pub character: String,
     pub character_name: String,
     pub reaction: i32,
-    pub media: String,
+    pub media: Option<String>,
     pub created_at: PrimitiveDateTime,
     pub feeling: String,
     pub is_with: String,
@@ -25,7 +26,7 @@ pub async fn get_by_page(pool: &PgPool, ipp: i64, page: i64) -> Result<Vec<Post>
     let offset = ipp * (page - 1);
     sqlx::query_as!(
         Post,
-        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent is NULL ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media.path as media, post.created_at as created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username LEFT JOIN media ON post.media = media.md5sum WHERE parent is NULL ORDER BY post.created_at DESC OFFSET $1 LIMIT $2"#,
         offset as i64,
         ipp as i64
     )
@@ -36,7 +37,7 @@ pub async fn get_by_page(pool: &PgPool, ipp: i64, page: i64) -> Result<Vec<Post>
 pub async fn get_by_parent(pool: &PgPool, parent: i32) -> Result<Vec<Post>, Error> {
     sqlx::query_as!(
         Post,
-        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media, created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username WHERE parent = $1 ORDER BY created_at ASC"#,
+        r#"SELECT id, parent, content, character, character.name as character_name, reaction, media.path as media, post.created_at as created_at, feeling, is_with FROM post LEFT JOIN character ON post.character = character.username LEFT JOIN media ON post.media = media.md5sum WHERE parent = $1 ORDER BY created_at ASC"#,
         parent
     )
     .fetch_all(pool)
@@ -103,4 +104,15 @@ pub async fn delete(pool: &PgPool, id: i32) -> Result<(), Error> {
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub(crate) async fn remove_media<S: AsRef<str>>(pool: &PgPool, md5sum: S) -> Result<PgQueryResult, Error> {
+    sqlx::query!(r#"UPDATE post SET media = NULL WHERE media = $1"#, md5sum.as_ref())
+        .execute(pool)
+        .await
+}
+
+pub(crate) async fn count_by_media(pool: &PgPool, md5sum: &str) -> Result<i64, Error> {
+    let rec = sqlx::query!(r#"SELECT count(id) FROM post WHERE media = $1"#, md5sum).fetch_one(pool).await?;
+    Ok(rec.count.unwrap_or_default())
 }
