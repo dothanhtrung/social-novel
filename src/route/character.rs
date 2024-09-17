@@ -18,6 +18,7 @@ struct CharacterForm {
 #[get("/characters")]
 pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
+    ctx.insert("subtitle", "- Character List");
 
     if let Ok(characters) = db::character::get_all(&data.pool).await {
         ctx.insert("characters", &characters);
@@ -34,8 +35,11 @@ pub async fn character(
     username: web::Path<String>,
 ) -> impl Responder {
     let mut ctx = tera::Context::new();
+    let username = &username.into_inner();
+    let subtitle = format!("- {}", username);
+    ctx.insert("subtitle", &subtitle);
 
-    if let Ok(char) = db::character::get(&data.pool, &username.into_inner()).await {
+    if let Ok(char) = db::character::get(&data.pool, username).await {
         ctx.insert("character", &char);
     }
 

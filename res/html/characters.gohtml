@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% include "include/header.gohtml" %}
-    <title>Social Novel - Character List</title>
-</head>
-<body>
 
-{% include "include/dashboard.gohtml" %}
+{% include "include/header.html" %}
+{% include "include/dashboard.html" %}
 
 
 <!--
@@ -92,7 +86,7 @@
 
         </div>
     </div>
-    <a href="/delete/character/{{character.username}}">
+    <a href="/delete/character/{{character.username}}"  onclick="return confirm('Delete character {{character.name}}}}?')">
     <button type="submit" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">Delete</button>
     </a>
     </div>

@@ -31,8 +31,11 @@ pub struct AppState {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    env_logger::init();
+
     let args = Cli::parse();
     let mut config = Ini::new();
+
     let _ = config.load(args.config);
     let config_root_dir = config.get("default", "root").unwrap();
     let root_dir = Path::new(&config_root_dir).to_path_buf();
