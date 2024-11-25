@@ -23,7 +23,7 @@ rust-project.json
 .idea
 
 ### Test data
-docker/postgres/data/
+db/docker/postgres/data/
 
 ### Node
 node_modules/

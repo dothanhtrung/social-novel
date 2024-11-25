@@ -18,7 +18,7 @@ futures = "0.3.17"
 md-5 = "0.10"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0"}
-sqlx = { version = "0.8", features = ["runtime-async-std-native-tls", "postgres", "time"] }
+sqlx = { version = "0.8", features = ["runtime-async-std-native-tls", "postgres", "sqlite", "time"] }
 tera = "1.8.0"
 walkdir = "2"
 anyhow = "1.0"
