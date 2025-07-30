@@ -1,86 +1,147 @@
+//! Copyright (c) 2025 Trung Do <dothanhtrung@pm.me>.
+
+#[cfg(target_os = "linux")]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(target_os = "linux")]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
+mod api;
+mod config;
 mod db;
-mod route;
+mod ui;
 
-use actix_files::Files;
+use crate::config::Config;
+use crate::db::DBPool;
+use crate::ui::Broadcaster;
+use actix_cors::Cors;
+use actix_web::dev::ServerHandle;
 use actix_web::web::Data;
-use actix_web::{App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
+use anyhow::anyhow;
 use clap::Parser;
-use configparser::ini::Ini;
-use dotenvy::dotenv;
-use sqlx::postgres::PgPool;
-use std::env;
+use parking_lot::Mutex;
 use std::path::{Path, PathBuf};
-use tera::Tera;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing_subscriber::EnvFilter;
 
-use crate::route::character;
-use crate::route::index;
+const BASE_PATH_PREFIX: &str = "base_";
 
 #[derive(Parser)]
+#[command(version, about)]
 struct Cli {
-    #[clap(short, long, default_value = "config.ini")]
-    config: String,
+    /// Config file path
+    #[clap(short, long, default_value = "./social-novel.ron")]
+    config: PathBuf,
 }
 
-pub struct AppState {
-    pub pool: PgPool,
-    pub root_dir: PathBuf,
-    pub thumbnail_dir: PathBuf,
-    pub ipp: i64,
+struct ConfigData {
+    config: RwLock<Config>,
+    config_path: PathBuf,
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-    env_logger::init();
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    dotenvy::dotenv().ok();
 
+    // Subscriber that prints formatted traces to stdout
+    let subscriber = tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_thread_ids(true)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
+
+    // Parse command line arguments
     let args = Cli::parse();
-    let mut config = Ini::new();
 
-    let _ = config.load(args.config);
-    let config_root_dir = config.get("default", "root").unwrap();
-    let root_dir = Path::new(&config_root_dir).to_path_buf();
-    let thumbnail_dir = root_dir.join("thumbnail");
-    let db_path = config.get("default", "db").unwrap_or("".to_string());
-    let port = config.get("default", "port").unwrap_or("10000".to_string());
-    let ipp: i64 = config
-        .get("default", "ipp")
-        .unwrap_or("24".to_string())
-        .parse()
-        .unwrap_or(24);
+    // Load config file
+    let mut config = load_config(&args.config)?;
 
-    let pool = PgPool::connect(&db_path).await;
-    if pool.is_err() {
-        log::error!("Failed to connect to {db_path}");
-        return Ok(());
+    let stop_handle = Arc::new(RwLock::new(StopHandle::default()));
+
+    loop {
+        let db_pool = match DBPool::init(&config.db).await {
+            Ok(pool) => pool,
+            Err(e) => {
+                return Err(anyhow!("Failed to connect database: {}.", e,));
+            }
+        };
+
+        let listen_addr = format!("{}:{}", &config.listen_addr, &config.listen_port);
+
+        let ref_db_pool = Arc::new(db_pool);
+        let config_data = Arc::new(ConfigData {
+            config: RwLock::new(config.clone()),
+            config_path: args.config.clone(),
+        });
+        let broadcaster = Broadcaster::create();
+
+        let srv = HttpServer::new({
+            let stop_handle = stop_handle.clone();
+            move || {
+                let mut app = App::new()
+                    .wrap(Cors::default().allow_any_origin())
+                    .wrap(middleware::NormalizePath::trim())
+                    .app_data(Data::from(stop_handle.clone()))
+                    .app_data(Data::from(ref_db_pool.clone()))
+                    .app_data(Data::from(config_data.clone()))
+                    .app_data(Data::from(Arc::clone(&broadcaster)));
+
+                app = app.service(web::scope("").configure(ui::scope_config).configure(ui::scope_config));
+                app
+            }
+        })
+        .bind(listen_addr)?
+        .run();
+
+        // register the server handle with the stop handle
+        stop_handle.read().await.register(srv.handle());
+
+        // run server until stopped (either by ctrl-c or stop endpoint)
+        let _ = srv.await;
+
+        if !stop_handle.read().await.is_restarted {
+            break;
+        }
+
+        stop_handle.write().await.is_restarted = false;
+
+        // Reload config
+        config = load_config(&args.config)?;
     }
-    let pool = pool.unwrap();
+    Ok(())
+}
 
-    println!("Server will start at :{port}");
+#[derive(Default)]
+struct StopHandle {
+    inner: Mutex<Option<ServerHandle>>,
+    is_restarted: bool,
+}
 
-    HttpServer::new(move || {
-        let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/res/html/**/*")).unwrap();
+impl StopHandle {
+    /// Sets the server handle to stop.
+    pub(crate) fn register(&self, handle: ServerHandle) {
+        *self.inner.lock() = Some(handle);
+    }
 
-        App::new()
-            .app_data(Data::new(tera))
-            .app_data(Data::new(AppState {
-                pool: pool.clone(),
-                root_dir: root_dir.clone(),
-                thumbnail_dir: thumbnail_dir.clone(),
-                ipp,
-            }))
-            .service(index::index)
-            .service(index::add_post)
-            .service(index::delete_post)
-            .service(character::characters)
-            .service(character::character)
-            .service(character::add_character)
-            .service(character::update_character)
-            .service(character::delete_character)
-            .service(Files::new("/img", root_dir.clone()))
-            .service(Files::new("/css", concat!(env!("CARGO_MANIFEST_DIR"), "/res/css")))
-            .service(Files::new("/js", concat!(env!("CARGO_MANIFEST_DIR"), "/res/js")))
-    })
-    .bind(format!("0.0.0.0:{}", port))?
-    .run()
-    .await
+    /// Sends stop signal through contained server handle.
+    pub(crate) fn stop(&self, graceful: bool) {
+        #[allow(clippy::let_underscore_future)]
+        let _ = self.inner.lock().as_ref().unwrap().stop(graceful);
+    }
+}
+
+fn load_config(config_path: &Path) -> anyhow::Result<Config> {
+    if config_path.exists() {
+        match Config::load(config_path) {
+            Ok(c) => Ok(c),
+            Err(e) => Err(anyhow!("Failed to load config file {}: {}", config_path.display(), e)),
+        }
+    } else {
+        let default_config = Config::default();
+        default_config.save(config_path, false)?;
+        Ok(default_config)
+    }
 }

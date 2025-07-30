@@ -5,6 +5,7 @@ use sqlx::{Error, PgPool};
 pub struct Character {
     pub username: String,
     pub name: String,
+    pub bio: Option<String>
 }
 
 pub async fn get_all(pool: &PgPool) -> Result<Vec<Character>, Error> {

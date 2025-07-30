@@ -1,5 +1,5 @@
 use crate::db::post::Post;
-use crate::route::{delete_file, redirect, save_file};
+use crate::ui::{delete_file, redirect, save_file};
 use crate::{db, AppState};
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;

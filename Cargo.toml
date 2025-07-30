@@ -1,29 +1,45 @@
 [package]
 name = "social-novel"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Trung Do <dothanhtrung@pm.me>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-actix-files = "0.6"
-actix-http = "3.2"
-actix-multipart = "0.7"
-actix-web = "4"
-async-recursion = "1.0.0"
-async-std = "1.10.0"
-clap = { version = "4.5", features = ["derive"] }
-configparser = "3.0"
-dotenvy = "0.15"
-futures = "0.3.17"
-md-5 = "0.10"
-serde = {version = "1.0", features = ["derive"]}
-serde_json = {version = "1.0"}
-sqlx = { version = "0.8", features = ["runtime-async-std-native-tls", "postgres", "sqlite", "time"] }
-tera = "1.8.0"
-walkdir = "2"
 anyhow = "1.0"
-log = "0.4"
-env_logger = "0.11"
+actix-web = { version = "4.11" }
+actix-files = "0.6"
+actix-multipart = { version = "0.7" }
+actix-cors = "0.7"
+actix-web-lab = "0.24"
+clap = { version = "4.5", features = ["derive"] }
+ron = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.45", features = ["rt-multi-thread", "macros"] }
+tokio-stream = {version = "0.1"}
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "time", "migrate"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tera = "1.20"
+jwalk = "0.8"
+#sha2 = "0.11.0-rc"
+blake3 = "1.8"
+#hex = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "stream", "rustls-tls"] }
+dotenvy = "0.15"
+infer = "0.19"
+indexmap = "2.10"
+parking_lot = "0.12"
+futures-util = "0.3.31"
+
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tikv-jemallocator = "0.6"
+
+[features]
+default = ["sqlite"]
+postgresql = ["sqlx/postgres"]
+sqlite = ["sqlx/sqlite"]
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

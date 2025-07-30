@@ -5,8 +5,9 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use std::path::PathBuf;
 
 use crate::db;
-use crate::route::{redirect, save_file};
-use crate::AppState;
+use crate::db::DBPool;
+use crate::ui::{redirect, save_file};
+
 
 #[derive(MultipartForm)]
 struct CharacterForm {
@@ -16,11 +17,11 @@ struct CharacterForm {
 }
 
 #[get("/characters")]
-pub async fn characters(data: web::Data<AppState>, tmpl: web::Data<tera::Tera>) -> impl Responder {
+pub async fn characters(db_pool: web::Data<DBPool>, tmpl: web::Data<tera::Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
     ctx.insert("subtitle", "- Character List");
 
-    if let Ok(characters) = db::character::get_all(&data.pool).await {
+    if let Ok(characters) = db::character::get_all(&db_pool.pool).await {
         ctx.insert("characters", &characters);
     }
 
