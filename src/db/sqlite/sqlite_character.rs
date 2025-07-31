@@ -1,4 +1,4 @@
-use crate::db::character::Character;
+use crate::db::db_character::Character;
 use sqlx::SqlitePool;
 
 pub(crate) async fn search(pool: &SqlitePool, search: &str) -> Result<Vec<Character>, sqlx::Error> {
@@ -12,7 +12,7 @@ pub(crate) async fn search(pool: &SqlitePool, search: &str) -> Result<Vec<Charac
     .await
 }
 
-pub(crate) async fn add(pool: &SqlitePool, name: &str, username: &str) -> Result<i64, sqlx::Error> {
+pub(crate) async fn insert(pool: &SqlitePool, name: &str, username: &str) -> Result<i64, sqlx::Error> {
     let id = sqlx::query!(
         "INSERT INTO character (name, username) VALUES (?, ?) RETURNING id",
         name,

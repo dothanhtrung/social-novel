@@ -1,8 +1,8 @@
-use crate::db::post::Post;
+use crate::db::db_post::Post;
 use sqlx::sqlite::SqliteQueryResult;
 use sqlx::SqlitePool;
 
-pub(crate) async fn add(pool: &SqlitePool, post: Post) -> Result<i64, sqlx::Error> {
+pub(crate) async fn insert(pool: &SqlitePool, post: &Post) -> Result<i64, sqlx::Error> {
     let id = sqlx::query!(
         "INSERT INTO post (content, author, parent, liked, haha, loved, surprised) VALUES (?,?,?,?,?,?,?) RETURNING id",
         post.content,
@@ -19,7 +19,7 @@ pub(crate) async fn add(pool: &SqlitePool, post: Post) -> Result<i64, sqlx::Erro
     Ok(id)
 }
 
-pub(crate) async fn get(pool: &SqlitePool, id: i64) -> Result<Post, sqlx::Error> {
+pub(crate) async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Post, sqlx::Error> {
     sqlx::query_as!(Post, r#"SELECT * FROM post  WHERE id = ?"#, id)
         .fetch_one(pool)
         .await
@@ -28,7 +28,7 @@ pub(crate) async fn get(pool: &SqlitePool, id: i64) -> Result<Post, sqlx::Error>
 pub(crate) async fn get_all(pool: &SqlitePool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
     sqlx::query_as!(
         Post,
-        r#"SELECT * FROM post  ORDER BY updated_at DESC LIMIT ? OFFSET ?"#,
+        r#"SELECT * FROM post ORDER BY updated_at DESC LIMIT ? OFFSET ?"#,
         limit,
         offset
     )
@@ -63,7 +63,7 @@ pub(crate) async fn get_by_parent(pool: &SqlitePool, parent_id: i64) -> Result<V
     .await
 }
 
-pub(crate) async fn update(pool: &SqlitePool, post: Post) -> Result<SqliteQueryResult, sqlx::Error> {
+pub(crate) async fn update(pool: &SqlitePool, post: &Post) -> Result<SqliteQueryResult, sqlx::Error> {
     sqlx::query!(
         "UPDATE post SET content = ?, author = ?, parent = ?, liked = ?, haha = ?, loved = ?, surprised = ?, updated_at = ? WHERE id = ?",
         post.content,

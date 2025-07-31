@@ -1,6 +1,6 @@
 
-mod character;
-mod index;
+mod ui_character;
+mod ui_post;
 
 use std::ffi::OsStr;
 use std::fs;

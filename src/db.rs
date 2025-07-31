@@ -2,8 +2,8 @@
 
 #[cfg(feature = "sqlite")]
 mod sqlite;
-pub mod character;
-pub mod post;
+pub mod db_character;
+pub mod db_post;
 
 #[cfg(feature = "sqlite")]
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};

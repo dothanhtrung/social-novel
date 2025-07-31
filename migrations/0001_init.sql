@@ -1,4 +1,4 @@
-create table character
+create table if not exists character
 (
     name     TEXT    not null,
     username TEXT    not null
@@ -9,29 +9,29 @@ create table character
             primary key autoincrement
 );
 
-create table post
+create table if not exists post
 (
-    id         integer                           not null
+    id         integer                                 not null
         constraint post_pk
             primary key autoincrement,
-    content    TEXT                              not null,
-    liked      integer default 0                 not null,
-    created_at INTEGER default current_timestamp not null,
-    updated_at INTEGER default current_timestamp not null,
+    content    TEXT                                    not null,
+    liked      integer default 0                       not null,
+    created_at INTEGER default (strftime('%s', 'now')) not null,
+    updated_at INTEGER default (strftime('%s', 'now')) not null,
     parent     integer
         constraint post_post_id_fk
             references post
             on delete cascade,
-    author     integer default 1                 not null
+    author     integer default 1                       not null
         constraint post_character_id_fk
             references character
             on delete cascade,
-    haha       integer default 0                 not null,
-    loved      integer default 0                 not null,
-    surprised  integer default 0                 not null
+    haha       integer default 0                       not null,
+    loved      integer default 0                       not null,
+    surprised  integer default 0                       not null
 );
 
-create table media
+create table if not exists media
 (
     id   integer not null
         constraint media_pk
