@@ -1,0 +1,13 @@
+(
+    db: (
+        sqlite: (
+            db_path: "db/social-novel.sqlite",
+        ),
+    ),
+    listen_addr: "0.0.0.0",
+    listen_port: 9696,
+    api: (
+        per_page: 20,
+    ),
+    parallel: 8,
+)

@@ -2,7 +2,6 @@
 
 use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -11,7 +10,7 @@ use tracing::log::info;
 const DEFAULT_LISTEN_ADDR: &str = "0.0.0.0";
 const DEFAULT_LISTEN_PORT: u32 = 9696;
 
-const DEFAULT_SQLITE_PATH: &str = "sdmm.sqlite";
+const DEFAULT_SQLITE_PATH: &str = "social-novel.sqlite";
 
 const DEFAULT_API_PER_PAGE: u32 = 20;
 const DEFAULT_PARALLEL: usize = 8;

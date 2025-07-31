@@ -3,19 +3,6 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::types::time::{PrimitiveDateTime};
 use sqlx::{Error, PgPool};
 
-#[derive(sqlx::FromRow)]
-pub struct Post {
-    pub id: i32,
-    pub content: String,
-    pub character: String,
-    pub character_name: String,
-    pub reaction: i32,
-    pub media: Option<String>,
-    pub created_at: PrimitiveDateTime,
-    pub feeling: String,
-    pub is_with: String,
-}
-
 pub async fn count_all(pool: &PgPool) -> Result<i64, Error> {
     let rec = sqlx::query!(r#"SELECT count(id) FROM post"#).fetch_one(pool).await?;
     Ok(rec.count.unwrap_or_default())

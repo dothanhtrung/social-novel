@@ -8,20 +8,19 @@ use tikv_jemallocator::Jemalloc;
 static GLOBAL: Jemalloc = Jemalloc;
 
 mod api;
-mod config;
-mod db;
 mod ui;
 
-use crate::config::Config;
-use crate::db::DBPool;
 use crate::ui::Broadcaster;
 use actix_cors::Cors;
+use actix_files::Files;
 use actix_web::dev::ServerHandle;
 use actix_web::web::Data;
 use actix_web::{middleware, web, App, HttpServer};
 use anyhow::anyhow;
 use clap::Parser;
 use parking_lot::Mutex;
+use sn_internal::config::Config;
+use sn_internal::db::DBPool;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -87,9 +86,10 @@ async fn main() -> anyhow::Result<()> {
                     .app_data(Data::from(stop_handle.clone()))
                     .app_data(Data::from(ref_db_pool.clone()))
                     .app_data(Data::from(config_data.clone()))
-                    .app_data(Data::from(Arc::clone(&broadcaster)));
+                    .app_data(Data::from(Arc::clone(&broadcaster)))
+                    .service(Files::new("/data", "data"));
 
-                app = app.service(web::scope("").configure(ui::scope_config).configure(ui::scope_config));
+                app = app.service(web::scope("").configure(api::scope_config).configure(ui::scope_config));
                 app
             }
         })

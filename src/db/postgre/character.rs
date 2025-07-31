@@ -1,12 +1,7 @@
 use serde::Serialize;
 use sqlx::{Error, PgPool};
 
-#[derive(Serialize)]
-pub struct Character {
-    pub username: String,
-    pub name: String,
-    pub bio: Option<String>
-}
+
 
 pub async fn get_all(pool: &PgPool) -> Result<Vec<Character>, Error> {
     sqlx::query_as!(Character, r#"SELECT * FROM character ORDER BY username ASC"#)
