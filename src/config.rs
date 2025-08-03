@@ -57,6 +57,7 @@ pub struct Config {
     pub api: APIConfig,
     #[serde(default)]
     pub parallel: usize,
+    pub data_dir: String,
 }
 
 impl Default for Config {
@@ -67,6 +68,7 @@ impl Default for Config {
             parallel: DEFAULT_PARALLEL,
             db: DBConfig::default(),
             api: APIConfig::default(),
+            data_dir: "./data".to_string(),       
         }
     }
 }

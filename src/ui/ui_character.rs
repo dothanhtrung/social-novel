@@ -1,13 +1,6 @@
 
-
 pub async fn characters() {}
 
-// #[derive(MultipartForm)]
-// struct CharacterForm {
-//     username: Text<String>,
-//     name: Text<String>,
-//     avatar: Option<TempFile>,
-// }
 //
 // #[get("/characters")]
 // pub async fn characters(db_pool: web::Data<DBPool>, tmpl: web::Data<tera::Tera>) -> impl Responder {
