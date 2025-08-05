@@ -1,11 +1,13 @@
 mod api_character;
 mod api_post;
 
+use std::ffi::OsStr;
+use std::fs::File;
 use std::io::{BufReader, Read};
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::web;
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 use tracing::{error, info, warn};
 
@@ -44,7 +46,7 @@ impl CommonMessage {
 }
 
 async fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &str) -> Result<(String, String), ()> {
-    let md5sum;
+    let blake3_hash;
 
     if let Some(f) = temp_file {
         if !target_dir.exists() {
@@ -54,7 +56,7 @@ async fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name:
             }
         }
 
-        let mut hasher = Md5::new();
+        let mut hasher = blake3::Hasher::new();
         let temp_file_name = f.file_name.unwrap_or_default();
         let extension = Path::new(temp_file_name.as_str())
             .extension()
@@ -72,10 +74,10 @@ async fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name:
             ()
         })?;
         hasher.update(&buf);
-        md5sum = format!("{:x}", hasher.finalize());
+        blake3_hash = hasher.finalize().to_hex().to_string().to_lowercase();
 
         let saved_name = if file_name.is_empty() {
-            format!("{}.{}", md5sum, extension)
+            format!("{}.{}", blake3_hash, extension)
         } else {
             String::from(file_name)
         };
@@ -94,7 +96,7 @@ async fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name:
             info!("File {saved_name} exists");
         }
 
-        return Ok((md5sum, saved_name));
+        return Ok((blake3_hash, saved_name));
     }
     Ok((String::new(), String::new()))
 }
@@ -113,4 +115,22 @@ async fn save_avatar(root_dir: &PathBuf, avatar: Option<TempFile>, file_name: &s
     if save_file(&path, avatar, file_name).await.is_ok() {
         info!("Saved avatar successfully");
     }
+}
+
+fn calculate_blake3(file_path: &Path) -> std::io::Result<String> {
+    let file = File::open(file_path)?;
+    let mut reader = BufReader::new(file);
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0u8; 8192];
+
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+
+    let result = hasher.finalize();
+    Ok(result.to_hex().to_string().to_lowercase())
 }

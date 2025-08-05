@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use crate::api::{save_avatar, CommonMessage};
+use crate::ConfigData;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
@@ -8,7 +8,7 @@ use actix_web::{post, Responder};
 use serde::{Deserialize, Serialize};
 use sn_internal::db::db_character::Character;
 use sn_internal::db::{db_character, DBPool};
-use crate::ConfigData;
+use std::path::PathBuf;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -84,7 +84,11 @@ async fn delete(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responde
 }
 
 #[post("")]
-async fn update(db_pool: web::Data<DBPool>, config_data: web::Data<ConfigData>, MultipartForm(data): MultipartForm<CharacterForm>) -> impl Responder {
+async fn update(
+    db_pool: web::Data<DBPool>,
+    config_data: web::Data<ConfigData>,
+    MultipartForm(data): MultipartForm<CharacterForm>,
+) -> impl Responder {
     let mut err = String::new();
     let mut msg = String::new();
     let config = config_data.config.read().await;
@@ -93,7 +97,11 @@ async fn update(db_pool: web::Data<DBPool>, config_data: web::Data<ConfigData>, 
     let data_dir = PathBuf::from(&config.data_dir);
     save_avatar(&data_dir, data.avatar, file_name.as_str()).await;
 
-    let character: Character = data.into();
+    let character = Character {
+        username: data.username.0,
+        name: data.name.0,
+        id: data.id.0,
+    };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {
             err = e.to_string();
@@ -105,7 +113,6 @@ async fn update(db_pool: web::Data<DBPool>, config_data: web::Data<ConfigData>, 
     } else {
         msg = "Success".to_string();
     }
-
 
     web::Json(CommonMessage::new(msg, err))
 }

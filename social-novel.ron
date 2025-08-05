@@ -1,4 +1,5 @@
 (
+    data_dir: "/tmp",
     db: (
         sqlite: (
             db_path: "db/social-novel.sqlite",
