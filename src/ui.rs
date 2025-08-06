@@ -2,10 +2,6 @@
 mod ui_character;
 mod ui_post;
 
-use std::ffi::OsStr;
-use std::fs;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
 use actix_files::Files;
 use actix_web::rt::time::interval;
 use actix_web::web::Data;
@@ -19,11 +15,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use actix_multipart::form::tempfile::TempFile;
 use tera::Tera;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::{error, info, warn};
 
 pub fn scope_config(cfg: &mut web::ServiceConfig) {
     let tera = Tera::new("res/html/**/*").unwrap();
@@ -32,7 +26,8 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
         .service(event_stream)
         .service(Files::new("/assets", "res/assets"))
         .service(Files::new("/css", "res/css"))
-        .service(Files::new("/js", "res/js"));
+        .service(Files::new("/js", "res/js"))
+        .configure(ui_character::scope);
 }
 
 #[derive(Serialize, Deserialize)]

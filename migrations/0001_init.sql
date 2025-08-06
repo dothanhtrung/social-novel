@@ -33,12 +33,14 @@ create table if not exists post
 
 create table if not exists media
 (
-    id   integer not null
+    id        integer not null
         constraint media_pk
             primary key autoincrement,
-    url  TEXT    not null,
-    type integer,
-    post integer not null
+    url       TEXT    not null
+        constraint media_pk_2
+            unique,
+    file_type integer not null,
+    post      integer not null
         constraint media_post_id_fk
             references post
             on delete cascade

@@ -28,16 +28,6 @@ struct CharacterForm {
     avatar: Option<TempFile>,
 }
 
-impl Into<Character> for CharacterForm {
-    fn into(self) -> Character {
-        Character {
-            id: self.id.into_inner(),
-            username: self.username.into_inner(),
-            name: self.name.into_inner(),
-        }
-    }
-}
-
 #[derive(Deserialize, Serialize)]
 struct SearchQuery {
     #[serde(default)]

@@ -1,6 +1,26 @@
+use actix_web::{get, web, HttpResponse, Responder};
+use tera::Tera;
 
-pub async fn characters() {}
+pub fn scope(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/character")
+            .service(index),
+    );
+}
 
+
+#[get("")]
+async fn index(tmpl: web::Data<Tera>)-> impl Responder {
+    let mut ctx = tera::Context::new();
+    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+
+    match tmpl.render("characters.gohtml", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
 //
 // #[get("/characters")]
 // pub async fn characters(db_pool: web::Data<DBPool>, tmpl: web::Data<tera::Tera>) -> impl Responder {
