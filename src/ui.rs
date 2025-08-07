@@ -27,7 +27,9 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
         .service(Files::new("/assets", "res/assets"))
         .service(Files::new("/css", "res/css"))
         .service(Files::new("/js", "res/js"))
-        .configure(ui_character::scope);
+        .configure(ui_character::scope)
+        .configure(ui_post::scope)
+    ;
 }
 
 #[derive(Serialize, Deserialize)]

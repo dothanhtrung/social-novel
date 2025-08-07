@@ -1,11 +1,16 @@
-use crate::api::CommonMessage;
+use crate::api::{delete_file, save_file, CommonMessage};
 use crate::ConfigData;
+use actix_multipart::form::tempfile::TempFile;
+use actix_multipart::form::text::Text;
+use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
 use actix_web::{get, post, web, Responder};
 use serde::{Deserialize, Serialize};
+use sn_internal::db::db_media::Media;
 use sn_internal::db::db_post::Post;
-use sn_internal::db::{db_post, DBPool};
+use sn_internal::db::{db_media, db_post, DBPool};
 use std::cmp::max;
+use std::path::{Path, PathBuf};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/post").service(get).service(update));
@@ -24,6 +29,22 @@ struct PostQuery {
     count: Option<i64>,
     author: Option<i64>,
     parent: Option<i64>,
+}
+
+#[derive(MultipartForm)]
+struct PostForm {
+    id: Text<i64>,
+    content: Text<String>,
+    media: Vec<TempFile>,
+    author: Text<i64>,
+    parent: Text<i64>,
+    liked: Text<i64>,
+    haha: Text<i64>,
+    loved: Text<i64>,
+    surprised: Text<i64>,
+    sad: Text<i64>,
+    feeling: Text<String>,
+    is_with: Text<String>,
 }
 
 #[get("")]
@@ -66,18 +87,70 @@ async fn get(
 }
 
 #[post("")]
-async fn update(dbpool: web::Data<DBPool>, post: web::Json<Post>) -> impl Responder {
+async fn update(
+    dbpool: web::Data<DBPool>,
+    config_data: web::Data<ConfigData>,
+    MultipartForm(data): MultipartForm<PostForm>,
+) -> impl Responder {
     let mut msg = String::new();
     let mut err = String::new();
+    let config = config_data.config.read().await;
+    let form_parent = data.parent.into_inner();
+    let parent = if form_parent > 0 { Some(form_parent) } else { None };
 
+    let post = Post {
+        id: data.id.into_inner(),
+        content: data.content.into_inner(),
+        author: data.author.into_inner(),
+        created_at: 0,
+        updated_at: 0,
+        parent,
+        liked: data.liked.into_inner(),
+        haha: data.haha.into_inner(),
+        loved: data.loved.into_inner(),
+        surprised: data.surprised.into_inner(),
+        sad: data.sad.into_inner(),
+        feeling: data.feeling.into_inner(),
+        is_with: data.is_with.into_inner(),
+    };
+
+    let mut post_id = post.id;
     if post.id > 0 {
         match db_post::update(&dbpool, &post).await {
             Ok(_) => msg = "Success".to_string(),
-            Err(e) => err = e.to_string(),
+            Err(e) => {
+                err = e.to_string();
+                return web::Json(CommonMessage::new(msg, err));
+            }
         }
     } else {
         match db_post::insert(&dbpool, &post).await {
-            Ok(_) => msg = "Success".to_string(),
+            Ok(id) => {
+                post_id = id;
+                msg = "Success".to_string();
+            }
+            Err(e) => {
+                err = e.to_string();
+                return web::Json(CommonMessage::new(msg, err));
+            }
+        }
+    }
+
+    let data_dir = PathBuf::from(&config.data_dir);
+    for media in data.media {
+        match save_file(&data_dir, media, "").await {
+            Ok((blake3, file_name, file_type)) => {
+                let media = Media {
+                    id: 0,
+                    post: post_id,
+                    url: file_name,
+                    blake3,
+                    file_type,
+                };
+                if let Err(e) = db_media::insert(&dbpool, &media).await {
+                    err = e.to_string();
+                }
+            }
             Err(e) => err = e.to_string(),
         }
     }
@@ -86,11 +159,21 @@ async fn update(dbpool: web::Data<DBPool>, post: web::Json<Post>) -> impl Respon
 }
 
 #[get("delete/{id}")]
-async fn delete(dbpool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
+async fn delete(dbpool: web::Data<DBPool>, config_data: web::Data<ConfigData>, id: web::Path<i64>) -> impl Responder {
     let mut msg = String::new();
     let mut err = String::new();
-    match db_post::delete(&dbpool, id.into_inner()).await {
-        Ok(_) => msg = "Success".to_string(),
+    let config = config_data.config.read().await;
+    let post_id = id.into_inner();
+    match db_post::delete(&dbpool, post_id).await {
+        Ok(_) => {
+            if let Ok(urls) = db_media::delete_by_post(&dbpool, post_id).await {
+                let data_dir = Path::new(&config.data_dir);
+                for url in urls {
+                    delete_file(data_dir, url.as_str()).await;
+                }
+                msg = "Success".to_string();
+            }
+        }
         Err(e) => err = e.to_string(),
     }
     web::Json(CommonMessage::new(msg, err))

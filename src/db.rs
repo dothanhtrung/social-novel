@@ -4,7 +4,7 @@
 mod sqlite;
 pub mod db_character;
 pub mod db_post;
-mod db_media;
+pub mod db_media;
 
 #[cfg(feature = "sqlite")]
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};

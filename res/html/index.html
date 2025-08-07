@@ -1,501 +1,206 @@
 {% include "include/header.html" %}
 {% include "include/dashboard.html" %}
 
-<form action="/" method="post" enctype="multipart/form-data">
-    <div class="space-y-12">
-        <div class="border-b border-gray-900/10 pb-12">
-            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                <div class="sm:col-span-4">
-                    <div class="mt-2">
-                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
-                            <input type="text" name="character" id="character" autocomplete="character"
-                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-                                   placeholder="character">
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
-                            <input type="text" name="feeling" id="feeling" autocomplete="feeling"
-                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-                                   placeholder="feeling">
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
-                            <input type="text" name="is_with" id="is_with" autocomplete="is_with"
-                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-                                   placeholder="is_with">
-                        </div>
-                    </div>
-                </div>
+<form id="post-form" action="/api/post" method="POST" enctype="multipart/form-data" class="max-w-2xl mx-auto bg-white p-6 rounded shadow space-y-4">
+    <h2 class="text-xl font-bold">Create New Post</h2>
 
-                <div class="col-span-full">
-                    <label for="about" class="block text-sm font-medium leading-6 text-gray-900">About</label>
-                    <div class="mt-2">
-                        <textarea id="content" name="content" rows="3"
-                                  class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>
-                    </div>
-                </div>
+    <!-- Character (autocomplete by username) -->
+    <input name="id" type="number" value=0 hidden />
+    <input name="parent" type="number" value=0 hidden />
+    <div>
+        <label for="character" class="block font-medium mb-1">Character (by username)</label>
+        <input list="character-list" autocomplete="off" name="author" id="character" class="w-full border border-gray-300 rounded px-3 py-2" required />
+        <datalist id="character-list">
+            <!-- Options will be inserted via JS -->
+        </datalist>
+    </div>
 
-                <div class="col-span-full">
-                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
-                        <div class="text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor"
-                                 aria-hidden="true">
-                                <path fill-rule="evenodd"
-                                      d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                            <div class="mt-4 flex text-sm leading-6 text-gray-600">
-                                <label for="media"
-                                       class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
-                                    <span>Upload a file</span>
-                                    <input id="media" name="media" type="file" class="sr-only">
-                                </label>
-                                <p class="pl-1">or drag and drop</p>
-                            </div>
-                            <p class="text-xs leading-5 text-gray-600">PNG, JPG, GIF up to 10MB</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Feeling -->
+    <div>
+        <label for="feeling" class="block font-medium mb-1">Feeling</label>
+        <input name="feeling" type="text" class="w-full border border-gray-300 rounded px-3 py-2" />
+    </div>
+
+    <!-- Is With -->
+    <div>
+        <label for="is_with" class="block font-medium mb-1">Is With</label>
+        <input name="is_with" type="text" list="character-suggestions"
+               placeholder="Type character names separated by commas"
+               autocomplete="off"
+               class="w-full border border-gray-300 rounded px-3 py-2"  />
+        <datalist id="character-suggestions">
+            <!-- JS will populate options here -->
+        </datalist>
+    </div>
+
+    <!-- Content -->
+    <div>
+        <textarea name="content" placeholder="What's on your mind?" rows=9 class="w-full border border-gray-300 rounded px-3 py-2 h-48 resize-vertical"></textarea>
+    </div>
+
+    <!-- Media -->
+    <div>
+        <input name="media" type="file" accept="image/*" class="w-full" multiple />
+    </div>
+
+    <!-- Reactions -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+        <div>
+            <label class="block text-center text-2xl">👍</label>
+            <input name="liked" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
+        </div>
+        <div>
+            <label class="block text-center text-2xl">😂</label>
+            <input name="haha" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
+        </div>
+        <div>
+            <label class="block text-center text-2xl">❤️</label>
+            <input name="loved" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
+        </div>
+        <div>
+            <label class="block text-center text-2xl">😮</label>
+            <input name="surprised" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
+        </div>
+        <div>
+            <label class="block text-center text-2xl">😢</label>
+            <input name="sad" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
         </div>
     </div>
 
-    <div class="mt-6 flex items-center justify-end gap-x-6">
-        <!--        <button type="button" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>-->
-        <button type="submit"
-                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-            Add
-        </button>
+    <!-- Submit -->
+    <div class="text-right">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit</button>
     </div>
 </form>
 
-<div class="w-3/5">
-    {% for post in posts %}
-    <div class="">
-        <a href="/delete/post/{{post.id}}" onclick="return confirm('Delete post?')">
-            <button type="submit"
-                    class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
-                Delete
-            </button>
-        </a>
-        <div class="bg-white shadow mt-4 p-3 pb-0 relative">
-            <div class="flex items-center">
-                <div>
-                    <img alt="{{post.username}}" class="w-10 h-10 rounded-full" src="/img/avatar/{{post.username}}.png">
-                </div>
+<script>
+    // Fetch characters and populate datalist
+    async function fetchCharacters() {
+        try {
+            const res = await fetch("/api/character");
+            const data = await res.json();
 
-                <div class="ml-2">
-                    <h5>
-                        <a class="text-blue-800 no-underline hover:underline font-medium" href="#">
-                            {{post.name}}
-                        </a>
+            if (data.characters && Array.isArray(data.characters)) {
+                const datalist = document.getElementById("character-list");
+                datalist.innerHTML = ""; // clear old
 
-                        <span class="text-sm text-gray-600">
-                            {% if post.feeling != '' %}
-                            is feeling <a class="text-blue-800 no-underline hover:underline"
-                                          href="#">{{post.feeling}}</a>
-                            {% endif %}
+                data.characters.forEach(c => {
+                    const option = document.createElement("option");
+                    option.value = c.id;
+                    option.textContent = `${c.name} (${c.username})`;
+                    option.dataset.id = c.id;
+                    datalist.appendChild(option);
+                });
+            } else {
+                alert("Invalid character data");
+            }
+        } catch (err) {
+            console.error("Failed to load characters:", err);
+        }
+    }
 
-                            {% if post.is_with != '' %}
-                            with
-                            <a class="text-blue-800 no-underline hover:underline" href="#">
-                                {{post.is_with}}
-                            </a>
-                            {% endif %}
-                        </span>
-                    </h5>
-                    <p class="text-xs font-normal text-gray-500 mt-1">
-                    <span class="cursor-pointer hover:underline">
-                        {{post.created_at}}
-                    </span>
-                    </p>
-                </div>
-            </div>
+    fetchCharacters();
+</script>
 
-            <div class="absolute right-0 top-0 mt-3 mr-3">
-                <?xml version="1.0" encoding="utf-8"?>
-                <svg class="w-4 h-4 text-right" viewbox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M576 736v192q0 40-28 68t-68 28h-192q-40 0-68-28t-28-68v-192q0-40 28-68t68-28h192q40 0 68 28t28 68zm512 0v192q0 40-28 68t-68 28h-192q-40 0-68-28t-28-68v-192q0-40 28-68t68-28h192q40 0 68 28t28 68zm512 0v192q0 40-28 68t-68 28h-192q-40 0-68-28t-28-68v-192q0-40 28-68t68-28h192q40 0 68 28t28 68z">
-                    </path>
-                </svg>
-            </div>
+<script>
+    document.getElementById('post-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            <h5 class="text-sm font-normal my-3" contenteditable="true">
-                {{post.content}}
-            </h5>
+        const form = e.target;
+        const formData = new FormData(form);
 
-            {% if post.media != '' %}
-            <div class="border">
-                <img alt="{{post.media}}" src="/img/{{post.media}}">
-            </div>
-            {% endif %}
+        try {
+            const res = await fetch('/api/post', {
+                method: 'POST',
+                body: formData,
+            });
 
-            <div class="flex py-1">
-                <button class="appearance-none flex-1 flex items-center justify-center py-2 text-center text-red-500 hover:bg-gray-200">
-                    <?xml version="1.0" encoding="iso-8859-1"?>
-                    <svg class="w-4 h-4 mr-1" id="Layer_1" style="enable-background:new 0 0 496.158 496.158;"
-                         version="1.1" viewbox="0 0 496.158 496.158" x="0px" xml:space="preserve"
-                         xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
-                                        <path d="M0,248.085C0,111.063,111.069,0.003,248.075,0.003c137.013,0,248.083,111.061,248.083,248.082
-    c0,137.002-111.07,248.07-248.083,248.07C111.069,496.155,0,385.087,0,248.085z" style="fill:#E04F5F;">
-                                        </path>
-                        <path d="M374.116,155.145c-34.799-34.8-91.223-34.8-126.022,0h-0.029c-34.801-34.8-91.224-34.8-126.023,0
-    c-34.801,34.8-29.783,86.842,0,126.022c31.541,41.491,89.129,109.944,126.023,109.944h0.029c36.895,0,94.481-68.453,126.022-109.944
-    C403.9,241.988,408.916,189.946,374.116,155.145z" style="fill:#FFFFFF;">
-                        </path>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                        <g>
-                        </g>
-                                    </svg>
-                    Love
-                </button>
-                <button class="appearance-none flex-1 flex items-center justify-center py-2 text-center text-gray-700 hover:bg-gray-200">
-                    <?xml version="1.0" encoding="utf-8"?>
-                    <svg class="w-4 h-4 mr-1" viewbox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1792 896q0 174-120 321.5t-326 233-450 85.5q-70 0-145-8-198 175-460 242-49 14-114 22-17 2-30.5-9t-17.5-29v-1q-3-4-.5-12t2-10 4.5-9.5l6-9 7-8.5 8-9q7-8 31-34.5t34.5-38 31-39.5 32.5-51 27-59 26-76q-157-89-247.5-220t-90.5-281q0-130 71-248.5t191-204.5 286-136.5 348-50.5q244 0 450 85.5t326 233 120 321.5z">
-                        </path>
-                    </svg>
-                    Comment
-                </button>
-                <button class="appearance-none flex-1 flex items-center justify-center py-2 text-center text-gray-700 hover:bg-gray-200">
-                    <?xml version="1.0" encoding="utf-8"?>
-                    <svg class="w-4 h-4 mr-1" viewbox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1792 640q0 26-19 45l-512 512q-19 19-45 19t-45-19-19-45v-256h-224q-98 0-175.5 6t-154 21.5-133 42.5-105.5 69.5-80 101-48.5 138.5-17.5 181q0 55 5 123 0 6 2.5 23.5t2.5 26.5q0 15-8.5 25t-23.5 10q-16 0-28-17-7-9-13-22t-13.5-30-10.5-24q-127-285-127-451 0-199 53-333 162-403 875-403h224v-256q0-26 19-45t45-19 45 19l512 512q19 19 19 45z">
-                        </path>
-                    </svg>
-                    Share
-                </button>
-            </div>
+            if (res.ok) {
+                location.reload(); // Reload on success
+            } else {
+                const err = await res.text();
+                console.log('Failed to submit: ' + err);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    });
+</script>
 
-            <div class="flex items-center bg-gray-200 p-2 -mx-3 border">
-                <div class="flex h-1 items-center px-3 my-3">
-                    <div class="bg-blue-500 z-10 w-5 h-5 rounded-full flex items-center justify-center ">
-                        <svg class="w-3 h-3 fill-current text-white" xmlns="http://www.w3.org/2000/svg" width="27"
-                             height="27" viewBox="0 0 24 24" fill="none" stroke="#b0b0b0" stroke-width="2"
-                             stroke-linecap="square" stroke-linejoin="round">
-                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                        </svg>
-                    </div>
-                    <div class="bg-red-500 w-5 h-5 rounded-full flex items-center justify-center -ml-1">
-                        <svg class="w-3 h-3 fill-current stroke-current text-white" xmlns="http://www.w3.org/2000/svg"
-                             width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#b0b0b0" stroke-width="2"
-                             stroke-linecap="square" stroke-linejoin="round">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <span class="text-xs text-gray-500 cursor-pointer hover:underline">
-                                    You and {{post.reaction}} others
-                                </span>
-            </div>
+<!--<form action="/" method="post" enctype="multipart/form-data">-->
+<!--    <div class="space-y-12">-->
+<!--        <div class="border-b border-gray-900/10 pb-12">-->
+<!--            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">-->
+<!--                <div class="sm:col-span-4">-->
+<!--                    <div class="mt-2">-->
+<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
+<!--                            <input type="text" name="character" id="character" autocomplete="character"-->
+<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
+<!--                                   placeholder="character">-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div class="mt-2">-->
+<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
+<!--                            <input type="text" name="feeling" id="feeling" autocomplete="feeling"-->
+<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
+<!--                                   placeholder="feeling">-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div class="mt-2">-->
+<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
+<!--                            <input type="text" name="is_with" id="is_with" autocomplete="is_with"-->
+<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
+<!--                                   placeholder="is_with">-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
 
-            {% for comment in post.comments %}
-            <div class="flex justify-center items-center">
-                <img alt="{{comment.username}}" src="/img/avatar/{{comment.username}}.png">
-                {{comment.name}}
-                <span contenteditable="true">
-                            {{comment.content}}
-                        </span>
-                {% if comment.media != '' %}
-                <img alt="{{content.media}}" src="/img/{{content.media}}">
-                {% endif %}
-                <div contenteditable="true">{{comment.reaction}}</div>
+<!--                <div class="col-span-full">-->
+<!--                    <label for="about" class="block text-sm font-medium leading-6 text-gray-900">About</label>-->
+<!--                    <div class="mt-2">-->
+<!--                        <textarea id="content" name="content" rows="3"-->
+<!--                                  class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>-->
+<!--                    </div>-->
+<!--                </div>-->
 
-                <div>
-                    {% for comment2 in comment.comments %}
-                    <img alt="{{comment2.username}}" src="/img/avatar/{{comment2.username}}.png">
-                    {{comment2.name}}
-                    <span contenteditable="true">
-                                {{comment2.content}}
-                            </span>
-                    {% if comment2.media != '' %}
-                    <img alt="{{comment2.media}}" src="/img/{{comment2.media}}">
-                    {% endif %}
-                    <div contenteditable="true">{{comment.reaction}}</div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
+<!--                <div class="col-span-full">-->
+<!--                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">-->
+<!--                        <div class="text-center">-->
+<!--                            <svg class="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor"-->
+<!--                                 aria-hidden="true">-->
+<!--                                <path fill-rule="evenodd"-->
+<!--                                      d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"-->
+<!--                                      clip-rule="evenodd"/>-->
+<!--                            </svg>-->
+<!--                            <div class="mt-4 flex text-sm leading-6 text-gray-600">-->
+<!--                                <label for="media"-->
+<!--                                       class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">-->
+<!--                                    <span>Upload a file</span>-->
+<!--                                    <input id="media" name="media" type="file" class="sr-only">-->
+<!--                                </label>-->
+<!--                                <p class="pl-1">or drag and drop</p>-->
+<!--                            </div>-->
+<!--                            <p class="text-xs leading-5 text-gray-600">PNG, JPG, GIF up to 10MB</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
 
-            <div>
-                <div class="h-screen bg-gray-100 flex justify-center items-center">
-                    <div class="bg-white w-full sm:max-w-7xl md:w-1/3 h-auto shadow px-3 py-2 flex flex-col space-y-2">
-
-                        <div class="flex items-center space-x-2">
-                            <div class="group relative flex flex-shrink-0 self-start cursor-pointer">
-                                <img
-                                        src="/img/avatar/admin.png" alt="" class="h-8 w-8 object-fill rounded-full">
-                            </div>
-
-                            <div class="flex items-center justify-center space-x-2">
-                                <div class="block">
-                                    <div class="flex justify-center items-center space-x-2">
-                                        <div class="bg-gray-100 w-auto rounded-xl px-2 pb-2">
-                                            <div class="font-medium">
-                                                <a href="#" class="hover:underline text-sm">
-                                                    <small>Ganendra</small>
-                                                </a>
-                                            </div>
-                                            <div class="text-xs">
-                                                Lorem ipsum, dolor sit amet consectetur adipisicing elit. Expedita,
-                                                maiores!
-                                            </div>
-                                        </div>
-                                        <div class="self-stretch flex justify-center items-center transform transition-opacity duration-200 opacity-0 hover:opacity-100">
-                                            <a href="#" class="">
-                                                <div class="text-xs cursor-pointer flex h-6 w-6 transform transition-colors duration-200 hover:bg-gray-100 rounded-full items-center justify-center">
-                                                    <svg class="w-4 h-6" fill="none" stroke="currentColor"
-                                                         viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                              stroke-width="2"
-                                                              d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                                    </svg>
-                                                </div>
-
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-start items-center text-xs w-full">
-                                        <div class="font-semibold text-gray-700 px-2 flex items-center justify-center space-x-1">
-                                            <a href="#" class="hover:underline">
-                                                <small>Like</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>Reply</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>15 hour</small>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                    <!-- Subcomment Sample -->
-                                    <div class="flex items-center space-x-2 space-y-2">
-                                        <div class="group relative flex flex-shrink-0 self-start cursor-pointer pt-2">
-                                            <img
-
-                                                    src="https://images.unsplash.com/photo-1610156830615-2eb9732de349?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDExfHJuU0tESHd3WVVrfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                                                    alt="" class="h-8 w-8 object-fill rounded-full">
-
-                                        </div>
-
-                                        <div class="flex items-center justify-center space-x-2">
-                                            <div class="block">
-                                                <div class="bg-gray-100 w-auto rounded-xl px-2 pb-2">
-                                                    <div class="font-medium">
-                                                        <a href="#" class="hover:underline text-sm">
-                                                            <small>Hasan Muhammad</small>
-                                                        </a>
-                                                    </div>
-                                                    <div class="text-xs">
-                                                        Lorem ipsum, dolor sit amet consectetur adipisicing elit.
-                                                        Expedita, maiores!
-                                                    </div>
-                                                </div>
-                                                <div class="flex justify-start items-center text-xs w-full">
-                                                    <div class="font-semibold text-gray-700 px-2 flex items-center justify-center space-x-1">
-                                                        <a href="#" class="hover:underline">
-                                                            <small>Like</small>
-                                                        </a>
-                                                        <small class="self-center">.</small>
-                                                        <a href="#" class="hover:underline">
-                                                            <small>Reply</small>
-                                                        </a>
-                                                        <small class="self-center">.</small>
-                                                        <a href="#" class="hover:underline">
-                                                            <small>15 hour</small>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <div class="self-stretch flex justify-center items-center transform transition-opacity duration-200 opacity-0 translate -translate-y-2 hover:opacity-100">
-                                            <a href="#" class="">
-                                                <div class="text-xs cursor-pointer flex h-6 w-6 transform transition-colors duration-200 hover:bg-gray-100 rounded-full items-center justify-center">
-                                                    <svg class="w-4 h-6" fill="none" stroke="currentColor"
-                                                         viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                              stroke-width="2"
-                                                              d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                                    </svg>
-                                                </div>
-
-                                            </a>
-                                        </div>
-
-                                    </div>
-
-                                    <!-- New Subcomment Paste Here !! -->
-
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <div class="flex items-center space-x-2">
-                            <div class="flex flex-shrink-0 self-start cursor-pointer">
-                                <img src="https://images.unsplash.com/photo-1551122089-4e3e72477432?ixid=MXwxMjA3fDB8MHxzZWFyY2h8M3x8cnVieXxlbnwwfHwwfA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                                     alt="" class="h-8 w-8 object-fill rounded-full">
-                            </div>
-
-                            <div class="flex items-center justify-center space-x-2">
-                                <div class="block">
-                                    <div class="bg-gray-100 w-auto rounded-xl px-2 pb-2">
-                                        <div class="font-medium">
-                                            <a href="#" class="hover:underline text-sm">
-                                                <small>Nirmala</small>
-                                            </a>
-                                        </div>
-                                        <div class="text-xs">
-                                            Lorem ipsum, dolor sit amet consectetur adipisicing elit. Expedita, maiores!
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-start items-center text-xs w-full">
-                                        <div class="font-semibold text-gray-700 px-2 flex items-center justify-center space-x-1">
-                                            <a href="#" class="hover:underline">
-                                                <small>Like</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>Reply</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>15 hour</small>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-
-                            <div class="self-stretch flex justify-center items-center transform transition-opacity duration-200 opacity-0 translate -translate-y-2 hover:opacity-100">
-                                <a href="#" class="">
-                                    <div class="text-xs cursor-pointer flex h-6 w-6 transform transition-colors duration-200 hover:bg-gray-100 rounded-full items-center justify-center">
-                                        <svg class="w-4 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                        </svg>
-                                    </div>
-
-                                </a>
-                            </div>
-
-                        </div>
-
-                        <div class="flex items-center space-x-2">
-                            <div class="flex flex-shrink-0 self-start cursor-pointer">
-                                <img src="https://images.unsplash.com/photo-1609349744982-0de6526d978b?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDU5fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                                     alt="" class="h-8 w-8 object-cover rounded-full">
-                            </div>
-
-                            <div class="flex items-center justify-center space-x-2">
-                                <div class="block">
-                                    <div class="bg-gray-100 w-auto rounded-xl px-2 pb-2">
-                                        <div class="font-medium">
-                                            <a href="#" class="hover:underline text-sm">
-                                                <small>Arkadewi</small>
-                                            </a>
-                                        </div>
-                                        <div class="text-xs">
-                                            Lorem ipsum, dolor sit amet consectetur adipisicing elit. Expedita, maiores!
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-start items-center text-xs w-full">
-                                        <div class="font-semibold text-gray-700 px-2 flex items-center justify-center space-x-1">
-                                            <a href="#" class="hover:underline">
-                                                <small>Like</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>Reply</small>
-                                            </a>
-                                            <small class="self-center">.</small>
-                                            <a href="#" class="hover:underline">
-                                                <small>15 hour</small>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-
-                            <div class="self-stretch flex justify-center items-center transform transition-opacity duration-200 opacity-0 translate -translate-y-2 hover:opacity-100">
-                                <a href="#" class="">
-                                    <div class="text-xs cursor-pointer flex h-6 w-6 transform transition-colors duration-200 hover:bg-gray-100 rounded-full items-center justify-center">
-                                        <svg class="w-4 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                        </svg>
-                                    </div>
-
-                                </a>
-                            </div>
-
-                        </div>
-
-                        <!-- New Comment Paste Here -->
-
-                    </div>
-
-                </div>
-            </div>
-
-            <div class="bg-gray-200 flex flex-between py-3 -mx-3 p-2">
-                <img id="commenter_avatar" class="w-8 h-8 rounded-full" src="/img/avatar/admin.png" alt="">
-                <form action="/">
-                    <input hidden="hidden" value="{{post.id}}">
-
-                <textarea name="content" placeholder="Write a comment..."
-                          class="appearance-none w-full mx-2 bg-grey-lighter rounded-full border bg-white h-8 px-2 pt-2 text-xs"></textarea>
-                </form>
-            </div>
-
-        </div>
-    </div>
-    {% endfor %}
-</div>
+<!--    <div class="mt-6 flex items-center justify-end gap-x-6">-->
+<!--        &lt;!&ndash;        <button type="button" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>&ndash;&gt;-->
+<!--        <button type="submit"-->
+<!--                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">-->
+<!--            Add-->
+<!--        </button>-->
+<!--    </div>-->
+<!--</form>-->
 
 
-<!--dashboard close tag-->
+<!-- dashboard close tags -->
 </div>
 </main>
-</div>
 
 </body>
 </html>

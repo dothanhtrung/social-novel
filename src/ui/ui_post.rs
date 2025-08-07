@@ -1,13 +1,36 @@
-// use crate::db::post::Post;
-// use crate::ui::{delete_file, redirect, save_file};
-// use crate::{db, AppState};
-// use actix_multipart::form::tempfile::TempFile;
-// use actix_multipart::form::text::Text;
-// use actix_multipart::form::MultipartForm;
-// use actix_web::cookie::time::{format_description};
-// use actix_web::{get, post, web, HttpResponse, Responder};
-// use serde::{Deserialize, Serialize};
-// use actix_web::web::post;
+use actix_web::{get, web, HttpResponse, Responder};
+use tera::Tera;
+
+pub fn scope(cfg: &mut web::ServiceConfig) {
+    cfg.service(index);
+}
+
+#[get("/")]
+async fn index(tmpl: web::Data<Tera>) -> impl Responder {
+    let mut ctx = tera::Context::new();
+    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+
+    match tmpl.render("index.html", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
+
+#[get("/{id}")]
+async fn get(tmpl: web::Data<Tera>) -> impl Responder {
+    let mut ctx = tera::Context::new();
+    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+
+    match tmpl.render("post.html", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
+
 //
 // #[derive(MultipartForm)]
 // struct PostForm {

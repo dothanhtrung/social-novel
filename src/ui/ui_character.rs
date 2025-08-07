@@ -16,7 +16,7 @@ async fn index(tmpl: web::Data<Tera>)-> impl Responder {
     let mut ctx = tera::Context::new();
     // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
 
-    match tmpl.render("characters.gohtml", &ctx) {
+    match tmpl.render("characters.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
         Err(e) => HttpResponse::Ok()
             .content_type("text/html")
@@ -29,7 +29,7 @@ async fn get(tmpl: web::Data<Tera>)-> impl Responder {
     let mut ctx = tera::Context::new();
     // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
 
-    match tmpl.render("character.gohtml", &ctx) {
+    match tmpl.render("character.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
         Err(e) => HttpResponse::Ok()
             .content_type("text/html")
@@ -46,7 +46,7 @@ async fn get(tmpl: web::Data<Tera>)-> impl Responder {
 //         ctx.insert("characters", &characters);
 //     }
 //
-//     let template = tmpl.render("characters.gohtml", &ctx).unwrap_or("Not found".into());
+//     let template = tmpl.render("characters.html", &ctx).unwrap_or("Not found".into());
 //     HttpResponse::Ok().content_type("text/html").body(template)
 // }
 //
@@ -65,7 +65,7 @@ async fn get(tmpl: web::Data<Tera>)-> impl Responder {
 //         ctx.insert("character", &char);
 //     }
 //
-//     let template = tmpl.render("character.gohtml", &ctx).unwrap_or("Not found".into());
+//     let template = tmpl.render("character.html", &ctx).unwrap_or("Not found".into());
 //     HttpResponse::Ok().content_type("text/html").body(template)
 // }
 //

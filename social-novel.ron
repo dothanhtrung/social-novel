@@ -2,7 +2,7 @@
     data_dir: "/tmp",
     db: (
         sqlite: (
-            db_path: "db/social-novel.sqlite",
+            db_path: "social-novel.sqlite",
         ),
     ),
     listen_addr: "0.0.0.0",

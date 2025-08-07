@@ -1,3 +1,14 @@
+create table if not exists _sqlx_migrations
+(
+    version        BIGINT
+        primary key,
+    description    TEXT                                not null,
+    installed_on   TIMESTAMP default CURRENT_TIMESTAMP not null,
+    success        BOOLEAN                             not null,
+    checksum       BLOB                                not null,
+    execution_time BIGINT                              not null
+);
+
 create table if not exists character
 (
     name     TEXT    not null,
@@ -28,7 +39,8 @@ create table if not exists post
             on delete cascade,
     haha       integer default 0                       not null,
     loved      integer default 0                       not null,
-    surprised  integer default 0                       not null
+    surprised  integer default 0                       not null,
+    sad        integer default 0                       not null
 );
 
 create table if not exists media
@@ -43,7 +55,10 @@ create table if not exists media
     post      integer not null
         constraint media_post_id_fk
             references post
-            on delete cascade
+            on delete cascade,
+    blake3    text    not null
+        constraint media_pk_3
+            unique
 );
 
 

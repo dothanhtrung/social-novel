@@ -69,6 +69,8 @@ async fn delete(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responde
     } else {
         CommonMessage::from_msg(String::from("Success"))
     };
+    
+    // TODO: delete media and avatar
 
     web::Json(res)
 }
@@ -85,7 +87,9 @@ async fn update(
 
     let file_name = format!("{}.png", data.username.0.clone().as_str());
     let data_dir = PathBuf::from(&config.data_dir);
-    save_avatar(&data_dir, data.avatar, file_name.as_str()).await;
+    if let Some(avatar) = data.avatar {
+        save_avatar(&data_dir, avatar, file_name.as_str()).await;
+    }
 
     let character = Character {
         username: data.username.0,

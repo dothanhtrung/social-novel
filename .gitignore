@@ -23,7 +23,10 @@ rust-project.json
 .idea
 
 ### Test data
-db/docker/postgres/data/
+#db/docker/postgres/data/
+#
+#**.sqlite-wal
+#**.sqlite-shm
 
 ### Node
 node_modules/

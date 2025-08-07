@@ -22,6 +22,12 @@ pub struct Post {
     pub loved: i64,
     #[serde(default)]
     pub surprised: i64,
+    #[serde(default)]
+    pub sad: i64,
+    #[serde(default)]
+    pub feeling: String,
+    #[serde(default)]
+    pub is_with: String,
 }
 
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {

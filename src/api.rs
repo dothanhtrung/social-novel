@@ -1,15 +1,16 @@
 mod api_character;
 mod api_post;
 
-use std::ffi::OsStr;
-use std::fs::File;
-use std::io::{BufReader, Read};
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::web;
 use serde::Serialize;
+use std::ffi::OsStr;
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tracing::{error, info, warn};
+use sn_internal::db::db_media::MediaType;
 
 pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -45,63 +46,52 @@ impl CommonMessage {
     }
 }
 
-async fn save_file(target_dir: &PathBuf, temp_file: Option<TempFile>, file_name: &str) -> Result<(String, String), ()> {
-    let blake3_hash;
-
-    if let Some(f) = temp_file {
-        if !target_dir.exists() {
-            if let Err(e) = fs::create_dir_all(&target_dir).await {
-                error!("Failed to create file folder {:?}: {}", &target_dir.to_str(), e);
-                return Err(());
-            }
-        }
-
-        let mut hasher = blake3::Hasher::new();
-        let temp_file_name = f.file_name.unwrap_or_default();
-        let extension = Path::new(temp_file_name.as_str())
-            .extension()
-            .unwrap_or(OsStr::new("png"))
-            .to_str()
-            .unwrap_or("png");
-        let open_f = f.file.reopen().map_err(|_| {
-            error!("Failed to reopen temp file");
-            ()
-        })?;
-        let mut reader = BufReader::new(open_f);
-        let mut buf = Vec::new();
-        reader.read_to_end(&mut buf).map_err(|_| {
-            error!("Failed to read temp file");
-            ()
-        })?;
-        hasher.update(&buf);
-        blake3_hash = hasher.finalize().to_hex().to_string().to_lowercase();
-
-        let saved_name = if file_name.is_empty() {
-            format!("{}.{}", blake3_hash, extension)
-        } else {
-            String::from(file_name)
-        };
-
-        let path = target_dir.join(saved_name.as_str());
-        if !path.exists() {
-            if let Err(e) = f.file.persist(&path) {
-                warn!("Failed to save file to {:?}: {}", &path.to_str(), e);
-                warn!("Try copying");
-                if let Err(e) = fs::copy(e.file.path(), &path).await {
-                    error!("Failed to copy file: {}", e);
-                    return Err(());
-                }
-            }
-        } else {
-            info!("File {saved_name} exists");
-        }
-
-        return Ok((blake3_hash, saved_name));
+async fn save_file(
+    target_dir: &PathBuf,
+    temp_file: TempFile,
+    file_name: &str,
+) -> Result<(String, String, MediaType), anyhow::Error> {
+    if !target_dir.exists() {
+        fs::create_dir_all(&target_dir).await?;
     }
-    Ok((String::new(), String::new()))
+
+    let mut hasher = blake3::Hasher::new();
+    let temp_file_name = temp_file.file_name.unwrap_or_default();
+    let extension = Path::new(temp_file_name.as_str())
+        .extension()
+        .unwrap_or(OsStr::new("png"))
+        .to_str()
+        .unwrap_or("png");
+    let open_f = temp_file.file.reopen()?;
+    let mut reader = BufReader::new(open_f);
+    let mut buf = Vec::new();
+    reader.read_to_end(&mut buf)?;
+    hasher.update(&buf);
+    let blake3_hash = hasher.finalize().to_hex().to_string().to_lowercase();
+
+    let saved_name = if file_name.is_empty() {
+        format!("{}.{}", blake3_hash, extension)
+    } else {
+        String::from(file_name)
+    };
+
+    let path = target_dir.join(saved_name.as_str());
+    if !path.exists() {
+        if let Err(e) = temp_file.file.persist(&path) {
+            warn!("Failed to save file to {:?}: {}", &path.to_str(), e);
+            warn!("Try copying");
+            fs::copy(e.file.path(), &path).await?;
+        }
+    } else {
+        info!("File {saved_name} exists");
+    }
+
+    let file_type = file_type(&path).await;
+
+    Ok((blake3_hash, saved_name, file_type))
 }
 
-async fn delete_file(root_dir: &PathBuf, file_path: String) {
+async fn delete_file(root_dir: &Path, file_path: &str) {
     if !file_path.is_empty() {
         let real_path = root_dir.join(&file_path);
         if let Err(e) = fs::remove_file(&real_path).await {
@@ -110,7 +100,7 @@ async fn delete_file(root_dir: &PathBuf, file_path: String) {
     }
 }
 
-async fn save_avatar(root_dir: &PathBuf, avatar: Option<TempFile>, file_name: &str) {
+async fn save_avatar(root_dir: &Path, avatar: TempFile, file_name: &str) {
     let path = root_dir.join("avatar");
     if save_file(&path, avatar, file_name).await.is_ok() {
         info!("Saved avatar successfully");
@@ -133,4 +123,17 @@ fn calculate_blake3(file_path: &Path) -> std::io::Result<String> {
 
     let result = hasher.finalize();
     Ok(result.to_hex().to_string().to_lowercase())
+}
+
+ async fn file_type(path: &Path) -> MediaType {
+    let data = fs::read(path).await.ok().unwrap_or_default();
+    if let Some(kind) = infer::get(&data) {
+        if kind.mime_type().starts_with("video/") {
+            return MediaType::Video;
+        } else if kind.mime_type().starts_with("image/") {
+            return MediaType::Image;
+        }
+    }
+
+     MediaType::NA
 }
