@@ -1,5 +1,6 @@
 mod api_character;
 mod api_post;
+mod api_media;
 
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::web;

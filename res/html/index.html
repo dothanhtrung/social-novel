@@ -18,19 +18,15 @@
     <!-- Feeling -->
     <div>
         <label for="feeling" class="block font-medium mb-1">Feeling</label>
-        <input name="feeling" type="text" class="w-full border border-gray-300 rounded px-3 py-2" />
+        <input id="feeling" name="feeling" type="text" class="w-full border border-gray-300 rounded px-3 py-2" />
     </div>
 
     <!-- Is With -->
     <div>
         <label for="is_with" class="block font-medium mb-1">Is With</label>
-        <input name="is_with" type="text" list="character-suggestions"
+        <input id="is_with" name="is_with" type="text"
                placeholder="Type character names separated by commas"
-               autocomplete="off"
                class="w-full border border-gray-300 rounded px-3 py-2"  />
-        <datalist id="character-suggestions">
-            <!-- JS will populate options here -->
-        </datalist>
     </div>
 
     <!-- Content -->

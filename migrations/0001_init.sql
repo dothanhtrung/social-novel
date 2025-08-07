@@ -40,7 +40,9 @@ create table if not exists post
     haha       integer default 0                       not null,
     loved      integer default 0                       not null,
     surprised  integer default 0                       not null,
-    sad        integer default 0                       not null
+    sad        integer default 0                       not null,
+    feeling    text    default ''                      not null,
+    is_with    text    default ''                      not null
 );
 
 create table if not exists media
