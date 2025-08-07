@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
                     .app_data(Data::from(ref_db_pool.clone()))
                     .app_data(Data::from(config_data.clone()))
                     .app_data(Data::from(Arc::clone(&broadcaster)))
-                    .service(Files::new("/data", "data"));
+                    .service(Files::new("/data", config.data_dir.clone()));
 
                 app = app.service(web::scope("").configure(api::scope_config).configure(ui::scope_config));
                 app

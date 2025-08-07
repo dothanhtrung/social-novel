@@ -4,7 +4,9 @@ use tera::Tera;
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/character")
-            .service(index),
+            .service(index)
+            .service(get)
+        ,
     );
 }
 
@@ -21,7 +23,20 @@ async fn index(tmpl: web::Data<Tera>)-> impl Responder {
             .body(format!("Template error: {e}")),
     }
 }
-//
+
+#[get("/{id}")]
+async fn get(tmpl: web::Data<Tera>)-> impl Responder {
+    let mut ctx = tera::Context::new();
+    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+
+    match tmpl.render("character.gohtml", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
+
 // #[get("/characters")]
 // pub async fn characters(db_pool: web::Data<DBPool>, tmpl: web::Data<tera::Tera>) -> impl Responder {
 //     let mut ctx = tera::Context::new();

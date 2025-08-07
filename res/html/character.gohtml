@@ -2,56 +2,117 @@
 {% include "include/header.html" %}
 {% include "include/dashboard.html" %}
 
-<form action="/update/character" method="post" enctype="multipart/form-data">
-    <div class="space-y-12">
-        <div class="border-b border-gray-900/10 pb-12">
-            <h2 class="text-base font-semibold leading-7 text-gray-900">{{character.name}}</h2>
-            <!--            <p class="mt-1 text-sm leading-6 text-gray-600">This information will be displayed publicly so be careful what you share.</p>-->
+<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start">
 
-            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                <div class="sm:col-span-4">
-                    <label for="name" class="block text-sm font-medium leading-6 text-gray-900">{{character.username}}</label>
-<!--                    <div class="mt-2">-->
-<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
-                            <input type="hidden" name="username" id="username" value="{{character.username}}">
-<!--                        </div>-->
-<!--                    </div>-->
-                    <div class="mt-2">
-                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
-                            <input value="{{character.name}}" type="text" name="name" id="name" autocomplete="name" class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6" placeholder="{{character.name}}">
-                        </div>
-                    </div>
-                </div>
+<form id="character-form" class="bg-white p-6 rounded shadow max-w-xl w-full space-y-4" enctype="multipart/form-data" method="POST" action="/api/character">
+    <h2 class="text-2xl font-bold">Edit Character</h2>
 
-                <div class="col-span-full">
-                    <label for="avatar" class="block text-sm font-medium leading-6 text-gray-900">Avatar</label>
-                    <div class="mt-2 flex items-center gap-x-3">
-                        <img class="h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" src="/img/avatar/{{character.username}}.png">
-
-                        <label type="button" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                            <span>Change</span>
-                            <input id="avatar" name="avatar" type="file" class="sr-only">
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div>
+        <input hidden name="id" type="number" class="w-full border border-gray-300 rounded px-3 py-2" required readonly />
     </div>
 
-    <div class="mt-6 flex items-center justify-end gap-x-6">
-        <!--        <button type="button" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>-->
-        <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Update</button>
+    <div>
+        <label class="block font-medium mb-1">Username</label>
+        <input name="username" type="text" class="w-full border border-gray-300 rounded px-3 py-2" required />
+    </div>
+
+    <div>
+        <label class="block font-medium mb-1">Name</label>
+        <input name="name" type="text" class="w-full border border-gray-300 rounded px-3 py-2" required />
+    </div>
+
+    <div>
+        <label class="block font-medium mb-1">Current Avatar</label>
+        <img id="current-avatar" src="" alt="Avatar" class="w-24 h-24 object-cover rounded-full border mb-2" />
+    </div>
+
+    <div>
+        <label class="block font-medium mb-1">Upload New Avatar (optional)</label>
+        <input name="avatar" type="file" accept="image/*" class="w-full" />
+    </div>
+
+    <div class="flex gap-4">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Save
+        </button>
+        <button type="button" id="delete-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+            Delete
+        </button>
     </div>
 </form>
 
-<a href="/delete/character/{{character.username}}" onclick="return confirm('Delete character {{character.name}}}}?')">
-    <button type="submit" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">Delete</button>
-</a>
+<script>
+    const form = document.getElementById("character-form");
+    const avatarImg = document.getElementById("current-avatar");
+    const deleteBtn = document.getElementById("delete-btn");
 
-<!--dashboard close tag-->
-</div>
-</main>
-</div>
+    // Extract {id} from URL ("/character/123")
+    const match = window.location.pathname.match(/\/character\/(\d+)/);
+    if (!match) {
+        alert("Invalid URL: character ID not found");
+        throw new Error("Missing character ID");
+    }
+    const charId = match[1];
+
+    async function loadCharacter() {
+        try {
+            const res = await fetch(`/api/character/${charId}`);
+            const data = await res.json();
+
+            if (data.err) {
+                alert("Error: " + data.err);
+                return;
+            }
+
+            const char = data.characters[0];
+
+            form.elements["id"].value = char.id;
+            form.elements["username"].value = char.username;
+            form.elements["name"].value = char.name;
+            avatarImg.src = `/data/avatar/${char.username}.png`;
+        } catch (err) {
+            alert("Failed to load character: " + err);
+        }
+    }
+
+    // Handle form submission
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+
+        try {
+            const res = await fetch(form.action, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            loadCharacter(); // reload avatar in case username changed
+        } catch (err) {
+            alert("Failed to update: " + err.message);
+        }
+    });
+
+    // Handle delete
+    deleteBtn.addEventListener("click", async () => {
+        const confirmed = confirm("Are you sure you want to delete this character?");
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`/api/character/delete/${charId}`);
+            const text = await res.text();
+            alert("Deleted: " + text);
+            window.location.href = "/"; // redirect after deletion
+        } catch (err) {
+            alert("Failed to delete: " + err.message);
+        }
+    });
+
+    // Initial load
+    loadCharacter();
+</script>
 
 </body>
 </html>
