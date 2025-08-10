@@ -1,128 +1,166 @@
 {% include "include/header.html" %}
 {% include "include/dashboard.html" %}
 
-<form id="post-form" action="/api/post" method="POST" enctype="multipart/form-data" class="max-w-2xl mx-auto bg-white p-6 rounded shadow space-y-4">
-    <h2 class="text-xl font-bold">Create New Post</h2>
 
-    <!-- Character (autocomplete by username) -->
-    <input name="id" type="number" value=0 hidden />
-    <input name="parent" type="number" value=0 hidden />
-    <div>
-        <label for="character" class="block font-medium mb-1">Character (by username)</label>
-        <input list="character-list" autocomplete="off" name="author" id="character" class="w-full border border-gray-300 rounded px-3 py-2" required />
-        <datalist id="character-list">
-            <!-- Options will be inserted via JS -->
-        </datalist>
-    </div>
-
-    <!-- Feeling -->
-    <div>
-        <label for="feeling" class="block font-medium mb-1">Feeling</label>
-        <input id="feeling" name="feeling" type="text" class="w-full border border-gray-300 rounded px-3 py-2" />
-    </div>
-
-    <!-- Is With -->
-    <div>
-        <label for="is_with" class="block font-medium mb-1">Is With</label>
-        <input id="is_with" name="is_with" type="text"
-               placeholder="Type character names separated by commas"
-               class="w-full border border-gray-300 rounded px-3 py-2"  />
-    </div>
-
-    <!-- Content -->
-    <div>
-        <textarea name="content" placeholder="What's on your mind?" rows=9 class="w-full border border-gray-300 rounded px-3 py-2 h-48 resize-vertical"></textarea>
-    </div>
-
-    <!-- Media -->
-    <div>
-        <input name="media" type="file" accept="image/*" class="w-full" multiple />
-    </div>
-
-    <!-- Reactions -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-        <div>
-            <label class="block text-center text-2xl">👍</label>
-            <input name="liked" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
-        </div>
-        <div>
-            <label class="block text-center text-2xl">😂</label>
-            <input name="haha" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
-        </div>
-        <div>
-            <label class="block text-center text-2xl">❤️</label>
-            <input name="loved" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
-        </div>
-        <div>
-            <label class="block text-center text-2xl">😮</label>
-            <input name="surprised" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
-        </div>
-        <div>
-            <label class="block text-center text-2xl">😢</label>
-            <input name="sad" type="number" min="0" value="0" class="w-full border border-gray-300 rounded px-2 py-1 text-center" />
-        </div>
-    </div>
-
-    <!-- Submit -->
-    <div class="text-right">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit</button>
-    </div>
-</form>
+<div id="post-list" class="space-y-4 max-w-3xl mx-auto"></div>
 
 <script>
-    // Fetch characters and populate datalist
+    const postList = document.getElementById("post-list");
+    let characters = {};
+
+    // Get query string
+    const params = new URLSearchParams(window.location.search);
+    const queryStr = params.toString();
+
+    // Emoji map
+    const emojiMap = {
+        liked: "👍",
+        haha: "😂",
+        loved: "❤️",
+        surprised: "😮",
+        sad: "😢"
+    };
+
     async function fetchCharacters() {
-        try {
-            const res = await fetch("/api/character");
-            const data = await res.json();
-
-            if (data.characters && Array.isArray(data.characters)) {
-                const datalist = document.getElementById("character-list");
-                datalist.innerHTML = ""; // clear old
-
-                data.characters.forEach(c => {
-                    const option = document.createElement("option");
-                    option.value = c.id;
-                    option.textContent = `${c.name} (${c.username})`;
-                    option.dataset.id = c.id;
-                    datalist.appendChild(option);
-                });
-            } else {
-                alert("Invalid character data");
-            }
-        } catch (err) {
-            console.error("Failed to load characters:", err);
+        const res = await fetch("/api/character");
+        const json = await res.json();
+        for (const c of json.characters) {
+            characters[c.id] = { name: c.name, username: c.username };
         }
     }
 
-    fetchCharacters();
-</script>
+    async function fetchMedia(postId) {
+        const res = await fetch(`/api/media?post=${postId}`);
+        return res.ok ? await res.json() : { media: [] };
+    }
 
-<script>
-    document.getElementById('post-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    async function fetchComments(postId) {
+        const res = await fetch(`/api/post?parent=${postId}`);
+        return res.ok ? (await res.json()).posts || [] : [];
+    }
 
-        const form = e.target;
-        const formData = new FormData(form);
-
-        try {
-            const res = await fetch('/api/post', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (res.ok) {
-                location.reload(); // Reload on success
-            } else {
-                const err = await res.text();
-                console.log('Failed to submit: ' + err);
+    function createReactionBlock(post) {
+        return Object.entries(emojiMap).map(([key, emoji]) => {
+            if (post[key] > 0) {
+                return `<span class="mr-2">${emoji} ${post[key] || 0}</span>`;
             }
-        } catch (err) {
-            console.log(err);
-        }
-    });
-</script>
+        }).join('');
+    }
 
+    function getRelativeTimeString(timestamp) {
+        const now = new Date();
+        const postTime = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
+        const diffInSeconds = Math.floor((now - postTime) / 1000);
+
+        // Less than a minute
+        if (diffInSeconds < 60) {
+            return diffInSeconds <= 10 ? 'few seconds ago' : `${diffInSeconds} seconds ago`;
+        }
+
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+
+        // Less than an hour
+        if (diffInMinutes < 60) {
+            if (diffInMinutes === 1) {
+                return '1 minute ago';
+            } else if (diffInMinutes <= 3) {
+                return 'few minutes ago';
+            } else {
+                return `${diffInMinutes} minutes ago`;
+            }
+        }
+
+        const diffInHours = Math.floor(diffInMinutes / 60);
+
+        // Less than 24 hours
+        if (diffInHours < 24) {
+            return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+        }
+
+        const diffInDays = Math.floor(diffInHours / 24);
+
+        // Less than 7 days
+        if (diffInDays < 7) {
+            return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+        }
+
+        // More than a week - show actual date and time
+        const options = {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        };
+
+        return postTime.toLocaleDateString('en-US', options).replace(',', '') + ' ' +
+            postTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function createPostBlock(post, mediaList, comments = []) {
+        const author = characters[post.author] || { name: "Unknown", username: "unknown" };
+        const avatarUrl = `/data/avatar/${author.username}.png`;
+
+        const mediaHtml = mediaList.map(m =>
+            `<img src="/data/${m.url}" class="max-w-full max-h-64 rounded mt-2" alt="media">`
+        ).join('');
+
+        const commentHtml = comments.map(c => {
+            const ca = characters[c.author] || { name: "Unknown", username: "unknown" };
+            const cav = `/data/avatar/${ca.username}.png`;
+            return `
+          <div class="flex space-x-2 mt-2 bg-gray-50 p-2 rounded">
+            <img src="${cav}" class="w-6 h-6 rounded-full" />
+            <div>
+              <div class="text-sm font-semibold">${ca.name}</div>
+              <div class="text-sm">${c.content}</div>
+            </div>
+          </div>
+        `;
+        }).join('');
+
+        return `
+        <div class="bg-white p-4 rounded shadow">
+          <div class="flex items-center space-x-2 mb-2">
+            <img src="${avatarUrl}" class="w-10 h-10 rounded-full" />
+            <div>
+              <div class="font-semibold">${author.name}</div>
+              <div class="text-sm text-gray-500">${getRelativeTimeString(post.updated_at)}</div>
+            </div>
+          </div>
+          <div class="mb-2">
+            ${post.feeling ? `<div class="text-sm text-gray-600 italic">is feeling ${post.feeling}</div>` : ""}
+            ${post.is_with ? `<div class="text-sm text-gray-600">with ${post.is_with}</div>` : ""}
+          </div>
+          <div class="mb-2 whitespace-pre-wrap">${post.content}</div>
+          ${mediaHtml}
+          <div class="mt-2 text-sm text-gray-600">${createReactionBlock(post)}</div>
+          {% include "include/break.html" %}
+          ${comments.length > 0 ? `<div class="mt-2">${commentHtml}</div>` : ""}
+          {% include "include/comment.html" %}
+        </div>
+      `;
+    }
+
+    async function loadPosts() {
+        await fetchCharacters();
+        const res = await fetch(`/api/post?${queryStr}`);
+        const json = await res.json();
+        const posts = json.posts || [];
+
+        for (const post of posts) {
+            const [mediaData, comments] = await Promise.all([
+                fetchMedia(post.id),
+                fetchComments(post.id)
+            ]);
+            const html = createPostBlock(post, mediaData.media || [], comments);
+            postList.insertAdjacentHTML("beforeend", html);
+        }
+    }
+
+    loadPosts();
+</script>
 <!--<form action="/" method="post" enctype="multipart/form-data">-->
 <!--    <div class="space-y-12">-->
 <!--        <div class="border-b border-gray-900/10 pb-12">-->

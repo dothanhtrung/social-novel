@@ -1,0 +1,43 @@
+.post-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.post-menu-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+}
+
+.post-menu-options {
+    display: none;
+    position: absolute;
+    right: 0;
+    background: #222;
+    color: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 10;
+}
+
+.post-menu-options button {
+    display: block;
+    width: 100%;
+    border: none;
+    background: none;
+    color: inherit;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.post-menu-options button:hover {
+    background: #333;
+}
+
+.post-menu.open .post-menu-options {
+    display: block;
+}

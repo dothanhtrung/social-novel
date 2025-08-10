@@ -17,6 +17,7 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
             .configure(api_character::scope)
+            .configure(api_media::scope)
             .configure(api_post::scope),
     );
 }

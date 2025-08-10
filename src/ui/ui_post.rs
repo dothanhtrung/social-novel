@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse, Responder};
 use tera::Tera;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
-    cfg.service(index);
+    cfg.service(index).service(get).service(edit);
 }
 
 #[get("/")]
@@ -24,6 +24,17 @@ async fn get(tmpl: web::Data<Tera>) -> impl Responder {
     // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
 
     match tmpl.render("post.html", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
+
+#[get("/post/edit")]
+async fn edit(tmpl: web::Data<Tera>) -> impl Responder {
+    let mut ctx = tera::Context::new();
+    match tmpl.render("post_edit.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
         Err(e) => HttpResponse::Ok()
             .content_type("text/html")
