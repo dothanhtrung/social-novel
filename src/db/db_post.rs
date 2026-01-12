@@ -1,7 +1,13 @@
+#[cfg(feature = "postgres")]
+use crate::db::postgres;
 #[cfg(feature = "sqlite")]
 use crate::db::sqlite;
 use crate::db::DBPool;
-use serde::{Deserialize, Serialize};
+use actix_web::cookie::time::format_description::well_known::Iso8601;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use sqlx::types::time::OffsetDateTime;
+use tracing::{info, warn};
 
 #[derive(Serialize, Deserialize)]
 pub struct Post {
@@ -9,21 +15,27 @@ pub struct Post {
     pub id: i64,
     pub content: String,
     pub author: i64,
-    #[serde(default)]
-    pub created_at: i64,
-    #[serde(default)]
-    pub updated_at: i64,
+    #[serde(
+        serialize_with = "offsetdatetime_serialize",
+        deserialize_with = "offsetdatetime_deserialize"
+    )]
+    pub created_at: OffsetDateTime,
+    #[serde(
+        serialize_with = "offsetdatetime_serialize",
+        deserialize_with = "offsetdatetime_deserialize"
+    )]
+    pub updated_at: OffsetDateTime,
     pub parent: Option<i64>,
     #[serde(default)]
-    pub liked: i64,
+    pub liked: i32,
     #[serde(default)]
-    pub haha: i64,
+    pub haha: i32,
     #[serde(default)]
-    pub loved: i64,
+    pub loved: i32,
     #[serde(default)]
-    pub surprised: i64,
+    pub surprised: i32,
     #[serde(default)]
-    pub sad: i64,
+    pub sad: i32,
     #[serde(default)]
     pub feeling: String,
     #[serde(default)]
@@ -32,17 +44,26 @@ pub struct Post {
 
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::insert(&db_pool.sqlite_pool, post).await
+    return sqlite::sqlite_post::insert(&db_pool.sqlite_pool, post).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::insert(&db_pool.pg_pool, post).await;
 }
 
 pub async fn get_by_id(db_pool: &DBPool, id: i64) -> Result<Post, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::get_by_id(&db_pool.sqlite_pool, id).await
+    return sqlite::sqlite_post::get_by_id(&db_pool.sqlite_pool, id).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::get_by_id(&db_pool.pg_pool, id).await;
 }
 
 pub async fn get_all(db_pool: &DBPool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::get_all(&db_pool.sqlite_pool, limit, offset).await
+    return sqlite::sqlite_post::get_all(&db_pool.sqlite_pool, limit, offset).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::get_all(&db_pool.pg_pool, limit, offset).await;
 }
 
 pub async fn get_by_author(
@@ -52,20 +73,62 @@ pub async fn get_by_author(
     offset: i64,
 ) -> Result<Vec<Post>, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::get_by_author(&db_pool.sqlite_pool, author_id, limit, offset).await
+    return sqlite::sqlite_post::get_by_author(&db_pool.sqlite_pool, author_id, limit, offset).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::get_by_author(&db_pool.pg_pool, author_id, limit, offset).await;
 }
 
 pub async fn get_by_parent(db_pool: &DBPool, parent_id: i64) -> Result<Vec<Post>, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::get_by_parent(&db_pool.sqlite_pool, parent_id).await
+    return sqlite::sqlite_post::get_by_parent(&db_pool.sqlite_pool, parent_id).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::get_by_parent(&db_pool.pg_pool, parent_id).await;
 }
 
-pub async fn update(db_pool: &DBPool, post: &Post) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+pub async fn update(db_pool: &DBPool, post: &Post) -> Result<u64, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::update(&db_pool.sqlite_pool, post).await
+    return sqlite::sqlite_post::update(&db_pool.sqlite_pool, post).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::update(&db_pool.pg_pool, post).await;
 }
 
-pub async fn delete(db_pool: &DBPool, id: i64) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+pub async fn delete(db_pool: &DBPool, id: i64) -> Result<u64, sqlx::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_post::delete(&db_pool.sqlite_pool, id).await
+    return sqlite::sqlite_post::delete(&db_pool.sqlite_pool, id).await;
+
+    #[cfg(feature = "postgres")]
+    return postgres::post::delete(&db_pool.pg_pool, id).await;
+}
+
+fn offsetdatetime_serialize<S>(offset_datetime: &OffsetDateTime, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(offset_datetime.to_string().as_str())
+}
+fn offsetdatetime_deserialize<'de, D>(deserializer: D) -> Result<OffsetDateTime, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    match string_to_offsetdatetime(s) {
+        Ok(dt) => Ok(dt),
+        Err(e) => Err(Error::custom(format!("Failed to parse datetime string: {}", e))),
+    }
+}
+
+pub fn string_to_offsetdatetime(time_str: &str) -> Result<OffsetDateTime, anyhow::Error> {
+    match OffsetDateTime::parse(time_str, &Iso8601::DEFAULT) {
+        Ok(ret) => return Ok(ret),
+        Err(e) => info!(
+            "Failed to parse \"{}\" in Iso8601 format: {}. Try another format.",
+            time_str, e
+        ),
+    }
+
+    warn!("No suitable date time format found for \"{time_str}\"");
+    Err(anyhow::anyhow!("Invalid date time format: {time_str}"))
 }

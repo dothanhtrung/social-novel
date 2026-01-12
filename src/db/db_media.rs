@@ -1,10 +1,12 @@
 #[cfg(feature = "sqlite")]
 use crate::db::sqlite;
-use crate::db::DBPool;
+#[cfg(feature = "postgres")]
+use crate::db::postgres;
 use serde::{Deserialize, Serialize};
+use crate::db::DBPool;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
-#[repr(i64)]
+#[repr(i16)]
 pub enum MediaType {
     NA = 0,
     Image = 1,
@@ -12,8 +14,8 @@ pub enum MediaType {
     Audio = 3,
 }
 
-impl From<i64> for MediaType {
-    fn from(value: i64) -> Self {
+impl From<i16> for MediaType {
+    fn from(value: i16) -> Self {
         match value {
             0 => MediaType::NA,
             1 => MediaType::Image,
@@ -36,14 +38,24 @@ pub struct Media {
 
 pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_media::insert(&dbpool.sqlite_pool, media)
+    return sqlite::sqlite_media::insert(&dbpool.sqlite_pool, media)
         .await
-        .map_err(|e| e.into())
+        .map_err(|e| e.into());
+
+    #[cfg(feature = "postgres")]
+    return postgres::media::insert(&dbpool.pg_pool, media)
+        .await
+        .map_err(|e| e.into());
 }
 
 pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, anyhow::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_media::get_by_post(&dbpool.sqlite_pool, post_id)
+    return sqlite::sqlite_media::get_by_post(&dbpool.sqlite_pool, post_id)
+        .await
+        .map_err(|e| e.into());
+
+    #[cfg(feature = "postgres")]
+    postgres::media::get_by_post(&dbpool.pg_pool, post_id)
         .await
         .map_err(|e| e.into())
 }
@@ -52,7 +64,12 @@ pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, an
 
 pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>, anyhow::Error> {
     #[cfg(feature = "sqlite")]
-    sqlite::sqlite_media::delete_by_post(&dbpool.sqlite_pool, post_id)
+    return sqlite::sqlite_media::delete_by_post(&dbpool.sqlite_pool, post_id)
         .await
-        .map_err(|e| e.into())
+        .map_err(|e| e.into());
+
+    #[cfg(feature = "postgres")]
+    return postgres::media::delete_by_post(&dbpool.pg_pool, post_id)
+        .await
+        .map_err(|e| e.into());
 }

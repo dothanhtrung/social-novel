@@ -16,6 +16,19 @@ const DEFAULT_API_PER_PAGE: u32 = 20;
 const DEFAULT_PARALLEL: usize = 8;
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
+pub struct PostgresConfig {
+    pub db_path: String,
+}
+
+impl Default for PostgresConfig {
+    fn default() -> Self {
+        Self {
+            db_path: DEFAULT_LISTEN_ADDR.to_string(),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct SQLiteConfig {
     pub db_path: String,
 }
@@ -30,7 +43,10 @@ impl Default for SQLiteConfig {
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct DBConfig {
+    #[serde(default)]
     pub sqlite: SQLiteConfig,
+    #[serde(default)]
+    pub postgres: PostgresConfig,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]

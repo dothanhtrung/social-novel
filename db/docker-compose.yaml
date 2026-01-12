@@ -1,0 +1,18 @@
+# Database for development
+
+services:
+  db:
+    image: postgres
+    shm_size: 128mb
+    volumes:
+      - ./data:/var/lib/postgresql
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: social_novel
+#  adminer:
+#    image: adminer
+#    ports:
+#      - 8080:8080

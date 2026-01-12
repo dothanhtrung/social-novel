@@ -11,6 +11,7 @@ use sn_internal::db::db_post::Post;
 use sn_internal::db::{db_media, db_post, DBPool};
 use std::cmp::max;
 use std::path::{Path, PathBuf};
+use sqlx::types::time::OffsetDateTime;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/post").service(get).service(update));
@@ -38,11 +39,11 @@ struct PostForm {
     media: Vec<TempFile>,
     author: Text<i64>,
     parent: Text<i64>,
-    liked: Text<i64>,
-    haha: Text<i64>,
-    loved: Text<i64>,
-    surprised: Text<i64>,
-    sad: Text<i64>,
+    liked: Text<i32>,
+    haha: Text<i32>,
+    loved: Text<i32>,
+    surprised: Text<i32>,
+    sad: Text<i32>,
     feeling: Text<String>,
     is_with: Text<String>,
 }
@@ -102,8 +103,6 @@ async fn update(
         id: data.id.into_inner(),
         content: data.content.into_inner(),
         author: data.author.into_inner(),
-        created_at: 0,
-        updated_at: 0,
         parent,
         liked: data.liked.into_inner(),
         haha: data.haha.into_inner(),
@@ -112,6 +111,8 @@ async fn update(
         sad: data.sad.into_inner(),
         feeling: data.feeling.into_inner(),
         is_with: data.is_with.into_inner(),
+        created_at: OffsetDateTime::now_utc(),
+        updated_at: OffsetDateTime::now_utc(),
     };
 
     let mut post_id = post.id;

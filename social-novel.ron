@@ -4,6 +4,9 @@
         sqlite: (
             db_path: "social-novel.sqlite",
         ),
+        postgres: (
+            db_path: "postgresql://dev:dev@localhost:5432/social_novel",
+        ),
     ),
     listen_addr: "0.0.0.0",
     listen_port: 6969,
