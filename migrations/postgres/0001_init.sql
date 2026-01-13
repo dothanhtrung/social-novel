@@ -4,17 +4,14 @@ create table if not exists character
     username varchar not null
         constraint character_pk_2
             unique,
-    id       bigint  not null
+    id       bigint generated always as identity
         constraint character_pk
             primary key
 );
 
-alter table character
-    owner to dev;
-
 create table if not exists post
 (
-    id         bigint                                    not null
+    id         bigint generated always as identity
         constraint post_pk
             primary key,
     content    text                     default ''::text not null,
@@ -35,12 +32,9 @@ create table if not exists post
     is_with    text                     default ''::text not null
 );
 
-alter table post
-    owner to dev;
-
 create table if not exists media
 (
-    id        bigint                    not null
+    id        bigint generated always as identity
         constraint media_pk
             primary key,
     url       text                      not null
@@ -54,8 +48,5 @@ create table if not exists media
 );
 
 comment on column media.file_type is '0=NA, Image, Video, Audio';
-
-alter table media
-    owner to dev;
 
 

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use sn_internal::db::db_character::Character;
 use sn_internal::db::{db_character, DBPool};
 use std::path::PathBuf;
+use tracing::error;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -104,6 +105,7 @@ async fn update(
         }
     } else if let Err(e) = db_character::insert(&db_pool, &character).await {
         err = e.to_string();
+        error!("Failed to insert character: {}", e);
     } else {
         msg = "Success".to_string();
     }

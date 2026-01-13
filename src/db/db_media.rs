@@ -1,9 +1,9 @@
-#[cfg(feature = "sqlite")]
-use crate::db::sqlite;
 #[cfg(feature = "postgres")]
 use crate::db::postgres;
-use serde::{Deserialize, Serialize};
+#[cfg(feature = "sqlite")]
+use crate::db::sqlite;
 use crate::db::DBPool;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 #[repr(i16)]
@@ -43,7 +43,7 @@ pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error
         .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
-    return postgres::media::insert(&dbpool.pg_pool, media)
+    return postgres::pg_media::insert(&dbpool.pg_pool, media)
         .await
         .map_err(|e| e.into());
 }
@@ -55,11 +55,10 @@ pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, an
         .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
-    postgres::media::get_by_post(&dbpool.pg_pool, post_id)
+    postgres::pg_media::get_by_post(&dbpool.pg_pool, post_id)
         .await
         .map_err(|e| e.into())
 }
-
 
 
 pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>, anyhow::Error> {
@@ -69,7 +68,7 @@ pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>
         .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
-    return postgres::media::delete_by_post(&dbpool.pg_pool, post_id)
+    return postgres::pg_media::delete_by_post(&dbpool.pg_pool, post_id)
         .await
         .map_err(|e| e.into());
 }
