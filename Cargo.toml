@@ -35,6 +35,8 @@ infer = "0.19"
 indexmap = "2.13"
 parking_lot = "0.12"
 futures-util = "0.3.31"
+schemars = { package = "apistos-schemars", version = "0.8" }
+apistos = "0.6"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 tikv-jemallocator = "0.6"

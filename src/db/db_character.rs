@@ -1,9 +1,11 @@
 #[cfg(feature = "sqlite")]
 use crate::db::sqlite;
 use crate::db::{postgres, DBPool};
+use apistos::ApiComponent;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
 pub struct Character {
     pub username: String,
     pub name: String,

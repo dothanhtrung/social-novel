@@ -1,240 +1,805 @@
-{% include "include/header.html" %}
-{% include "include/dashboard.html" %}
+<!DOCTYPE html>
+<html class="light" lang="en">
 
-
-<div id="post-list" class="space-y-4 max-w-3xl mx-auto"></div>
-
-<script>
-    const postList = document.getElementById("post-list");
-    let characters = {};
-
-    // Get query string
-    const params = new URLSearchParams(window.location.search);
-    const queryStr = params.toString();
-
-    // Emoji map
-    const emojiMap = {
-        liked: "👍",
-        haha: "😂",
-        loved: "❤️",
-        surprised: "😮",
-        sad: "😢"
-    };
-
-    async function fetchCharacters() {
-        const res = await fetch("/api/character");
-        const json = await res.json();
-        for (const c of json.characters) {
-            characters[c.id] = { name: c.name, username: c.username };
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>News Feed with Expanded Comments</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+    let userMap = {};
+    let userList = [];
+    async function fetchUsers() {
+        try {
+            const res = await fetch("/api/character");
+            const data = await res.json();
+            if (data.characters) {
+                userMap = {};
+                userList = data.characters;
+                for (const user of data.characters) {
+                    userMap[user.id] = user;
+                }
+            }
+        } catch (e) {
+            userMap = {};
+            userList = [];
         }
     }
 
-    async function fetchMedia(postId) {
-        const res = await fetch(`/api/media?post=${postId}`);
-        return res.ok ? await res.json() : { media: [] };
+    function getAvatarUrl(user) {
+        if (user && user.username) {
+            return `/data/avatar/${user.username}.png`;
+        }
+        // if (user && user.username) {
+        //     return "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.name || user.username);
+        // }
+        return "https://ui-avatars.com/api/?name=Unknown";
     }
 
-    async function fetchComments(postId) {
-        const res = await fetch(`/api/post?parent=${postId}`);
-        return res.ok ? (await res.json()).posts || [] : [];
+    // Robust parser for backend timestamp strings like:
+    // "2026-01-16 8:40:12.33977 +00:00:00"
+    function parseTimestamp(s) {
+        if (!s) return new Date();
+        let str = String(s).trim();
+        // Replace first space between date and time with 'T'
+        str = str.replace(/^([0-9]{4}-[0-9]{2}-[0-9]{2})\s+/, '$1T');
+        // Remove any extra space before timezone
+        str = str.replace(/\s+([+-]\d{2}:\d{2}:?\d{0,2})$/, '$1');
+        // Convert timezone like +00:00:00 to +00:00 (drop seconds)
+        str = str.replace(/([+-]\d{2}:\d{2}):\d{2}$/, '$1');
+        // Ensure hour has two digits (e.g. T8: -> T08:)
+        str = str.replace(/T(\d):/, 'T0$1:');
+        // If there's no timezone or Z, assume UTC
+        if (!/[Zz]|[+-]\d{2}:\d{2}$/.test(str)) {
+            str = str + 'Z';
+        }
+        const d = new Date(str);
+        if (isNaN(d.getTime())) {
+            // Try fallback by removing fractional seconds
+            const alt = String(s).replace(/(\.[0-9]+)\s+/, ' ');
+            const d2 = new Date(alt);
+            if (!isNaN(d2.getTime())) return d2;
+            return new Date(s);
+        }
+        return d;
     }
 
-    function createReactionBlock(post) {
-        return Object.entries(emojiMap).map(([key, emoji]) => {
-            if (post[key] > 0) {
-                return `<span class="mr-2">${emoji} ${post[key] || 0}</span>`;
-            }
-        }).join('');
-    }
-
-    function getRelativeTimeString(timestamp) {
+    // Friendly relative time like Facebook: few seconds ago, 15 minutes ago, 1 day ago, or 'Jan 16 at 17:04'
+    function timeAgo(s) {
+        const d = parseTimestamp(s);
         const now = new Date();
-        const postTime = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
-        const diffInSeconds = Math.floor((now - postTime) / 1000);
-
-        // Less than a minute
-        if (diffInSeconds < 60) {
-            return diffInSeconds <= 10 ? 'few seconds ago' : `${diffInSeconds} seconds ago`;
+        const diff = Math.floor((now - d) / 1000); // seconds
+        if (diff < 10) return 'few seconds ago';
+        if (diff < 60) return `${diff} seconds ago`;
+        if (diff < 3600) {
+            const m = Math.floor(diff / 60);
+            return `${m} minute${m !== 1 ? 's' : ''} ago`;
         }
+        if (diff < 86400) {
+            const h = Math.floor(diff / 3600);
+            return `${h} hour${h !== 1 ? 's' : ''} ago`;
+        }
+        if (diff < 604800) { // less than 7 days
+            const days = Math.floor(diff / 86400);
+            return `${days} day${days !== 1 ? 's' : ''} ago`;
+        }
+        // older: if same year, show 'Jan 16 at 17:04', else full date
+        const nowYear = now.getFullYear();
+        if (d.getFullYear() === nowYear) {
+            return d.toLocaleString(undefined, { month: 'short', day: 'numeric' }) + ' at ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        return d.toLocaleString();
+    }
 
-        const diffInMinutes = Math.floor(diffInSeconds / 60);
+    function renderReactions(p) {
+        const parts = [];
+        if (p.liked && p.liked > 0) {
+            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#1877F2] flex items-center justify-center text-white text-[11px]'>👍</div><span class='text-[14px] text-fb-gray-text'>${p.liked}</span></div>`);
+        }
+        if (p.loved && p.loved > 0) {
+            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#F3425E] flex items-center justify-center text-white text-[11px]'>❤️</div><span class='text-[14px] text-fb-gray-text'>${p.loved}</span></div>`);
+        }
+        if (p.haha && p.haha > 0) {
+            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#F7B500] flex items-center justify-center text-white text-[11px]'>😂</div><span class='text-[14px] text-fb-gray-text'>${p.haha}</span></div>`);
+        }
+        if (p.surprised && p.surprised > 0) {
+            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#9B8CFF] flex items-center justify-center text-white text-[11px]'>😮</div><span class='text-[14px] text-fb-gray-text'>${p.surprised}</span></div>`);
+        }
+        if (p.sad && p.sad > 0) {
+            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#6E6E6E] flex items-center justify-center text-white text-[11px]'>😢</div><span class='text-[14px] text-fb-gray-text'>${p.sad}</span></div>`);
+        }
+        if (parts.length === 0) return `<span class='text-[14px] text-fb-gray-text'>0 reactions</span>`;
+        return parts.join('<div class="w-3"></div>');
+    }
 
-        // Less than an hour
-        if (diffInMinutes < 60) {
-            if (diffInMinutes === 1) {
-                return '1 minute ago';
-            } else if (diffInMinutes <= 3) {
-                return 'few minutes ago';
-            } else {
-                return `${diffInMinutes} minutes ago`;
+    async function renderContacts() {
+        const contactsContainer = document.querySelector("[data-contacts-list]");
+        if (!contactsContainer) return;
+        try {
+            const res = await fetch("/api/character");
+            const data = await res.json();
+            if (data.characters) {
+                contactsContainer.innerHTML = data.characters.map(user => `
+                <a class='flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors' href='#'>
+                    <div class='relative size-9'>
+                        <div class='w-full h-full rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(user)}");'></div>
+                        <div class='active-dot'></div>
+                    </div>
+                    <span class='text-[15px] font-semibold'>${user.name || user.username}</span>
+                </a>
+            `).join("");
+            }
+        } catch (e) {
+            contactsContainer.innerHTML = '<div class="text-red-500">Failed to load contacts</div>';
+        }
+    }
+
+    async function renderPosts() {
+        const postsContainer = document.querySelector("[data-posts-list]");
+        if (!postsContainer) return;
+        try {
+            const res = await fetch("/api/post");
+            const data = await res.json();
+            if (data.posts) {
+                // Group posts by id and attach children as comments
+                const posts = data.posts;
+                const byId = {};
+                for (const p of posts) {
+                    byId[p.id] = { ...p, comments: [] };
+                }
+                const roots = [];
+                for (const id in byId) {
+                    const p = byId[id];
+                    if (p.parent && p.parent > 0 && byId[p.parent]) {
+                        byId[p.parent].comments.push(p);
+                    } else {
+                        roots.push(p);
+                    }
+                }
+
+                function renderComment(c) {
+                    const a = userMap[c.author] || { username: 'unknown', name: 'Unknown' };
+                    return `
+                    <div class="pl-12 pr-4 py-3 border-t border-gray-100 bg-white relative">
+                        <div class="flex items-start gap-3">
+                            <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
+                            <div class="flex-1">
+                                <div class="text-[14px] text-[#050505]"><strong>${a.name || a.username}</strong></div>
+                                        <div class="text-[14px] text-fb-gray-text">${c.content || ''}</div>
+                                        <div class="mt-2">${renderReactions(c)}</div>
+                                        <p class='text-[12px] text-fb-gray-text mt-1' title='${new Date(c.updated_at || c.created_at).toLocaleString()}'>${timeAgo(c.updated_at || c.created_at)}</p>
+                            </div>
+                            <div class='relative ml-2'>
+                                <button class='options-btn p-1 rounded-full hover:bg-fb-hover' data-post-id='${c.id}' aria-label='Comment Options'>
+                                    <span class='material-symbols-outlined' style='font-size:16px'>more_horiz</span>
+                                </button>
+                                <div class='options-menu hidden absolute w-28 bg-white rounded shadow-md z-50' style='right:12px; top:8px;'>
+                                    <button class='block w-full text-left px-3 py-2 hover:bg-fb-hover options-edit' data-post-id='${c.id}'>Edit</button>
+                                    <button class='block w-full text-left px-3 py-2 hover:bg-fb-hover options-delete' data-post-id='${c.id}'>Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                function renderPost(p) {
+                    const a = userMap[p.author] || { username: 'unknown', name: 'Unknown' };
+                    const mediaHtml = (p.media && p.media.length > 0) ? `<div class='w-full bg-cover bg-center aspect-video' style='background-image: url("${p.media[0].url}");'></div>` : '';
+                    const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(renderComment).join('') : '';
+                    return `
+                    <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
+                        <div class='px-4 py-3'>
+                            <div class='flex items-center justify-between'>
+                                <div class='flex items-center gap-2'>
+                                    <div class='size-10 rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(a)}");'></div>
+                                    <div>
+                                        <h4 class='text-[15px] font-bold hover:underline cursor-pointer text-[#050505]'>${a.name || a.username}</h4>
+                                        <p class='text-[13px] text-fb-gray-text flex items-center gap-1'>
+                                            ${timeAgo(p.updated_at || p.created_at)} <span class="text-[10px] text-fb-gray-text">•</span> <span class='material-symbols-outlined !text-[14px]'>public</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class='relative ml-2'>
+                                    <button class='options-btn p-1 rounded-full hover:bg-fb-hover' data-post-id='${p.id}' aria-label='Options'>
+                                        <span class='material-symbols-outlined' style='font-size:18px'>more_horiz</span>
+                                    </button>
+                                    <div class='options-menu hidden absolute w-36 bg-white rounded shadow-md z-50' style='right:12px; top:36px;'>
+                                        <button class='block w-full text-left px-3 py-2 hover:bg-fb-hover options-edit' data-post-id='${p.id}'>Edit</button>
+                                        <button class='block w-full text-left px-3 py-2 hover:bg-fb-hover options-delete' data-post-id='${p.id}'>Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class='text-[15px] mt-2 mb-3'>${p.content || ""}</p>
+                        </div>
+                        ${mediaHtml}
+                        <div class='px-4 py-2.5 flex items-center justify-between'>
+                            <div class='flex items-center gap-2'>
+                                ${renderReactions(p)}
+                            </div>
+                            <div class='flex gap-3'>
+                                <span class='text-[15px] text-fb-gray-text hover:underline cursor-pointer'>${(p.comments && p.comments.length) ? p.comments.length + ' comments' : '0 comments'}</span>
+                            </div>
+                        </div>
+                        <div class='mx-4 border-y border-gray-100 flex items-center gap-1 py-1'>
+                            <button class='flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-fb-hover rounded-lg transition-colors text-fb-gray-text'>
+                                <span class='material-symbols-outlined !text-[20px]'>thumb_up</span>
+                                <span class='text-[15px] font-semibold'>Like</span>
+                            </button>
+                            <button class='flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-fb-hover rounded-lg transition-colors text-[#1877F2]'>
+                                <span class='material-symbols-outlined !text-[20px] !fill-1'>chat_bubble</span>
+                                <span class='text-[15px] font-semibold'>Comment</span>
+                            </button>
+                            <button class='flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-fb-hover rounded-lg transition-colors text-fb-gray-text'>
+                                <span class='material-symbols-outlined !text-[20px]'>share</span>
+                                <span class='text-[15px] font-semibold'>Share</span>
+                            </button>
+                        </div>
+                        ${commentsHtml}
+                        <div class="px-4 py-3 border-t border-gray-100 bg-white">
+                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" enctype="multipart/form-data">
+                                <select name="author" class="w-28 px-2 py-1 border rounded">${userList.map(u => `<option value="${u.id}">${u.name||u.username}</option>`).join('')}</select>
+                                <textarea name="content" placeholder="Write a comment..." class="flex-1 px-3 py-2 border rounded resize-none" rows="2"></textarea>
+                                <input type="file" name="media" accept="image/*,video/*" class="hidden comment-media-input" />
+                                <button type="button" class="comment-add-media px-2">📷</button>
+                                <div class="flex items-center gap-1">
+                                    <label class="text-sm">👍</label>
+                                    <input name="liked" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                    <label class="text-sm">😂</label>
+                                    <input name="haha" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                    <label class="text-sm">❤️</label>
+                                    <input name="loved" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                    <label class="text-sm">😮</label>
+                                    <input name="surprised" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                    <label class="text-sm">😢</label>
+                                    <input name="sad" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                </div>
+                                <button type="submit" class="ml-2 bg-[#1877F2] text-white px-3 py-1 rounded">Comment</button>
+                            </form>
+                        </div>
+                    </div>`;
+                }
+
+                postsContainer.innerHTML = roots.map(renderPost).join('');
+            }
+        } catch (e) {
+            postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
+        }
+    }
+
+    function renderAuthorSelect() {
+        const select = document.getElementById('author-select');
+        if (!select) return;
+        select.innerHTML = userList.map(user => `<option value="${user.id}">${user.name || user.username}</option>`).join("");
+        // Set avatar for first user
+        if (userList.length > 0) {
+            setAuthorAvatar(userList[0]);
+        }
+    }
+
+    function setAuthorAvatar(user) {
+        const avatarDiv = document.getElementById('author-avatar');
+        if (avatarDiv) {
+            avatarDiv.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
+        }
+    }
+
+    function handleAuthorChange() {
+        const select = document.getElementById('author-select');
+        select.addEventListener('change', function() {
+            const user = userMap[select.value];
+            setAuthorAvatar(user);
+        });
+        // Optionally, make the select searchable (simple filter)
+        select.addEventListener('input', function() {
+            const val = select.value.toLowerCase();
+            for (let i = 0; i < select.options.length; i++) {
+                const option = select.options[i];
+                const user = userMap[option.value];
+                option.style.display = (user.name && user.name.toLowerCase().includes(val)) || (user.username && user.username.toLowerCase().includes(val)) ? '' : 'none';
+            }
+        });
+    }
+
+    function handlePhotoVideo() {
+        const btn = document.getElementById('photo-video-btn');
+        const input = document.getElementById('media-input');
+        btn.addEventListener('click', () => input.click());
+        input.addEventListener('change', function() {
+            const preview = document.getElementById('media-preview');
+            preview.innerHTML = '';
+            for (const file of input.files) {
+                const url = URL.createObjectURL(file);
+                let el;
+                if (file.type.startsWith('image/')) {
+                    el = document.createElement('img');
+                    el.src = url;
+                    el.className = 'w-20 h-20 object-cover rounded-lg';
+                } else if (file.type.startsWith('video/')) {
+                    el = document.createElement('video');
+                    el.src = url;
+                    el.className = 'w-20 h-20 object-cover rounded-lg';
+                    el.controls = true;
+                }
+                if (el) preview.appendChild(el);
+            }
+        });
+    }
+
+    function handleFeeling() {
+        const btn = document.getElementById('feeling-btn');
+        const input = document.getElementById('feeling-input');
+        btn.addEventListener('click', () => {
+            input.classList.toggle('hidden');
+            if (!input.classList.contains('hidden')) input.focus();
+        });
+    }
+
+    function handleAddFeedForm() {
+        const form = document.getElementById('add-feed-form');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            // Add default values for required fields if missing
+            if (!formData.get('author')) {
+                formData.set('author', userList[0]?.id || '');
+            }
+            if (!formData.get('content')) {
+                alert('Content cannot be empty.');
+                return;
+            }
+            // Attach all selected media files
+            const mediaInput = document.getElementById('media-input');
+            for (const file of mediaInput.files) {
+                formData.append('media', file);
+            }
+            // Add default values for other fields required by backend
+            formData.set('id', '0');
+            formData.set('parent', '0');
+            formData.set('liked', '0');
+            formData.set('haha', '0');
+            formData.set('loved', '0');
+            formData.set('surprised', '0');
+            formData.set('sad', '0');
+            const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
+            formData.set('is_with', isWithVal);
+            try {
+                const res = await fetch('/api/post', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.err) {
+                    alert('Failed to post: ' + data.err);
+                } else {
+                    form.reset();
+                    document.getElementById('media-preview').innerHTML = '';
+                    document.getElementById('feeling-input').classList.add('hidden');
+                    renderPosts();
+                }
+            } catch (err) {
+                alert('Failed to post: ' + err);
+            }
+        });
+    }
+
+    function initPostOptions() {
+        // Delegate click to toggle options menu
+        document.addEventListener('click', function(e) {
+            // Toggle menus when clicking options button
+            if (e.target.closest && e.target.closest('.options-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.options-btn');
+                const menu = btn.parentElement.querySelector('.options-menu');
+                if (menu) menu.classList.toggle('hidden');
+                return;
+            }
+
+            
+            // Click on edit
+            if (e.target.closest && e.target.closest('.options-edit')) {
+                e.preventDefault();
+                const id = e.target.closest('.options-edit').dataset.postId;
+                editPost(id);
+                return;
+            }
+            // Click on delete
+            if (e.target.closest && e.target.closest('.options-delete')) {
+                e.preventDefault();
+                const id = e.target.closest('.options-delete').dataset.postId;
+                deletePost(id);
+                return;
+            }
+            // Click outside: close any open menus
+            if (!e.target.closest || !e.target.closest('.options-menu')) {
+                document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
+            }
+        });
+    }
+
+    window.initCommentHandlers = function() {
+        // Media button triggers file input for comment forms
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest && e.target.closest('.comment-add-media');
+            if (btn) {
+                e.preventDefault();
+                const form = btn.closest('.comment-form');
+                if (!form) return;
+                const input = form.querySelector('.comment-media-input');
+                if (input) input.click();
+            }
+        });
+
+        // Submit comment forms (collect explicit reaction counters)
+        document.addEventListener('submit', async function(e) {
+            const form = e.target.closest && e.target.closest('.comment-form');
+            if (!form) return;
+            e.preventDefault();
+            const parentId = form.dataset.parentId || '0';
+            const fd = new FormData();
+            const author = form.querySelector('select[name="author"]')?.value || '';
+            const content = form.querySelector('textarea[name="content"]')?.value || '';
+            // Read numeric reaction counters (admin-controlled)
+            const likedVal = form.querySelector('input[name="liked"]')?.value || '0';
+            const hahaVal = form.querySelector('input[name="haha"]')?.value || '0';
+            const lovedVal = form.querySelector('input[name="loved"]')?.value || '0';
+            const surprisedVal = form.querySelector('input[name="surprised"]')?.value || '0';
+            const sadVal = form.querySelector('input[name="sad"]')?.value || '0';
+            fd.set('author', author);
+            fd.set('content', content);
+            fd.set('parent', parentId);
+            fd.set('id', '0');
+            fd.set('liked', String(Number(likedVal) || 0));
+            fd.set('haha', String(Number(hahaVal) || 0));
+            fd.set('loved', String(Number(lovedVal) || 0));
+            fd.set('surprised', String(Number(surprisedVal) || 0));
+            fd.set('sad', String(Number(sadVal) || 0));
+            const mediaInput = form.querySelector('.comment-media-input');
+            if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {
+                for (const f of mediaInput.files) fd.append('media', f);
+            }
+            try {
+                const res = await fetch('/api/post', { method: 'POST', body: fd });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && !data.err) {
+                    form.reset();
+                    renderPosts();
+                } else {
+                    alert('Failed to post comment: ' + (data.err || res.statusText));
+                }
+            } catch (err) {
+                alert('Failed to post comment: ' + err);
+            }
+        });
+    }
+
+    function editPost(id) {
+        window.location.href = `/post/edit/${id}`;
+    }
+
+    async function deletePost(id) {
+        if (!confirm('Are you sure you want to delete this post?')) return;
+        try {
+            // Try the endpoint pattern '/post/delete/{id}' first, fall back to '/delete/post/{id}'
+            let res = await fetch(`/api/post/delete/${id}`, { method: 'GET' });
+            if (!res.ok) {
+                console.log("Failed to delete", res.statusText);
+            
+            }
+            // Reload page after delete attempt
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to delete post: ' + err);
+        }
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+        await fetchUsers();
+        renderContacts();
+        renderPosts();
+        renderAuthorSelect();
+        handleAuthorChange();
+        handlePhotoVideo();
+        handleFeeling();
+        handleAddFeedForm();
+        initPostOptions();
+        initCommentHandlers();
+    });
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "fb-blue": "#1877F2",
+                        "fb-bg": "#F0F2F5",
+                        "fb-header": "#FFFFFF",
+                        "fb-active-tab": "#1877F2",
+                        "fb-gray-text": "#65676B",
+                        "fb-hover": "#E4E6EB",
+                        "fb-input": "#F0F2F5",
+                        "fb-comment-bg": "#F0F2F5",
+                    },
+                    fontFamily: {
+                        "sans": ["Segoe UI", "Helvetica", "Arial", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-fb-bg text-[#050505];
             }
         }
-
-        const diffInHours = Math.floor(diffInMinutes / 60);
-
-        // Less than 24 hours
-        if (diffInHours < 24) {
-            return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 28px;
         }
-
-        const diffInDays = Math.floor(diffInHours / 24);
-
-        // Less than 7 days
-        if (diffInDays < 7) {
-            return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+        .nav-icon-active {
+            @apply text-fb-blue border-b-4 border-fb-blue;
         }
+        .nav-icon-active span {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-dot {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 12px;
+            height: 12px;
+            background-color: #31A24C;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .comment-bubble {
+            @apply bg-fb-comment-bg rounded-[18px] px-3 py-2;
+        }
+    </style>
+</head>
 
-        // More than a week - show actual date and time
-        const options = {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        };
-
-        return postTime.toLocaleDateString('en-US', options).replace(',', '') + ' ' +
-            postTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    }
-
-    function createPostBlock(post, mediaList, comments = []) {
-        const author = characters[post.author] || { name: "Unknown", username: "unknown" };
-        const avatarUrl = `/data/avatar/${author.username}.png`;
-
-        const mediaHtml = mediaList.map(m =>
-            `<img src="/data/${m.url}" class="max-w-full max-h-64 rounded mt-2" alt="media">`
-        ).join('');
-
-        const commentHtml = comments.map(c => {
-            const ca = characters[c.author] || { name: "Unknown", username: "unknown" };
-            const cav = `/data/avatar/${ca.username}.png`;
-            return `
-          <div class="flex space-x-2 mt-2 bg-gray-50 p-2 rounded">
-            <img src="${cav}" class="w-6 h-6 rounded-full" />
-            <div>
-              <div class="text-sm font-semibold">${ca.name}</div>
-              <div class="text-sm">${c.content}</div>
+<body class="min-h-screen">
+    <div class="layout-container flex flex-col min-h-screen">
+        <header class="sticky top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
+            <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
+                <div class="flex items-center gap-2 min-w-[300px]">
+                    <div class="text-fb-blue">
+                        <svg class="size-10" fill="currentColor" viewBox="0 0 36 36">
+                            <path
+                                d="M20.181 35.89C29.094 34.791 36 27.197 36 18 36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.513 5.913 15.644 13.875 17.373v-12.28h-4.462v-5.093h4.462v-3.877c0-4.404 2.623-6.84 6.642-6.84 1.924 0 3.93.344 3.93.344v4.32h-2.213c-2.181 0-2.86 1.355-2.86 2.744v3.309h4.87l-.779 5.093h-4.091v12.28z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="relative group">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
+                        <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
+                            placeholder="Search" type="text" />
+                    </div>
+                </div>
+                <div class="flex-1 hidden md:flex items-center justify-center h-full max-w-[680px]">
+                    <div class="flex items-center w-full h-full">
+                        <a class="flex-1 h-full flex items-center justify-center nav-icon-active hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                            href="#">
+                            <span class="material-symbols-outlined">home</span>
+                        </a>
+                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                            href="#">
+                            <span class="material-symbols-outlined">ondemand_video</span>
+                        </a>
+                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                            href="#">
+                            <span class="material-symbols-outlined">storefront</span>
+                        </a>
+                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                            href="#">
+                            <span class="material-symbols-outlined">groups</span>
+                        </a>
+                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                            href="#">
+                            <span class="material-symbols-outlined">sports_esports</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 min-w-[300px] justify-end">
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
+                            <span class="material-symbols-outlined !text-[20px]">apps</span>
+                        </button>
+                        <button
+                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
+                            <span
+                                class="material-symbols-outlined !text-[20px]">chat_bubble</span>
+                        </button>
+                        <button
+                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] relative">
+                            <span
+                                class="material-symbols-outlined !text-[20px]">notifications</span>
+                            <span
+                                class="absolute -top-1 -right-1 size-5 bg-[#E41E3F] text-white text-[11px] font-bold rounded-full flex items-center justify-center">3</span>
+                        </button>
+                        <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
+                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        `;
-        }).join('');
-
-        return `
-        <div class="bg-white p-4 rounded shadow">
-          <div class="flex items-center space-x-2 mb-2">
-            <img src="${avatarUrl}" class="w-10 h-10 rounded-full" />
-            <div>
-              <div class="font-semibold">${author.name}</div>
-              <div class="text-sm text-gray-500">${getRelativeTimeString(post.updated_at)}</div>
-            </div>
-          </div>
-          <div class="mb-2">
-            ${post.feeling ? `<div class="text-sm text-gray-600 italic">is feeling ${post.feeling}</div>` : ""}
-            ${post.is_with ? `<div class="text-sm text-gray-600">with ${post.is_with}</div>` : ""}
-          </div>
-          <div class="mb-2 whitespace-pre-wrap">${post.content}</div>
-          ${mediaHtml}
-          <div class="mt-2 text-sm text-gray-600">${createReactionBlock(post)}</div>
-          {% include "include/break.html" %}
-          ${comments.length > 0 ? `<div class="mt-2">${commentHtml}</div>` : ""}
-          {% include "include/comment.html" %}
-        </div>
-      `;
-    }
-
-    async function loadPosts() {
-        await fetchCharacters();
-        const res = await fetch(`/api/post?${queryStr}`);
-        const json = await res.json();
-        const posts = json.posts || [];
-
-        for (const post of posts) {
-            const [mediaData, comments] = await Promise.all([
-                fetchMedia(post.id),
-                fetchComments(post.id)
-            ]);
-            const html = createPostBlock(post, mediaData.media || [], comments);
-            postList.insertAdjacentHTML("beforeend", html);
-        }
-    }
-
-    loadPosts();
-</script>
-<!--<form action="/" method="post" enctype="multipart/form-data">-->
-<!--    <div class="space-y-12">-->
-<!--        <div class="border-b border-gray-900/10 pb-12">-->
-<!--            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">-->
-<!--                <div class="sm:col-span-4">-->
-<!--                    <div class="mt-2">-->
-<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
-<!--                            <input type="text" name="character" id="character" autocomplete="character"-->
-<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
-<!--                                   placeholder="character">-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    <div class="mt-2">-->
-<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
-<!--                            <input type="text" name="feeling" id="feeling" autocomplete="feeling"-->
-<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
-<!--                                   placeholder="feeling">-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    <div class="mt-2">-->
-<!--                        <div class="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">-->
-<!--                            <input type="text" name="is_with" id="is_with" autocomplete="is_with"-->
-<!--                                   class="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"-->
-<!--                                   placeholder="is_with">-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-
-<!--                <div class="col-span-full">-->
-<!--                    <label for="about" class="block text-sm font-medium leading-6 text-gray-900">About</label>-->
-<!--                    <div class="mt-2">-->
-<!--                        <textarea id="content" name="content" rows="3"-->
-<!--                                  class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>-->
-<!--                    </div>-->
-<!--                </div>-->
-
-<!--                <div class="col-span-full">-->
-<!--                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">-->
-<!--                        <div class="text-center">-->
-<!--                            <svg class="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor"-->
-<!--                                 aria-hidden="true">-->
-<!--                                <path fill-rule="evenodd"-->
-<!--                                      d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"-->
-<!--                                      clip-rule="evenodd"/>-->
-<!--                            </svg>-->
-<!--                            <div class="mt-4 flex text-sm leading-6 text-gray-600">-->
-<!--                                <label for="media"-->
-<!--                                       class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">-->
-<!--                                    <span>Upload a file</span>-->
-<!--                                    <input id="media" name="media" type="file" class="sr-only">-->
-<!--                                </label>-->
-<!--                                <p class="pl-1">or drag and drop</p>-->
-<!--                            </div>-->
-<!--                            <p class="text-xs leading-5 text-gray-600">PNG, JPG, GIF up to 10MB</p>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-
-<!--    <div class="mt-6 flex items-center justify-end gap-x-6">-->
-<!--        &lt;!&ndash;        <button type="button" class="text-sm font-semibold leading-6 text-gray-900">Cancel</button>&ndash;&gt;-->
-<!--        <button type="submit"-->
-<!--                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">-->
-<!--            Add-->
-<!--        </button>-->
-<!--    </div>-->
-<!--</form>-->
-
-
-<!-- dashboard close tags -->
-</div>
-</main>
+        </header>
+        <main class="flex-1 w-full flex justify-between px-4">
+            <aside
+                class="hidden xl:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
+                <div class="flex flex-col gap-0.5">
+                    <div data-contacts-list class="flex flex-col gap-0.5"></div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-300">
+                    <div class="flex items-center justify-between px-2 mb-2">
+                        <h3 class="font-semibold text-fb-gray-text text-[17px]">Your shortcuts
+                        </h3>
+                        <button
+                            class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Edit</button>
+                    </div>
+                    <div class="flex flex-col gap-0.5">
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="size-9 rounded-lg bg-cover bg-center"
+                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
+                            </div>
+                            <span class="text-[15px] font-semibold">UI Design
+                                Community</span>
+                        </a>
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="size-9 rounded-lg bg-cover bg-center"
+                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
+                            </div>
+                            <span class="text-[15px] font-semibold">Photography Hub</span>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+            <section class="flex-1 flex flex-col pt-6 max-w-[590px] mx-auto min-w-0">
+                <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                    <!-- Dynamic stories and users will be rendered here if needed -->
+                </div>
+                <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200" enctype="multipart/form-data">
+                    <div class="flex gap-2 items-center mb-3">
+                        <div id="author-avatar" class="author-post size-10 rounded-full bg-cover bg-center shrink-0"></div>
+                        <select id="author-select" name="author" class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-full text-fb-gray-text text-[17px] focus:outline-none"></select>
+                    </div>
+                    <textarea name="content" id="post-content" rows="2" class="w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none resize-none mb-2" placeholder="What's on your mind?"></textarea>
+                    <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
+                    <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden" />
+                    <input type="text" id="feeling-input" name="feeling" class="hidden mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none" placeholder="How are you feeling?" />
+                    <input type="text" id="is-with-input" name="is_with" class="mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none" placeholder="With (comma-separated usernames)" />
+                    <div class="grid grid-cols-3 gap-1 pt-2 border-t border-gray-100">
+                        <button type="button" id="photo-video-btn" class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[#45BD62]">image</span>
+                            <span class="text-[15px] font-semibold text-fb-gray-text">Photo/video</span>
+                        </button>
+                        <button type="button" id="feeling-btn" class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[#F7B928]">mood</span>
+                            <span class="text-[15px] font-semibold text-fb-gray-text">Feeling/activity</span>
+                        </button>
+                        <button type="submit" class="flex items-center justify-center gap-2 py-2 bg-fb-blue text-white rounded-lg transition-colors">
+                            <span class="material-symbols-outlined">send</span>
+                            <span class="text-[15px] font-semibold">Post</span>
+                        </button>
+                    </div>
+                </form>
+                <div data-posts-list></div>
+            </section>
+            <aside
+                class="hidden lg:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
+                <div class="mb-4">
+                    <h3 class="font-semibold text-fb-gray-text text-[17px] px-2 mb-2">Sponsored</h3>
+                    <div class="flex flex-col gap-2">
+                        <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
+                            href="#">
+                            <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
+                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
+                            </div>
+                            <div class="flex flex-col justify-center">
+                                <h4 class="text-[15px] font-semibold text-[#050505]">
+                                    Digital Nomads Retreat 2024</h4>
+                                <p class="text-[13px] text-fb-gray-text">retreats.io</p>
+                            </div>
+                        </a>
+                        <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
+                            href="#">
+                            <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
+                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
+                            </div>
+                            <div class="flex flex-col justify-center">
+                                <h4 class="text-[15px] font-semibold text-[#050505]">
+                                    Master UI/UX Design Course</h4>
+                                <p class="text-[13px] text-fb-gray-text">
+                                    designschool.edu</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-gray-300">
+                    <div class="flex items-center justify-between px-2 mb-2">
+                        <h3 class="font-semibold text-fb-gray-text text-[17px]">Contacts</h3>
+                        <div class="flex gap-2">
+                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">video_call</span></button>
+                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">search</span></button>
+                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">more_horiz</span></button>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-0.5">
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="relative size-9">
+                                <div class="w-full h-full rounded-full bg-cover bg-center"
+                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB2sXMAt1saY1AjKDNINmwZbXcp3kvO744XqY42-6wBzeVpHhN6frudXuf3-Zk_0Q89VJb-99Sj8UPn4NZa5Qj-B9uwH6jYsM7Rr3ICQwBsMeiUUMkDLcWBFlkrvkozdcFdpR_pzjtm-hSyWGh19OjewWoQFETW3sUePN3vGPGACpyJD-j6MHvpuOb3NV32X9HCe5Oz3JjWSm0Rp65cBNfXw9xDUMueAu-tz-4hrkr-nQnYme7GHW6e9QiHCal5crifq0YIfNXZ1dnh');">
+                                </div>
+                                <div class="active-dot"></div>
+                            </div>
+                            <!-- User name rendered dynamically by JS -->
+                        </a>
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="relative size-9">
+                                <div class="w-full h-full rounded-full bg-cover bg-center"
+                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3B7jtKYWklRvH2uLuPrLHJ6zCHfc4h5J7dp-ZuhPx3vSJQAHkuEJ02UK1e5jxX1aKiu1mpFWFFPxU9_PgOgpTwtzhy3YZQ2a5V41lAkK9H84aI4LJlqvYT_fjUEqjfeP3-qlj_OVgawTUMGiJT58v2_45jPt1Gs5QTjoKbTvtKMVtqZNL7Gi7F_AdSmB7xKeSrDSXZZj7c3Io-1tcCodYEOKaVOf4ieN5fpnp7Q28DDNe4ReoNHRzvp4-oNYOAXt_jkxxawkY73CD');">
+                                </div>
+                                <div class="active-dot"></div>
+                            </div>
+                            <!-- User name rendered dynamically by JS -->
+                        </a>
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="relative size-9">
+                                <div class="w-full h-full rounded-full bg-cover bg-center"
+                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB4c7Cgx5dPxGjZbMJvCTH55jSnc_ubm6fORI9On20WvapNc_YbYr4j9iy4F1JckudJadkS2WVIvmtwLJSJEdfXF5cudhFL4LjwgSw7CQHwIw7oQBYdRwOCY9ExDc4dOpDtHo9cVafp-68rqtNfEu6x8iYs-RfTEpuVDUZ302SIoex13-n99kHytAsUG4WXo3gE-rQzO_iRlBISrE7HMWDW2cOHpuxemyKyOeAJJDGa2i_yhwxBqHvv4NWg20-QaUsAJ4UoI5QRrToZ');">
+                                </div>
+                                <div class="active-dot"></div>
+                            </div>
+                            <!-- User name rendered dynamically by JS -->
+                        </a>
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="relative size-9">
+                                <div class="w-full h-full rounded-full bg-cover bg-center"
+                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuATUoiE4z4CU5XJpxR1Flol_aKzbcljaR90UhPYzl6NmCZUhJAwh2qDYovzpcr5mra64sFTFErswza7lWswwwUj06QZQa80qVY5Fr5qGrcsRGAFzeAeHCbj2Hp0WIVhbNfIxYuvb78VSdlhW6lbcyrCw3ENmQwjg3JddHfz7-mMZPqig0BkJpmEw6iH20BKnwXrxcMprbEeRjAHO58YbrJLPDQcYcfmnhBbI2TLyoPbn7XinLDh_UJ9civdvlJR2tXis6bYLYa8R49O');">
+                                </div>
+                                <div class="active-dot"></div>
+                            </div>
+                            <!-- User name rendered dynamically by JS -->
+                        </a>
+                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                            href="#">
+                            <div class="relative size-9">
+                                <div class="w-full h-full rounded-full bg-cover bg-center"
+                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAZTu58yHojuRZhO5gP03EMAUSuN1EwEm35Z3wo_Gn0te8bP_8HfI3cZNhK9KmWGA0ePNuADpnqIkCcqNqDXCNiFp8TBoSakrQCrxq-3qf-TZ7xrBBqyXVmJsOLT2jIyvAD7U3dbq9_0HWC3QEpedBlUFdc5F2GMLVjXPzkzF4mVopxeDdwVWnQPp0d4Uf5QVCiB8yEnpL4Viscx-HFn_g7Rm6InylErglbzCkj6bWrQoXqkqWP6KL8pPWV7bNFKBGc8w05ebyBRUK');">
+                                </div>
+                                <div class="active-dot"></div>
+                            </div>
+                            <!-- User name rendered dynamically by JS -->
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
 
 </body>
+
 </html>

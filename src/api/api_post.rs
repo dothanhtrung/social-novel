@@ -1,20 +1,20 @@
-use crate::api::{delete_file, save_file, CommonMessage};
 use crate::ConfigData;
+use crate::api::{CommonMessage, delete_file, save_file};
+use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
-use actix_web::{get, post, web, Responder};
+use actix_web::{Responder, get, post, web};
 use serde::{Deserialize, Serialize};
 use sn_internal::db::db_media::Media;
 use sn_internal::db::db_post::Post;
-use sn_internal::db::{db_media, db_post, DBPool};
+use sn_internal::db::{DBPool, db_media, db_post};
+use sqlx::types::time::OffsetDateTime;
 use std::cmp::max;
 use std::path::{Path, PathBuf};
-use sqlx::types::time::OffsetDateTime;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/post").service(get).service(update));
+    cfg.service(web::scope("/post").service(get).service(update).service(delete));
 }
 
 #[derive(Serialize)]
@@ -152,7 +152,11 @@ async fn update(
                     err = e.to_string();
                 }
             }
-            Err(e) => err = e.to_string(),
+            Err(e) => {
+                if e.to_string() != "exist" {
+                    err = e.to_string()
+                }
+            }
         }
     }
 

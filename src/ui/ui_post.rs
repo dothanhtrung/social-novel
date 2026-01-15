@@ -31,7 +31,7 @@ async fn get(tmpl: web::Data<Tera>) -> impl Responder {
     }
 }
 
-#[get("/post/edit")]
+#[get("/post/edit/{id}")]
 async fn edit(tmpl: web::Data<Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
     match tmpl.render("post_edit.html", &ctx) {

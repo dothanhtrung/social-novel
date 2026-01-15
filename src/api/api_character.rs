@@ -1,10 +1,13 @@
-use crate::api::{save_avatar, CommonMessage};
+use crate::api::{CommonMessage, ErrorResponse, save_avatar};
 use crate::ConfigData;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, web};
 use actix_web::{post, Responder};
+use apistos::actix::CreatedJson;
+use apistos::{ApiComponent, api_operation};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sn_internal::db::db_character::Character;
 use sn_internal::db::{db_character, DBPool};
@@ -35,21 +38,21 @@ struct SearchQuery {
     search: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
 struct CharacterResponse {
     characters: Vec<Character>,
     err: String,
 }
 
 #[get("")]
-async fn search(db_pool: web::Data<DBPool>, queries: web::Query<SearchQuery>) -> impl Responder {
+async fn search(db_pool: web::Data<DBPool>, queries: web::Query<SearchQuery>) -> Result<CreatedJson<CharacterResponse>, ErrorResponse> {
     let mut characters = Vec::new();
     let mut err = String::new();
     match db_character::search(&db_pool, queries.search.as_str()).await {
         Ok(c) => characters = c,
         Err(e) => err = e.to_string(),
     }
-    web::Json(CharacterResponse { characters, err })
+    Ok(CreatedJson(CharacterResponse { characters, err }))
 }
 
 #[get("/{id}")]

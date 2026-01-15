@@ -1,17 +1,22 @@
 mod api_character;
-mod api_post;
 mod api_media;
+mod api_post;
 
 use actix_multipart::form::tempfile::TempFile;
-use actix_web::web;
-use serde::Serialize;
+use actix_web::http::StatusCode;
+use actix_web::{ResponseError, web};
+use anyhow::anyhow;
+use apistos::ApiErrorComponent;
+use core::fmt::Formatter;
+use serde::{Deserialize, Serialize};
+use sn_internal::db::db_media::MediaType;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tracing::{error, info, warn};
-use sn_internal::db::db_media::MediaType;
 
 pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -20,6 +25,31 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
             .configure(api_media::scope)
             .configure(api_post::scope),
     );
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, ApiErrorComponent)]
+#[openapi_error(
+    status(code = 403),
+    status(code = 404),
+    status(code = 405, description = "Invalid input"),
+    status(code = 409)
+)]
+pub enum ErrorResponse {
+    MethodNotAllowed(String),
+    NotFound(String),
+    Conflict(String),
+    Unauthorized(String),
+}
+impl Display for ErrorResponse {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl ResponseError for ErrorResponse {
+    fn status_code(&self) -> StatusCode {
+        todo!()
+    }
 }
 
 #[derive(Serialize)]
@@ -86,6 +116,7 @@ async fn save_file(
         }
     } else {
         info!("File {saved_name} exists");
+	return Err(anyhow!("exist"));
     }
 
     let file_type = file_type(&path).await;
@@ -127,7 +158,7 @@ fn calculate_blake3(file_path: &Path) -> std::io::Result<String> {
     Ok(result.to_hex().to_string().to_lowercase())
 }
 
- async fn file_type(path: &Path) -> MediaType {
+async fn file_type(path: &Path) -> MediaType {
     let data = fs::read(path).await.ok().unwrap_or_default();
     if let Some(kind) = infer::get(&data) {
         if kind.mime_type().starts_with("video/") {
@@ -137,5 +168,5 @@ fn calculate_blake3(file_path: &Path) -> std::io::Result<String> {
         }
     }
 
-     MediaType::NA
+    MediaType::NA
 }
