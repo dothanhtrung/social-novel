@@ -240,6 +240,29 @@
 
                 function renderPost(p) {
                     const a = userMap[p.author] || { username: 'unknown', name: 'Unknown' };
+                    // Build 'is {feeling} {is_with}' metadata
+                    const feeling = p.feeling || '';
+                    const is_with = p.is_with || '';
+                    let metaHtml = '';
+                    if (feeling || is_with) {
+                        const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
+                        let isWithHtml = '';
+                        if (is_with) {
+                            const m = is_with.match(/^(with|by)\s+(.*)/i);
+                            if (m) {
+                                const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
+                                const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
+                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                                }).join('');
+                                isWithHtml = `${prefix} ${rest}`;
+                            } else {
+                                isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
+                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                                }).join('');
+                            }
+                        }
+                        metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
+                    }
                     let mediaHtml = '';
                     if (p.media && p.media.length > 0) {
                         const m = p.media[0];
@@ -258,8 +281,11 @@
                                 <div class='flex items-center gap-2'>
                                     <div class='size-10 rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(a)}");'></div>
                                     <div>
-                                        <h4 class='text-[15px] font-bold hover:underline cursor-pointer text-[#050505]'>${a.name || a.username}</h4>
-                                        <p class='text-[13px] text-fb-gray-text flex items-center gap-1'>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class='text-[15px] font-bold hover:underline cursor-pointer text-[#050505]'>${a.name || a.username}</h4>
+                                            ${metaHtml}
+                                        </div>
+                                        <p class='text-[13px] text-fb-gray-text flex items-center gap-1 mt-0'>
                                             ${timeAgo(p.updated_at || p.created_at)} <span class="text-[10px] text-fb-gray-text">•</span> <span class='material-symbols-outlined !text-[14px]'>public</span>
                                         </p>
                                     </div>
