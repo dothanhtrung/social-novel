@@ -9,6 +9,7 @@
     <script>
     let userMap = {};
     let userList = [];
+    let usernameMapLower = {}; // map lowercase username -> user
     async function fetchUsers() {
         try {
             const res = await fetch("/api/character");
@@ -18,12 +19,42 @@
                 userList = data.characters;
                 for (const user of data.characters) {
                     userMap[user.id] = user;
+                    if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
                 }
             }
         } catch (e) {
             userMap = {};
             userList = [];
         }
+    }
+
+    // Escape HTML special chars to prevent XSS when rendering user content
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Render content and replace @username mentions with full Name in blue
+    function renderContentWithMentions(text) {
+        if (!text) return '';
+        // Escape first
+        let out = escapeHtml(text);
+        // Replace newlines with <br>
+        out = out.replace(/\r?\n/g, '<br>');
+        // Replace @username (alphanumeric and underscore, hyphen allowed) with full name when available
+        out = out.replace(/@([A-Za-z0-9_\-\.]+)/g, function(_, uname) {
+            const found = usernameMapLower[uname.toLowerCase()];
+            if (found) {
+                const display = escapeHtml(found.name || found.username);
+                return `<span class="text-fb-blue">@${display}</span>`;
+            }
+            return `@${escapeHtml(uname)}`;
+        });
+        return out;
     }
 
     function getAvatarUrl(user) {
@@ -170,25 +201,26 @@
                     }
                 }
 
-                // Sort comments for each post: newest first
+                // Sort comments for each post: oldest first (display from old -> new)
                 Object.values(byId).forEach(post => {
                     if (post.comments && post.comments.length > 0) {
                         post.comments.sort((a, b) => {
                             const ta = parseTimestamp(a.updated_at || a.created_at);
                             const tb = parseTimestamp(b.updated_at || b.created_at);
-                            return tb - ta; // newest first
+                            return ta - tb; // oldest first
                         });
                     }
                 });
 
-                // Fetch media for all posts (roots and their comments)
+                // Fetch media for all posts and nested comments (collect ids recursively)
                 const allPostIds = [];
-                roots.forEach(r => {
-                    allPostIds.push(r.id);
-                    if (r.comments && r.comments.length > 0) {
-                        r.comments.forEach(c => allPostIds.push(c.id));
+                function collectIds(node) {
+                    allPostIds.push(node.id);
+                    if (node.comments && node.comments.length > 0) {
+                        node.comments.forEach(ch => collectIds(ch));
                     }
-                });
+                }
+                roots.forEach(r => collectIds(r));
                 // Deduplicate
                 const uniqIds = Array.from(new Set(allPostIds));
                 await Promise.all(uniqIds.map(async id => {
@@ -210,7 +242,7 @@
                 // Sort roots (top-level posts) by updated_at (newest first)
                 roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
 
-                function renderComment(c) {
+                function renderComment(c, depth = 0) {
                     const a = userMap[c.author] || { username: 'unknown', name: 'Unknown' };
                     // render media for comment if any
                     let commentMediaHtml = '';
@@ -224,13 +256,14 @@
                         }
                     }
 
-                    return `
-                    <div class="pl-12 pr-4 py-3 border-t border-gray-100 bg-white relative">
+                    const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
+                    const commentHtml = `
+                    <div ${indentStyle} class="pr-4 py-3 border-t border-gray-100 bg-white relative">
                         <div class="flex items-start gap-3">
                             <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
                             <div class="flex-1">
                                 <div class="text-[14px] text-[#050505]"><strong>${a.name || a.username}</strong></div>
-                                        <div class="text-[14px] text-fb-gray-text">${c.content || ''}</div>
+                                        <div class="text-[14px] text-fb-gray-text">${renderContentWithMentions(c.content || '')}</div>
                                         ${commentMediaHtml}
                                         <div class="mt-1 flex items-center justify-between">
                                             <div class="flex items-center gap-3">
@@ -253,6 +286,13 @@
                             </div>
                         </div>
                     </div>`;
+
+                    // Render child comments recursively
+                    let childrenHtml = '';
+                    if (c.comments && c.comments.length > 0) {
+                        childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
+                    }
+                    return commentHtml + childrenHtml;
                 }
 
                 function renderPost(p) {
@@ -290,7 +330,7 @@
                             mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
                         }
                     }
-                    const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(renderComment).join('') : '';
+                    const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
                     return `
                     <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
                         <div class='px-4 py-3'>
@@ -317,7 +357,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <p class='text-[15px] mt-2 mb-3'>${p.content || ""}</p>
+                            <p class='text-[15px] mt-2 mb-3'>${renderContentWithMentions(p.content || "")}</p>
                         </div>
                         ${mediaHtml}
                         <div class='px-4 pt-2'>
@@ -501,6 +541,9 @@
         if (userList.length > 0) {
             setAuthorAvatar(userList[0]);
         }
+        // Refresh username lower-case map in case userList changed
+        usernameMapLower = {};
+        for (const user of userList) if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
     }
 
     function setAuthorAvatar(user) {
@@ -653,6 +696,37 @@
                 if (!form) return;
                 const input = form.querySelector('.comment-media-input');
                 if (input) input.click();
+            }
+            // Reply button: set the parent id on the nearest comment form and focus textarea
+            const reply = e.target.closest && e.target.closest('.reply-btn');
+            if (reply) {
+                e.preventDefault();
+                const commentId = reply.dataset.commentId;
+                // Find the nearest post container that contains a comment form
+                // Walk up until we find an ancestor that has a .comment-form inside it
+                let ancestor = reply.closest('.bg-white');
+                let form = null;
+                while (ancestor) {
+                    form = ancestor.querySelector && ancestor.querySelector('.comment-form');
+                    if (form) break;
+                    ancestor = ancestor.parentElement && ancestor.parentElement.closest ? ancestor.parentElement.closest('.bg-white') : null;
+                }
+                // Fallback to any comment-form on the page (shouldn't usually happen)
+                if (!form) form = document.querySelector('.comment-form');
+                if (form) {
+                    form.dataset.parentId = commentId;
+                    const ta = form.querySelector('textarea[name="content"]');
+                    if (ta) {
+                        ta.focus();
+                        // Optionally prefill with @username
+                        try {
+                            const commenter = userMap[reply.dataset.commentId];
+                            if (commenter && commenter.username) {
+                                ta.value = ta.value ? ta.value : `@${commenter.username} `;
+                            }
+                        } catch (err) {}
+                    }
+                }
             }
         });
 
