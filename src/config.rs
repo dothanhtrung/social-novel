@@ -74,6 +74,10 @@ pub struct Config {
     #[serde(default)]
     pub parallel: usize,
     pub data_dir: String,
+    #[serde(default)]
+    pub basic_auth_user: String,
+    #[serde(default)]
+    pub basic_auth_pass: String,
 }
 
 impl Default for Config {
@@ -84,7 +88,9 @@ impl Default for Config {
             parallel: DEFAULT_PARALLEL,
             db: DBConfig::default(),
             api: APIConfig::default(),
-            data_dir: "./data".to_string(),       
+            data_dir: "./data".to_string(),   
+            basic_auth_user: "admin".to_string(),
+            basic_auth_pass: "admin".to_string(),    
         }
     }
 }

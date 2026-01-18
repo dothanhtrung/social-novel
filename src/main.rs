@@ -1,9 +1,9 @@
 //! Copyright (c) 2025 Trung Do <dothanhtrung@pm.me>.
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_arch = "aarch64")))]
 use tikv_jemallocator::Jemalloc;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_arch = "aarch64")))]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
@@ -13,9 +13,14 @@ mod ui;
 use crate::ui::Broadcaster;
 use actix_cors::Cors;
 use actix_files::Files;
-use actix_web::dev::ServerHandle;
+use actix_web::dev::{ServerHandle, ServiceRequest};
+use actix_web::error::InternalError;
+use actix_web::http::header;
+use actix_web::middleware::Condition;
 use actix_web::web::Data;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{App, Error, HttpResponse, HttpServer, middleware, web};
+use actix_web_httpauth::extractors::basic::BasicAuth;
+use actix_web_httpauth::middleware::HttpAuthentication;
 use anyhow::anyhow;
 use clap::Parser;
 use parking_lot::Mutex;
@@ -39,6 +44,28 @@ struct Cli {
 struct ConfigData {
     config: RwLock<Config>,
     config_path: PathBuf,
+}
+
+async fn basic_auth_validator(
+    req: ServiceRequest,
+    credentials: BasicAuth,
+) -> Result<ServiceRequest, (Error, ServiceRequest)> {
+    let mut user_ok = false;
+    let mut pass_ok = false;
+    if let Some(config) = req.app_data::<Data<ConfigData>>() {
+        let config = config.config.read().await;
+        user_ok = config.basic_auth_user.is_empty() || credentials.user_id() == config.basic_auth_user;
+        pass_ok = config.basic_auth_pass.is_empty() || credentials.password() == Some(config.basic_auth_pass.as_str());
+    }
+    if user_ok && pass_ok {
+        Ok(req)
+    } else {
+        let resp = HttpResponse::Unauthorized()
+            .insert_header((header::WWW_AUTHENTICATE, r#"Basic realm="Restricted""#))
+            .finish();
+        let err = InternalError::from_response("Unauthorized", resp).into();
+        Err((err, req))
+    }
 }
 
 #[tokio::main]
@@ -80,8 +107,13 @@ async fn main() -> anyhow::Result<()> {
         let srv = HttpServer::new({
             let stop_handle = stop_handle.clone();
             move || {
+                let enable_basic_auth = !config.basic_auth_user.is_empty() || !config.basic_auth_pass.is_empty();
                 let mut app = App::new()
                     .wrap(Cors::default().allow_any_origin())
+                    .wrap(Condition::new(
+                        enable_basic_auth,
+                        HttpAuthentication::basic(basic_auth_validator),
+                    ))
                     .wrap(middleware::NormalizePath::trim())
                     .app_data(Data::from(stop_handle.clone()))
                     .app_data(Data::from(ref_db_pool.clone()))
