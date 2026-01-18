@@ -92,24 +92,31 @@
     }
 
     function renderReactions(p) {
-        const parts = [];
-        if (p.liked && p.liked > 0) {
-            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#1877F2] flex items-center justify-center text-white text-[11px]'>👍</div><span class='text-[14px] text-fb-gray-text'>${p.liked}</span></div>`);
-        }
-        if (p.loved && p.loved > 0) {
-            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#F3425E] flex items-center justify-center text-white text-[11px]'>❤️</div><span class='text-[14px] text-fb-gray-text'>${p.loved}</span></div>`);
-        }
-        if (p.haha && p.haha > 0) {
-            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#F7B500] flex items-center justify-center text-white text-[11px]'>😂</div><span class='text-[14px] text-fb-gray-text'>${p.haha}</span></div>`);
-        }
-        if (p.surprised && p.surprised > 0) {
-            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#9B8CFF] flex items-center justify-center text-white text-[11px]'>😮</div><span class='text-[14px] text-fb-gray-text'>${p.surprised}</span></div>`);
-        }
-        if (p.sad && p.sad > 0) {
-            parts.push(`<div class='flex items-center gap-1'><div class='size-[18px] rounded-full bg-[#6E6E6E] flex items-center justify-center text-white text-[11px]'>😢</div><span class='text-[14px] text-fb-gray-text'>${p.sad}</span></div>`);
-        }
-        if (parts.length === 0) return `<span class='text-[14px] text-fb-gray-text'>0 reactions</span>`;
-        return parts.join('<div class="w-3"></div>');
+        const items = [];
+        let total = 0;
+        if (p.liked && p.liked > 0) { items.push({ color: '#1877F2', emoji: '👍', count: p.liked }); total += Number(p.liked); }
+        if (p.loved && p.loved > 0) { items.push({ color: '#F3425E', emoji: '❤️', count: p.loved }); total += Number(p.loved); }
+        if (p.haha && p.haha > 0) { items.push({ color: '#F7B500', emoji: '😂', count: p.haha }); total += Number(p.haha); }
+        if (p.surprised && p.surprised > 0) { items.push({ color: '#9B8CFF', emoji: '😮', count: p.surprised }); total += Number(p.surprised); }
+        if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
+        if (items.length === 0) return '';
+        const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
+        return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
+    }
+
+    // Render reactions for comments: if none, render empty string; otherwise overlapped icons + total
+    function renderCommentReactions(p) {
+        const items = [];
+        let total = 0;
+        if (p.liked && p.liked > 0) { items.push({ color: '#1877F2', emoji: '👍', count: p.liked }); total += Number(p.liked); }
+        if (p.loved && p.loved > 0) { items.push({ color: '#F3425E', emoji: '❤️', count: p.loved }); total += Number(p.loved); }
+        if (p.haha && p.haha > 0) { items.push({ color: '#F7B500', emoji: '😂', count: p.haha }); total += Number(p.haha); }
+        if (p.surprised && p.surprised > 0) { items.push({ color: '#9B8CFF', emoji: '😮', count: p.surprised }); total += Number(p.surprised); }
+        if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
+        if (items.length === 0) return '';
+        // show up to 3 icons overlapped
+        const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
+        return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
     }
 
     async function renderContacts() {
@@ -157,8 +164,49 @@
                     }
                 }
 
+                // Fetch media for all posts (roots and their comments)
+                const allPostIds = [];
+                roots.forEach(r => {
+                    allPostIds.push(r.id);
+                    if (r.comments && r.comments.length > 0) {
+                        r.comments.forEach(c => allPostIds.push(c.id));
+                    }
+                });
+                // Deduplicate
+                const uniqIds = Array.from(new Set(allPostIds));
+                await Promise.all(uniqIds.map(async id => {
+                    try {
+                        const mres = await fetch(`/api/media?post=${id}`);
+                        const mdata = await mres.json().catch(() => ({}));
+                        if (mdata && Array.isArray(mdata.media)) {
+                            // attach to the corresponding byId entry
+                            if (byId[id]) byId[id].media = mdata.media.map(m => ({
+                                ...m,
+                                url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
+                            }));
+                        }
+                    } catch (err) {
+                        // ignore per-item failures
+                    }
+                }));
+
+                // Sort roots (top-level posts) by updated_at (newest first)
+                roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
+
                 function renderComment(c) {
                     const a = userMap[c.author] || { username: 'unknown', name: 'Unknown' };
+                    // render media for comment if any
+                    let commentMediaHtml = '';
+                    if (c.media && c.media.length > 0) {
+                        const m = c.media[0];
+                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                        if (m.file_type === "Image") {
+                            commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                        } else if (m.file_type === "Video") {
+                            commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                        }
+                    }
+
                     return `
                     <div class="pl-12 pr-4 py-3 border-t border-gray-100 bg-white relative">
                         <div class="flex items-start gap-3">
@@ -166,8 +214,16 @@
                             <div class="flex-1">
                                 <div class="text-[14px] text-[#050505]"><strong>${a.name || a.username}</strong></div>
                                         <div class="text-[14px] text-fb-gray-text">${c.content || ''}</div>
-                                        <div class="mt-2">${renderReactions(c)}</div>
-                                        <p class='text-[12px] text-fb-gray-text mt-1' title='${new Date(c.updated_at || c.created_at).toLocaleString()}'>${timeAgo(c.updated_at || c.created_at)}</p>
+                                        ${commentMediaHtml}
+                                        <div class="mt-1 flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <p class='text-[12px] text-fb-gray-text' title='${new Date(c.updated_at || c.created_at).toLocaleString()}'>${timeAgo(c.updated_at || c.created_at)}</p>
+                                                <button class='text-[13px] text-fb-blue hover:underline reply-btn' data-comment-id='${c.id}'>Reply</button>
+                                            </div>
+                                            <div>
+                                                ${renderCommentReactions(c)}
+                                            </div>
+                                        </div>
                             </div>
                             <div class='relative ml-2'>
                                 <button class='options-btn p-1 rounded-full hover:bg-fb-hover' data-post-id='${c.id}' aria-label='Comment Options'>
@@ -184,7 +240,16 @@
 
                 function renderPost(p) {
                     const a = userMap[p.author] || { username: 'unknown', name: 'Unknown' };
-                    const mediaHtml = (p.media && p.media.length > 0) ? `<div class='w-full bg-cover bg-center aspect-video' style='background-image: url("${p.media[0].url}");'></div>` : '';
+                    let mediaHtml = '';
+                    if (p.media && p.media.length > 0) {
+                        const m = p.media[0];
+                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                        if (m.file_type === "Image") {
+                            mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                        } else if (m.file_type === "Video") {
+                            mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                        }
+                    }
                     const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(renderComment).join('') : '';
                     return `
                     <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
@@ -212,12 +277,9 @@
                             <p class='text-[15px] mt-2 mb-3'>${p.content || ""}</p>
                         </div>
                         ${mediaHtml}
-                        <div class='px-4 py-2.5 flex items-center justify-between'>
+                        <div class='px-4 pt-2'>
                             <div class='flex items-center gap-2'>
                                 ${renderReactions(p)}
-                            </div>
-                            <div class='flex gap-3'>
-                                <span class='text-[15px] text-fb-gray-text hover:underline cursor-pointer'>${(p.comments && p.comments.length) ? p.comments.length + ' comments' : '0 comments'}</span>
                             </div>
                         </div>
                         <div class='mx-4 border-y border-gray-100 flex items-center gap-1 py-1'>
@@ -227,7 +289,6 @@
                             </button>
                             <button class='flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-fb-hover rounded-lg transition-colors text-[#1877F2]'>
                                 <span class='material-symbols-outlined !text-[20px] !fill-1'>chat_bubble</span>
-                                <span class='text-[15px] font-semibold'>Comment</span>
                             </button>
                             <button class='flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-fb-hover rounded-lg transition-colors text-fb-gray-text'>
                                 <span class='material-symbols-outlined !text-[20px]'>share</span>
@@ -237,23 +298,31 @@
                         ${commentsHtml}
                         <div class="px-4 py-3 border-t border-gray-100 bg-white">
                             <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" enctype="multipart/form-data">
+                                <input type="hidden" name="id" value="0" />
+                                <input type="hidden" name="is_with" value="" />
+                                <input type="hidden" name="feeling" value="" />
                                 <select name="author" class="w-28 px-2 py-1 border rounded">${userList.map(u => `<option value="${u.id}">${u.name||u.username}</option>`).join('')}</select>
-                                <textarea name="content" placeholder="Write a comment..." class="flex-1 px-3 py-2 border rounded resize-none" rows="2"></textarea>
-                                <input type="file" name="media" accept="image/*,video/*" class="hidden comment-media-input" />
-                                <button type="button" class="comment-add-media px-2">📷</button>
-                                <div class="flex items-center gap-1">
-                                    <label class="text-sm">👍</label>
-                                    <input name="liked" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
-                                    <label class="text-sm">😂</label>
-                                    <input name="haha" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
-                                    <label class="text-sm">❤️</label>
-                                    <input name="loved" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
-                                    <label class="text-sm">😮</label>
-                                    <input name="surprised" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
-                                    <label class="text-sm">😢</label>
-                                    <input name="sad" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                <div class="flex-1">
+                                    <textarea name="content" placeholder="Write a comment..." class="w-full px-3 py-2 border rounded resize-none" rows="2"></textarea>
+                                    <div class="mt-2 flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <input type="file" name="media" accept="image/*,video/*" class="hidden comment-media-input" />
+                                            <button type="button" class="comment-add-media px-2">📷</button>
+                                        </div>
+                                    </div>
+                                    <div class="comment-reaction mt-2 flex items-center gap-1">
+                                        <label class="text-sm">👍</label>
+                                        <input name="liked" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                        <label class="text-sm">😂</label>
+                                        <input name="haha" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                        <label class="text-sm">❤️</label>
+                                        <input name="loved" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                        <label class="text-sm">😮</label>
+                                        <input name="surprised" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                        <label class="text-sm">😢</label>
+                                        <input name="sad" type="number" min="0" value="0" class="w-16 px-1 py-1 border rounded text-sm" />
+                                    </div>
                                 </div>
-                                <button type="submit" class="ml-2 bg-[#1877F2] text-white px-3 py-1 rounded">Comment</button>
                             </form>
                         </div>
                     </div>`;
@@ -429,7 +498,24 @@
             }
         });
 
-        // Submit comment forms (collect explicit reaction counters)
+        // Submit comment forms (Enter to submit, Shift+Enter for newline)
+        document.addEventListener('keydown', function(e) {
+            const ta = e.target && e.target.closest && e.target.closest('.comment-form') ? e.target : null;
+            if (!ta || ta.tagName !== 'TEXTAREA') return;
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const form = ta.closest('.comment-form');
+                if (form) {
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    }
+                }
+            }
+        });
+
+        // Use capture phase to reliably intercept native submits before navigation
         document.addEventListener('submit', async function(e) {
             const form = e.target.closest && e.target.closest('.comment-form');
             if (!form) return;
@@ -437,8 +523,9 @@
             const parentId = form.dataset.parentId || '0';
             const fd = new FormData();
             const author = form.querySelector('select[name="author"]')?.value || '';
+            const is_with = form.querySelector('select[name="is_with"]')?.value || '';
+            const feeling = form.querySelector('select[name="feeling"]')?.value || '';
             const content = form.querySelector('textarea[name="content"]')?.value || '';
-            // Read numeric reaction counters (admin-controlled)
             const likedVal = form.querySelector('input[name="liked"]')?.value || '0';
             const hahaVal = form.querySelector('input[name="haha"]')?.value || '0';
             const lovedVal = form.querySelector('input[name="loved"]')?.value || '0';
@@ -446,6 +533,8 @@
             const sadVal = form.querySelector('input[name="sad"]')?.value || '0';
             fd.set('author', author);
             fd.set('content', content);
+            fd.set('is_with', is_with);
+            fd.set('feeling', feeling);
             fd.set('parent', parentId);
             fd.set('id', '0');
             fd.set('liked', String(Number(likedVal) || 0));
@@ -458,11 +547,13 @@
                 for (const f of mediaInput.files) fd.append('media', f);
             }
             try {
+                console.log("Submitting comment: ", fd);
                 const res = await fetch('/api/post', { method: 'POST', body: fd });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && !data.err) {
+                    // Clear and reload the page so counts update
                     form.reset();
-                    renderPosts();
+                    window.location.reload();
                 } else {
                     alert('Failed to post comment: ' + (data.err || res.statusText));
                 }
@@ -567,6 +658,10 @@
         .comment-bubble {
             @apply bg-fb-comment-bg rounded-[18px] px-3 py-2;
         }
+        /* Reaction stack for comments (overlapped icons) */
+        .reaction-stack { display: inline-flex; align-items: center; }
+        .reaction-stack .reaction-icon { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 11px; border: 2px solid white; margin-left: -6px; }
+        .reaction-count { margin-left: 8px; color: #65676B; font-size: 13px; }
     </style>
 </head>
 

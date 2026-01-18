@@ -205,6 +205,7 @@ document.getElementById('post-form').addEventListener('submit', async function(e
         formData.set('updated_at', toBackendTimestampFromLocal(dt));
     }
     try {
+        console.log("Submitting edit POST: ", formData);
         const res = await fetch('/api/post', {
             method: 'POST',
             body: formData
