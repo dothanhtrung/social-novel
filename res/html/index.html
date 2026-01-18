@@ -145,7 +145,13 @@
         const postsContainer = document.querySelector("[data-posts-list]");
         if (!postsContainer) return;
         try {
-            const res = await fetch("/api/post");
+            // Read page/count from URL (defaults page=1,count=20)
+            const { page, count } = getPageParams();
+            const params = new URLSearchParams(window.location.search);
+            params.set('page', String(page));
+            params.set('count', String(count));
+            const postsApiUrl = '/api/post?' + params.toString();
+            const res = await fetch(postsApiUrl);
             const data = await res.json();
             if (data.posts) {
                 // Group posts by id and attach children as comments
@@ -163,6 +169,17 @@
                         roots.push(p);
                     }
                 }
+
+                // Sort comments for each post: newest first
+                Object.values(byId).forEach(post => {
+                    if (post.comments && post.comments.length > 0) {
+                        post.comments.sort((a, b) => {
+                            const ta = parseTimestamp(a.updated_at || a.created_at);
+                            const tb = parseTimestamp(b.updated_at || b.created_at);
+                            return tb - ta; // newest first
+                        });
+                    }
+                });
 
                 // Fetch media for all posts (roots and their comments)
                 const allPostIds = [];
@@ -355,10 +372,125 @@
                 }
 
                 postsContainer.innerHTML = roots.map(renderPost).join('');
+                // Render pager below the posts list
+                renderPager(roots.length, page, count);
             }
         } catch (e) {
             postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
         }
+    }
+
+    // Parse page and count from URL query string, with defaults
+    function getPageParams() {
+        const params = new URLSearchParams(window.location.search);
+        const page = Math.max(1, Number(params.get('page') || 1));
+        const count = Math.max(1, Number(params.get('count') || 20));
+        return { page, count };
+    }
+
+    // Update browser URL to reflect current page/count without reloading
+    function updateUrlParams(page, count) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', String(page));
+        params.set('count', String(count));
+        const newUrl = window.location.pathname + '?' + params.toString();
+        window.history.pushState({}, '', newUrl);
+    }
+
+    // Render pagination controls. We don't have total posts from API, so allow next until empty result.
+    function renderPager(returnedCount, page, count) {
+        // Ensure a pager container exists after posts list
+        let pager = document.getElementById('posts-pager');
+        if (!pager) {
+            pager = document.createElement('div');
+            pager.id = 'posts-pager';
+            pager.className = 'w-full flex items-center justify-center py-4';
+            const postsList = document.querySelector('[data-posts-list]');
+            if (postsList && postsList.parentElement) postsList.parentElement.appendChild(pager);
+        }
+
+        // If returnedCount is 0 and page > 1, we are past last page — move back
+        if (returnedCount === 0 && page > 1) {
+            // Go back one page silently
+            page = Math.max(1, page - 1);
+            updateUrlParams(page, count);
+            // refetch
+            renderPosts();
+            return;
+        }
+
+        const isFirst = page <= 1;
+        // If returnedCount < count, we assume this is the last page
+        const isLast = returnedCount < count;
+
+        pager.innerHTML = `
+            <div class="flex items-center gap-2">
+                <button id="pager-first" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst? 'disabled' : ''}>First</button>
+                <button id="pager-prev" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst? 'disabled' : ''}>Prev</button>
+                <div class="px-3">Page <strong>${page}</strong></div>
+                <button id="pager-next" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast? 'disabled' : ''}>Next</button>
+                <button id="pager-last" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast? 'disabled' : ''}>Last</button>
+            </div>
+        `;
+
+        // Attach handlers
+        pager.querySelector('#pager-first').addEventListener('click', () => {
+            if (isFirst) return;
+            updateUrlParams(1, count);
+            renderPosts();
+        });
+        pager.querySelector('#pager-prev').addEventListener('click', () => {
+            if (isFirst) return;
+            const np = Math.max(1, page - 1);
+            updateUrlParams(np, count);
+            renderPosts();
+        });
+        pager.querySelector('#pager-next').addEventListener('click', () => {
+            if (isLast) return;
+            const np = page + 1;
+            updateUrlParams(np, count);
+            renderPosts();
+        });
+        pager.querySelector('#pager-last').addEventListener('click', async () => {
+            // Try to find last page by exponential/backoff search
+            // Start from current page and double until we get empty result
+            let low = 1, high = page;
+            // find a high that returns less than count (or empty)
+            while (true) {
+                const q = new URLSearchParams(window.location.search);
+                q.set('page', String(high));
+                q.set('count', String(count));
+                const r = await fetch('/api/post?' + q.toString());
+                const d = await r.json().catch(() => ({}));
+                const got = (d.posts && d.posts.length) || 0;
+                if (got === 0) break;
+                if (got < count) { low = high; break; }
+                low = high;
+                high = high * 2;
+                // avoid runaway
+                if (high > 10000) break;
+            }
+            // binary search between low and high to find last non-empty
+            let lo = low, hi = Math.max(high, low + 1);
+            while (lo + 1 < hi) {
+                const mid = Math.floor((lo + hi) / 2);
+                const q = new URLSearchParams(window.location.search);
+                q.set('page', String(mid));
+                q.set('count', String(count));
+                const r = await fetch('/api/post?' + q.toString());
+                const d = await r.json().catch(() => ({}));
+                const got = (d.posts && d.posts.length) || 0;
+                if (got === 0) {
+                    hi = mid;
+                } else {
+                    lo = mid;
+                }
+                if (hi - lo <= 1) break;
+            }
+            const lastPage = Math.max(1, lo);
+            updateUrlParams(lastPage, count);
+            renderPosts();
+        });
     }
 
     function renderAuthorSelect() {
@@ -791,7 +923,7 @@
                     </div>
                 </div>
             </aside>
-            <section class="flex-1 flex flex-col pt-6 max-w-[590px] mx-auto min-w-0">
+            <section class="flex-1 flex flex-col pt-6 max-w-[720px] mx-auto min-w-0">
                 <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
                     <!-- Dynamic stories and users will be rendered here if needed -->
                 </div>
