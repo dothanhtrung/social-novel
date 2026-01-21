@@ -1,1 +1,17 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/container-queries";
+
+
+@theme {
+  --color-fb-blue: #1877F2;
+  --color-fb-bg: #F0F2F5;
+  --color-fb-header: #FFFFFF;
+  --color-fb-active-tab: #1877F2;
+  --color-fb-gray-text: #65676B;
+  --color-fb-hover: #E4E6EB;
+  --color-fb-input: #F0F2F5;
+  --color-fb-comment-bg: #F0F2F5;
+
+  --font-sans: "Segoe UI", "Helvetica", "Arial", sans-serif;
+}
