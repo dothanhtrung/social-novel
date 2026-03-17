@@ -22,3 +22,6 @@ linux:
     cd output/linux && tar cJvf social-novel_linux.tar.xz social-novel && mv social-novel_linux.tar.xz ..
 
 release: windows linux
+
+watch:
+    bacon run-long -- -- -c ./social-novel.ron
