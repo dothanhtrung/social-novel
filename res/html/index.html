@@ -2,92 +2,46 @@
 <html class="light" lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Social Novel</title>
-    
+
     <link href="/css/tailwind_output.min.css" rel="stylesheet">
     <link href="/css/post.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="/js/utils.js"></script>
 
     <script>
-    let userMap = {};
-    let userList = [];
-    let usernameMapLower = {}; // map lowercase username -> user
-    async function fetchUsers() {
-        try {
-            const res = await fetch("/api/character");
-            const data = await res.json();
-            if (data.characters) {
-                userMap = {};
-                userList = data.characters;
-                for (const user of data.characters) {
-                    userMap[user.id] = user;
-                    if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
+        let userMap = {};
+        let userList = [];
+        let usernameMapLower = {}; // map lowercase username -> user
+        async function fetchUsers() {
+            try {
+                const res = await fetch("/api/character");
+                const data = await res.json();
+                if (data.characters) {
+                    userMap = {};
+                    userList = data.characters;
+                    for (const user of data.characters) {
+                        userMap[user.id] = user;
+                        if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
+                    }
                 }
+            } catch (e) {
+                userMap = {};
+                userList = [];
             }
-        } catch (e) {
-            userMap = {};
-            userList = [];
         }
-    }
 
-    // Render content and replace @username mentions with full Name in blue
-    function renderContentWithMentions(text) {
-        if (!text) return '';
-        // Escape first
-        let out = escapeHtml(text);
-        // Replace newlines with <br>
-        out = out.replace(/\r?\n/g, '<br>');
-        // Replace @username (alphanumeric and underscore, hyphen allowed) with full name when available
-        out = out.replace(/@([A-Za-z0-9_\-\.]+)/g, function(_, uname) {
-            const found = usernameMapLower[uname.toLowerCase()];
-            if (found) {
-                const display = escapeHtml(found.name || found.username);
-                return `<span class="text-fb-blue">@${display}</span>`;
-            }
-            return `@${escapeHtml(uname)}`;
-        });
-        return out;
-    }
 
-    function renderReactions(p) {
-        const items = [];
-        let total = 0;
-        if (p.liked && p.liked > 0) { items.push({ color: '#1877F2', emoji: '👍', count: p.liked }); total += Number(p.liked); }
-        if (p.loved && p.loved > 0) { items.push({ color: '#F3425E', emoji: '❤️', count: p.loved }); total += Number(p.loved); }
-        if (p.haha && p.haha > 0) { items.push({ color: '#F7B500', emoji: '😂', count: p.haha }); total += Number(p.haha); }
-        if (p.surprised && p.surprised > 0) { items.push({ color: '#9B8CFF', emoji: '😮', count: p.surprised }); total += Number(p.surprised); }
-        if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
-        if (items.length === 0) return '';
-        const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
-        return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
-    }
-
-    // Render reactions for comments: if none, render empty string; otherwise overlapped icons + total
-    function renderCommentReactions(p) {
-        const items = [];
-        let total = 0;
-        if (p.liked && p.liked > 0) { items.push({ color: '#1877F2', emoji: '👍', count: p.liked }); total += Number(p.liked); }
-        if (p.loved && p.loved > 0) { items.push({ color: '#F3425E', emoji: '❤️', count: p.loved }); total += Number(p.loved); }
-        if (p.haha && p.haha > 0) { items.push({ color: '#F7B500', emoji: '😂', count: p.haha }); total += Number(p.haha); }
-        if (p.surprised && p.surprised > 0) { items.push({ color: '#9B8CFF', emoji: '😮', count: p.surprised }); total += Number(p.surprised); }
-        if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
-        if (items.length === 0) return '';
-        // show up to 3 icons overlapped
-        const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
-        return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
-    }
-
-    async function renderContacts() {
-        const contactsContainer = document.querySelector("[data-contacts-list]");
-        if (!contactsContainer) return;
-        try {
-            const res = await fetch("/api/character");
-            const data = await res.json();
-            if (data.characters) {
-                contactsContainer.innerHTML = data.characters.map(user => `
+        async function renderContacts() {
+            const contactsContainer = document.querySelector("[data-contacts-list]");
+            if (!contactsContainer) return;
+            try {
+                const res = await fetch("/api/character");
+                const data = await res.json();
+                if (data.characters) {
+                    contactsContainer.innerHTML = data.characters.map(user => `
                 <a class='flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors' href='#'>
                     <div class='relative size-9'>
                         <div class='w-full h-full rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(user)}");'></div>
@@ -96,98 +50,100 @@
                     <span class='text-[15px] font-semibold'>${user.name || user.username}</span>
                 </a>
             `).join("");
+                }
+            } catch (e) {
+                contactsContainer.innerHTML = '<div class="text-red-500">Failed to load contacts</div>';
             }
-        } catch (e) {
-            contactsContainer.innerHTML = '<div class="text-red-500">Failed to load contacts</div>';
         }
-    }
 
-    async function renderPosts() {
-        const postsContainer = document.querySelector("[data-posts-list]");
-        if (!postsContainer) return;
-        try {
-            // Read page/count from URL (defaults page=1,count=20)
-            const { page, count } = getPageParams();
-            const params = new URLSearchParams(window.location.search);
-            params.set('page', String(page));
-            params.set('count', String(count));
-            const postsApiUrl = '/api/post?' + params.toString();
-            const res = await fetch(postsApiUrl);
-            const data = await res.json();
-            if (data.posts) {
-                // Group posts by id and attach children as comments
-                const posts = data.posts;
-                const byId = {};
-                for (const p of posts) {
-                    byId[p.id] = { ...p, comments: [] };
-                }
-                const roots = [];
-                for (const id in byId) {
-                    const p = byId[id];
-                    if (p.parent && p.parent > 0 && byId[p.parent]) {
-                        byId[p.parent].comments.push(p);
-                    } else {
-                        roots.push(p);
+        async function renderPosts() {
+            const postsContainer = document.querySelector("[data-posts-list]");
+            if (!postsContainer) return;
+            try {
+                // Read page/count from URL (defaults page=1,count=20)
+                const {page, count} = getPageParams();
+                const params = new URLSearchParams(window.location.search);
+                params.set('page', String(page));
+                params.set('count', String(count));
+                const postsApiUrl = '/api/post?' + params.toString();
+                const res = await fetch(postsApiUrl);
+                const data = await res.json();
+                if (data.posts) {
+                    // Group posts by id and attach children as comments
+                    const posts = data.posts;
+                    const byId = {};
+                    for (const p of posts) {
+                        byId[p.id] = {...p, comments: []};
                     }
-                }
-
-                // Sort comments for each post: oldest first (display from old -> new)
-                Object.values(byId).forEach(post => {
-                    if (post.comments && post.comments.length > 0) {
-                        post.comments.sort((a, b) => {
-                            const ta = parseTimestamp(a.updated_at || a.created_at);
-                            const tb = parseTimestamp(b.updated_at || b.created_at);
-                            return ta - tb; // oldest first
-                        });
-                    }
-                });
-
-                // Fetch media for all posts and nested comments (collect ids recursively)
-                const allPostIds = [];
-                function collectIds(node) {
-                    allPostIds.push(node.id);
-                    if (node.comments && node.comments.length > 0) {
-                        node.comments.forEach(ch => collectIds(ch));
-                    }
-                }
-                roots.forEach(r => collectIds(r));
-                // Deduplicate
-                const uniqIds = Array.from(new Set(allPostIds));
-                await Promise.all(uniqIds.map(async id => {
-                    try {
-                        const mres = await fetch(`/api/media?post=${id}`);
-                        const mdata = await mres.json().catch(() => ({}));
-                        if (mdata && Array.isArray(mdata.media)) {
-                            // attach to the corresponding byId entry
-                            if (byId[id]) byId[id].media = mdata.media.map(m => ({
-                                ...m,
-                                url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
-                            }));
-                        }
-                    } catch (err) {
-                        // ignore per-item failures
-                    }
-                }));
-
-                // Sort roots (top-level posts) by updated_at (newest first)
-                roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
-
-                function renderComment(c, depth = 0) {
-                    const a = userMap[c.author] || { username: 'unknown', name: 'Unknown' };
-                    // render media for comment if any
-                    let commentMediaHtml = '';
-                    if (c.media && c.media.length > 0) {
-                        const m = c.media[0];
-                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                        if (m.file_type === "Image") {
-                            commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                        } else if (m.file_type === "Video") {
-                            commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                    const roots = [];
+                    for (const id in byId) {
+                        const p = byId[id];
+                        if (p.parent && p.parent > 0 && byId[p.parent]) {
+                            byId[p.parent].comments.push(p);
+                        } else {
+                            roots.push(p);
                         }
                     }
 
-                    const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
-                    const commentHtml = `
+                    // Sort comments for each post: oldest first (display from old -> new)
+                    Object.values(byId).forEach(post => {
+                        if (post.comments && post.comments.length > 0) {
+                            post.comments.sort((a, b) => {
+                                const ta = parseTimestamp(a.updated_at || a.created_at);
+                                const tb = parseTimestamp(b.updated_at || b.created_at);
+                                return ta - tb; // oldest first
+                            });
+                        }
+                    });
+
+                    // Fetch media for all posts and nested comments (collect ids recursively)
+                    const allPostIds = [];
+
+                    function collectIds(node) {
+                        allPostIds.push(node.id);
+                        if (node.comments && node.comments.length > 0) {
+                            node.comments.forEach(ch => collectIds(ch));
+                        }
+                    }
+
+                    roots.forEach(r => collectIds(r));
+                    // Deduplicate
+                    const uniqIds = Array.from(new Set(allPostIds));
+                    await Promise.all(uniqIds.map(async id => {
+                        try {
+                            const mres = await fetch(`/api/media?post=${id}`);
+                            const mdata = await mres.json().catch(() => ({}));
+                            if (mdata && Array.isArray(mdata.media)) {
+                                // attach to the corresponding byId entry
+                                if (byId[id]) byId[id].media = mdata.media.map(m => ({
+                                    ...m,
+                                    url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
+                                }));
+                            }
+                        } catch (err) {
+                            // ignore per-item failures
+                        }
+                    }));
+
+                    // Sort roots (top-level posts) by updated_at (newest first)
+                    roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
+
+                    function renderComment(c, depth = 0) {
+                        const a = userMap[c.author] || {username: 'unknown', name: 'Unknown'};
+                        // render media for comment if any
+                        let commentMediaHtml = '';
+                        if (c.media && c.media.length > 0) {
+                            const m = c.media[0];
+                            const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                            if (m.file_type === "Image") {
+                                commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                            } else if (m.file_type === "Video") {
+                                commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                            }
+                        }
+
+                        const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
+                        const commentHtml = `
                     <div ${indentStyle} class="pr-4 py-3 border-t border-gray-100 bg-white relative">
                         <div class="flex items-start gap-3">
                             <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
@@ -217,51 +173,51 @@
                         </div>
                     </div>`;
 
-                    // Render child comments recursively
-                    let childrenHtml = '';
-                    if (c.comments && c.comments.length > 0) {
-                        childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
+                        // Render child comments recursively
+                        let childrenHtml = '';
+                        if (c.comments && c.comments.length > 0) {
+                            childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
+                        }
+                        return commentHtml + childrenHtml;
                     }
-                    return commentHtml + childrenHtml;
-                }
 
-                function renderPost(p) {
-                    const a = userMap[p.author] || { username: 'unknown', name: 'Unknown' };
-                    // Build 'is {feeling} {is_with}' metadata
-                    const feeling = p.feeling || '';
-                    const is_with = p.is_with || '';
-                    let metaHtml = '';
-                    if (feeling || is_with) {
-                        const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
-                        let isWithHtml = '';
-                        if (is_with) {
-                            const m = is_with.match(/^(with|by)\s+(.*)/i);
-                            if (m) {
-                                const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
-                                const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
-                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                                }).join('');
-                                isWithHtml = `${prefix} ${rest}`;
-                            } else {
-                                isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
-                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                                }).join('');
+                    function renderPost(p) {
+                        const a = userMap[p.author] || {username: 'unknown', name: 'Unknown'};
+                        // Build 'is {feeling} {is_with}' metadata
+                        const feeling = p.feeling || '';
+                        const is_with = p.is_with || '';
+                        let metaHtml = '';
+                        if (feeling || is_with) {
+                            const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
+                            let isWithHtml = '';
+                            if (is_with) {
+                                const m = is_with.match(/^(with|by)\s+(.*)/i);
+                                if (m) {
+                                    const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
+                                    const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
+                                        return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                                    }).join('');
+                                    isWithHtml = `${prefix} ${rest}`;
+                                } else {
+                                    isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
+                                        return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                                    }).join('');
+                                }
+                            }
+                            metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
+                        }
+                        let mediaHtml = '';
+                        if (p.media && p.media.length > 0) {
+                            const m = p.media[0];
+                            const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                            if (m.file_type === "Image") {
+                                mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                            } else if (m.file_type === "Video") {
+                                mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
                             }
                         }
-                        metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
-                    }
-                    let mediaHtml = '';
-                    if (p.media && p.media.length > 0) {
-                        const m = p.media[0];
-                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                        if (m.file_type === "Image") {
-                            mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                        } else if (m.file_type === "Video") {
-                            mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
-                        }
-                    }
-                    const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
-                    return `
+                        const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
+                        return `
                     <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
                         <div class='px-4 py-3'>
                             <div class='flex items-center justify-between'>
@@ -314,7 +270,7 @@
                                 <input type="hidden" name="id" value="0" />
                                 <input type="hidden" name="is_with" value="" />
                                 <input type="hidden" name="feeling" value="" />
-                                <select name="author" class="w-28 px-2 py-1 border rounded">${userList.map(u => `<option value="${u.id}">${u.name||u.username}</option>`).join('')}</select>
+                                <select name="author" class="w-28 px-2 py-1 border rounded">${userList.map(u => `<option value="${u.id}">${u.name || u.username}</option>`).join('')}</select>
                                 <div class="flex-1">
                                     <textarea name="content" placeholder="Write a comment..." class="w-full px-3 py-2 border rounded resize-none" rows="2"></textarea>
                                     <div class="mt-2 flex items-center justify-between">
@@ -339,429 +295,417 @@
                             </form>
                         </div>
                     </div>`;
+                    }
+
+                    postsContainer.innerHTML = roots.map(renderPost).join('');
+                    // Render pager below the posts list
+                    renderPager(roots.length, page, count);
                 }
-
-                postsContainer.innerHTML = roots.map(renderPost).join('');
-                // Render pager below the posts list
-                renderPager(roots.length, page, count);
+            } catch (e) {
+                postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
             }
-        } catch (e) {
-            postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
-        }
-    }
-
-    // Parse page and count from URL query string, with defaults
-    function getPageParams() {
-        const params = new URLSearchParams(window.location.search);
-        const page = Math.max(1, Number(params.get('page') || 1));
-        const count = Math.max(1, Number(params.get('count') || 20));
-        return { page, count };
-    }
-
-    // Update browser URL to reflect current page/count without reloading
-    function updateUrlParams(page, count) {
-        const params = new URLSearchParams(window.location.search);
-        params.set('page', String(page));
-        params.set('count', String(count));
-        const newUrl = window.location.pathname + '?' + params.toString();
-        window.history.pushState({}, '', newUrl);
-    }
-
-    // Render pagination controls. We don't have total posts from API, so allow next until empty result.
-    function renderPager(returnedCount, page, count) {
-        // Ensure a pager container exists after posts list
-        let pager = document.getElementById('posts-pager');
-        if (!pager) {
-            pager = document.createElement('div');
-            pager.id = 'posts-pager';
-            pager.className = 'w-full flex items-center justify-center py-4';
-            const postsList = document.querySelector('[data-posts-list]');
-            if (postsList && postsList.parentElement) postsList.parentElement.appendChild(pager);
         }
 
-        // If returnedCount is 0 and page > 1, we are past last page — move back
-        if (returnedCount === 0 && page > 1) {
-            // Go back one page silently
-            page = Math.max(1, page - 1);
-            updateUrlParams(page, count);
-            // refetch
-            renderPosts();
-            return;
-        }
 
-        const isFirst = page <= 1;
-        // If returnedCount < count, we assume this is the last page
-        const isLast = returnedCount < count;
+        // Render pagination controls. We don't have total posts from API, so allow next until empty result.
+        function renderPager(returnedCount, page, count) {
+            // Ensure a pager container exists after posts list
+            let pager = document.getElementById('posts-pager');
+            if (!pager) {
+                pager = document.createElement('div');
+                pager.id = 'posts-pager';
+                pager.className = 'w-full flex items-center justify-center py-4';
+                const postsList = document.querySelector('[data-posts-list]');
+                if (postsList && postsList.parentElement) postsList.parentElement.appendChild(pager);
+            }
 
-        pager.innerHTML = `
+            // If returnedCount is 0 and page > 1, we are past last page — move back
+            if (returnedCount === 0 && page > 1) {
+                // Go back one page silently
+                page = Math.max(1, page - 1);
+                updateUrlParams(page, count);
+                // refetch
+                renderPosts();
+                return;
+            }
+
+            const isFirst = page <= 1;
+            // If returnedCount < count, we assume this is the last page
+            const isLast = returnedCount < count;
+
+            pager.innerHTML = `
             <div class="flex items-center gap-2">
-                <button id="pager-first" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst? 'disabled' : ''}>First</button>
-                <button id="pager-prev" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst? 'disabled' : ''}>Prev</button>
+                <button id="pager-first" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst ? 'disabled' : ''}>First</button>
+                <button id="pager-prev" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst ? 'disabled' : ''}>Prev</button>
                 <div class="px-3">Page <strong>${page}</strong></div>
-                <button id="pager-next" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast? 'disabled' : ''}>Next</button>
-                <button id="pager-last" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast? 'disabled' : ''}>Last</button>
+                <button id="pager-next" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast ? 'disabled' : ''}>Next</button>
+                <button id="pager-last" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast ? 'disabled' : ''}>Last</button>
             </div>
         `;
 
-        // Attach handlers
-        pager.querySelector('#pager-first').addEventListener('click', () => {
-            if (isFirst) return;
-            updateUrlParams(1, count);
-            renderPosts();
-        });
-        pager.querySelector('#pager-prev').addEventListener('click', () => {
-            if (isFirst) return;
-            const np = Math.max(1, page - 1);
-            updateUrlParams(np, count);
-            renderPosts();
-        });
-        pager.querySelector('#pager-next').addEventListener('click', () => {
-            if (isLast) return;
-            const np = page + 1;
-            updateUrlParams(np, count);
-            renderPosts();
-        });
-        pager.querySelector('#pager-last').addEventListener('click', async () => {
-            // Try to find last page by exponential/backoff search
-            // Start from current page and double until we get empty result
-            let low = 1, high = page;
-            // find a high that returns less than count (or empty)
-            while (true) {
-                const q = new URLSearchParams(window.location.search);
-                q.set('page', String(high));
-                q.set('count', String(count));
-                const r = await fetch('/api/post?' + q.toString());
-                const d = await r.json().catch(() => ({}));
-                const got = (d.posts && d.posts.length) || 0;
-                if (got === 0) break;
-                if (got < count) { low = high; break; }
-                low = high;
-                high = high * 2;
-                // avoid runaway
-                if (high > 10000) break;
-            }
-            // binary search between low and high to find last non-empty
-            let lo = low, hi = Math.max(high, low + 1);
-            while (lo + 1 < hi) {
-                const mid = Math.floor((lo + hi) / 2);
-                const q = new URLSearchParams(window.location.search);
-                q.set('page', String(mid));
-                q.set('count', String(count));
-                const r = await fetch('/api/post?' + q.toString());
-                const d = await r.json().catch(() => ({}));
-                const got = (d.posts && d.posts.length) || 0;
-                if (got === 0) {
-                    hi = mid;
-                } else {
-                    lo = mid;
-                }
-                if (hi - lo <= 1) break;
-            }
-            const lastPage = Math.max(1, lo);
-            updateUrlParams(lastPage, count);
-            renderPosts();
-        });
-    }
-
-    function renderAuthorSelect() {
-        const select = document.getElementById('author-select');
-        if (!select) return;
-        select.innerHTML = userList.map(user => `<option value="${user.id}">${user.name || user.username}</option>`).join("");
-        // Set avatar for first user
-        if (userList.length > 0) {
-            setAuthorAvatar(userList[0]);
-        }
-        // Refresh username lower-case map in case userList changed
-        usernameMapLower = {};
-        for (const user of userList) if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
-    }
-
-    function setAuthorAvatar(user) {
-        const avatarDiv = document.getElementById('author-avatar');
-        if (avatarDiv) {
-            avatarDiv.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
-        }
-    }
-
-    function handleAuthorChange() {
-        const select = document.getElementById('author-select');
-        select.addEventListener('change', function() {
-            const user = userMap[select.value];
-            setAuthorAvatar(user);
-        });
-        // Optionally, make the select searchable (simple filter)
-        select.addEventListener('input', function() {
-            const val = select.value.toLowerCase();
-            for (let i = 0; i < select.options.length; i++) {
-                const option = select.options[i];
-                const user = userMap[option.value];
-                option.style.display = (user.name && user.name.toLowerCase().includes(val)) || (user.username && user.username.toLowerCase().includes(val)) ? '' : 'none';
-            }
-        });
-    }
-
-    function handlePhotoVideo() {
-        const btn = document.getElementById('photo-video-btn');
-        const input = document.getElementById('media-input');
-        btn.addEventListener('click', () => input.click());
-        input.addEventListener('change', function() {
-            const preview = document.getElementById('media-preview');
-            preview.innerHTML = '';
-            for (const file of input.files) {
-                const url = URL.createObjectURL(file);
-                let el;
-                if (file.type.startsWith('image/')) {
-                    el = document.createElement('img');
-                    el.src = url;
-                    el.className = 'w-20 h-20 object-cover rounded-lg';
-                } else if (file.type.startsWith('video/')) {
-                    el = document.createElement('video');
-                    el.src = url;
-                    el.className = 'w-20 h-20 object-cover rounded-lg';
-                    el.controls = true;
-                }
-                if (el) preview.appendChild(el);
-            }
-        });
-    }
-
-    function handleFeeling() {
-        const btn = document.getElementById('feeling-btn');
-        const input = document.getElementById('feeling-input');
-        btn.addEventListener('click', () => {
-            input.classList.toggle('hidden');
-            if (!input.classList.contains('hidden')) input.focus();
-        });
-    }
-
-    function handleAddFeedForm() {
-        const form = document.getElementById('add-feed-form');
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(form);
-            // Add default values for required fields if missing
-            if (!formData.get('author')) {
-                formData.set('author', userList[0]?.id || '');
-            }
-            if (!formData.get('content')) {
-                alert('Content cannot be empty.');
-                return;
-            }
-            // Attach all selected media files
-            const mediaInput = document.getElementById('media-input');
-            for (const file of mediaInput.files) {
-                formData.append('media', file);
-            }
-            // Add default values for other fields required by backend
-            formData.set('id', '0');
-            formData.set('parent', '0');
-            formData.set('liked', '0');
-            formData.set('haha', '0');
-            formData.set('loved', '0');
-            formData.set('surprised', '0');
-            formData.set('sad', '0');
-            const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
-            formData.set('is_with', isWithVal);
-            try {
-                const res = await fetch('/api/post', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (data.err) {
-                    alert('Failed to post: ' + data.err);
-                } else {
-                    form.reset();
-                    document.getElementById('media-preview').innerHTML = '';
-                    document.getElementById('feeling-input').classList.add('hidden');
-                    renderPosts();
-                }
-            } catch (err) {
-                alert('Failed to post: ' + err);
-            }
-        });
-    }
-
-    function initPostOptions() {
-        // Delegate click to toggle options menu
-        document.addEventListener('click', function(e) {
-            // Toggle menus when clicking options button
-            if (e.target.closest && e.target.closest('.options-btn')) {
-                e.preventDefault();
-                const btn = e.target.closest('.options-btn');
-                const menu = btn.parentElement.querySelector('.options-menu');
-                if (menu) menu.classList.toggle('hidden');
-                return;
-            }
-
-            
-            // Click on edit
-            if (e.target.closest && e.target.closest('.options-edit')) {
-                e.preventDefault();
-                const id = e.target.closest('.options-edit').dataset.postId;
-                editPost(id);
-                return;
-            }
-            // Click on delete
-            if (e.target.closest && e.target.closest('.options-delete')) {
-                e.preventDefault();
-                const id = e.target.closest('.options-delete').dataset.postId;
-                deletePost(id);
-                return;
-            }
-            // Click outside: close any open menus
-            if (!e.target.closest || !e.target.closest('.options-menu')) {
-                document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
-            }
-        });
-    }
-
-    window.initCommentHandlers = function() {
-        // Media button triggers file input for comment forms
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest && e.target.closest('.comment-add-media');
-            if (btn) {
-                e.preventDefault();
-                const form = btn.closest('.comment-form');
-                if (!form) return;
-                const input = form.querySelector('.comment-media-input');
-                if (input) input.click();
-            }
-            // Reply button: set the parent id on the nearest comment form and focus textarea
-            const reply = e.target.closest && e.target.closest('.reply-btn');
-            if (reply) {
-                e.preventDefault();
-                const commentId = reply.dataset.commentId;
-                // Find the nearest post container that contains a comment form
-                // Walk up until we find an ancestor that has a .comment-form inside it
-                let ancestor = reply.closest('.bg-white');
-                let form = null;
-                while (ancestor) {
-                    form = ancestor.querySelector && ancestor.querySelector('.comment-form');
-                    if (form) break;
-                    ancestor = ancestor.parentElement && ancestor.parentElement.closest ? ancestor.parentElement.closest('.bg-white') : null;
-                }
-                // Fallback to any comment-form on the page (shouldn't usually happen)
-                if (!form) form = document.querySelector('.comment-form');
-                if (form) {
-                    form.dataset.parentId = commentId;
-                    const ta = form.querySelector('textarea[name="content"]');
-                    if (ta) {
-                        ta.focus();
-                        // Optionally prefill with @username
-                        try {
-                            const commenter = userMap[reply.dataset.commentId];
-                            if (commenter && commenter.username) {
-                                ta.value = ta.value ? ta.value : `@${commenter.username} `;
-                            }
-                        } catch (err) {}
+            // Attach handlers
+            pager.querySelector('#pager-first').addEventListener('click', () => {
+                if (isFirst) return;
+                updateUrlParams(1, count);
+                renderPosts();
+            });
+            pager.querySelector('#pager-prev').addEventListener('click', () => {
+                if (isFirst) return;
+                const np = Math.max(1, page - 1);
+                updateUrlParams(np, count);
+                renderPosts();
+            });
+            pager.querySelector('#pager-next').addEventListener('click', () => {
+                if (isLast) return;
+                const np = page + 1;
+                updateUrlParams(np, count);
+                renderPosts();
+            });
+            pager.querySelector('#pager-last').addEventListener('click', async () => {
+                // Try to find last page by exponential/backoff search
+                // Start from current page and double until we get empty result
+                let low = 1, high = page;
+                // find a high that returns less than count (or empty)
+                while (true) {
+                    const q = new URLSearchParams(window.location.search);
+                    q.set('page', String(high));
+                    q.set('count', String(count));
+                    const r = await fetch('/api/post?' + q.toString());
+                    const d = await r.json().catch(() => ({}));
+                    const got = (d.posts && d.posts.length) || 0;
+                    if (got === 0) break;
+                    if (got < count) {
+                        low = high;
+                        break;
                     }
+                    low = high;
+                    high = high * 2;
+                    // avoid runaway
+                    if (high > 10000) break;
                 }
-            }
-        });
-
-        // Submit comment forms (Enter to submit, Shift+Enter for newline)
-        document.addEventListener('keydown', function(e) {
-            const ta = e.target && e.target.closest && e.target.closest('.comment-form') ? e.target : null;
-            if (!ta || ta.tagName !== 'TEXTAREA') return;
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const form = ta.closest('.comment-form');
-                if (form) {
-                    if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit();
+                // binary search between low and high to find last non-empty
+                let lo = low, hi = Math.max(high, low + 1);
+                while (lo + 1 < hi) {
+                    const mid = Math.floor((lo + hi) / 2);
+                    const q = new URLSearchParams(window.location.search);
+                    q.set('page', String(mid));
+                    q.set('count', String(count));
+                    const r = await fetch('/api/post?' + q.toString());
+                    const d = await r.json().catch(() => ({}));
+                    const got = (d.posts && d.posts.length) || 0;
+                    if (got === 0) {
+                        hi = mid;
                     } else {
-                        form.dispatchEvent(new Event('submit', { cancelable: true }));
+                        lo = mid;
+                    }
+                    if (hi - lo <= 1) break;
+                }
+                const lastPage = Math.max(1, lo);
+                updateUrlParams(lastPage, count);
+                renderPosts();
+            });
+        }
+
+        function renderAuthorSelect() {
+            const select = document.getElementById('author-select');
+            if (!select) return;
+            select.innerHTML = userList.map(user => `<option value="${user.id}">${user.name || user.username}</option>`).join("");
+            // Set avatar for first user
+            if (userList.length > 0) {
+                setAuthorAvatar(userList[0]);
+            }
+            // Refresh username lower-case map in case userList changed
+            usernameMapLower = {};
+            for (const user of userList) if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
+        }
+
+        function setAuthorAvatar(user) {
+            const avatarDiv = document.getElementById('author-avatar');
+            if (avatarDiv) {
+                avatarDiv.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
+            }
+        }
+
+        function handleAuthorChange() {
+            const select = document.getElementById('author-select');
+            select.addEventListener('change', function () {
+                const user = userMap[select.value];
+                setAuthorAvatar(user);
+            });
+            // Optionally, make the select searchable (simple filter)
+            select.addEventListener('input', function () {
+                const val = select.value.toLowerCase();
+                for (let i = 0; i < select.options.length; i++) {
+                    const option = select.options[i];
+                    const user = userMap[option.value];
+                    // option.style.display = (user.name && user.name.toLowerCase().includes(val)) || (user.username && user.username.toLowerCase().includes(val)) ? '' : 'none';
+                }
+            });
+        }
+
+        function handlePhotoVideo() {
+            const btn = document.getElementById('photo-video-btn');
+            const input = document.getElementById('media-input');
+            btn.addEventListener('click', () => input.click());
+            input.addEventListener('change', function () {
+                const preview = document.getElementById('media-preview');
+                preview.innerHTML = '';
+                for (const file of input.files) {
+                    const url = URL.createObjectURL(file);
+                    let el;
+                    if (file.type.startsWith('image/')) {
+                        el = document.createElement('img');
+                        el.src = url;
+                        el.className = 'w-20 h-20 object-cover rounded-lg';
+                    } else if (file.type.startsWith('video/')) {
+                        el = document.createElement('video');
+                        el.src = url;
+                        el.className = 'w-20 h-20 object-cover rounded-lg';
+                        el.controls = true;
+                    }
+                    if (el) preview.appendChild(el);
+                }
+            });
+        }
+
+        function handleFeeling() {
+            const btn = document.getElementById('feeling-btn');
+            const input = document.getElementById('feeling-input');
+            btn.addEventListener('click', () => {
+                input.classList.toggle('hidden');
+                if (!input.classList.contains('hidden')) input.focus();
+            });
+        }
+
+        function handleAddFeedForm() {
+            const form = document.getElementById('add-feed-form');
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                // Add default values for required fields if missing
+                if (!formData.get('author')) {
+                    formData.set('author', userList[0]?.id || '');
+                }
+                if (!formData.get('content')) {
+                    alert('Content cannot be empty.');
+                    return;
+                }
+                // Attach all selected media files
+                const mediaInput = document.getElementById('media-input');
+                for (const file of mediaInput.files) {
+                    formData.append('media', file);
+                }
+                // Add default values for other fields required by backend
+                formData.set('id', '0');
+                formData.set('parent', '0');
+                formData.set('liked', '0');
+                formData.set('haha', '0');
+                formData.set('loved', '0');
+                formData.set('surprised', '0');
+                formData.set('sad', '0');
+                const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
+                formData.set('is_with', isWithVal);
+                try {
+                    const res = await fetch('/api/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.err) {
+                        alert('Failed to post: ' + data.err);
+                    } else {
+                        form.reset();
+                        document.getElementById('media-preview').innerHTML = '';
+                        document.getElementById('feeling-input').classList.add('hidden');
+                        renderPosts();
+                    }
+                } catch (err) {
+                    alert('Failed to post: ' + err);
+                }
+            });
+        }
+
+        function initPostOptions() {
+            // Delegate click to toggle options menu
+            document.addEventListener('click', function (e) {
+                // Toggle menus when clicking options button
+                if (e.target.closest && e.target.closest('.options-btn')) {
+                    e.preventDefault();
+                    const btn = e.target.closest('.options-btn');
+                    const menu = btn.parentElement.querySelector('.options-menu');
+                    if (menu) menu.classList.toggle('hidden');
+                    return;
+                }
+
+
+                // Click on edit
+                if (e.target.closest && e.target.closest('.options-edit')) {
+                    e.preventDefault();
+                    const id = e.target.closest('.options-edit').dataset.postId;
+                    editPost(id);
+                    return;
+                }
+                // Click on delete
+                if (e.target.closest && e.target.closest('.options-delete')) {
+                    e.preventDefault();
+                    const id = e.target.closest('.options-delete').dataset.postId;
+                    deletePost(id);
+                    return;
+                }
+                // Click outside: close any open menus
+                if (!e.target.closest || !e.target.closest('.options-menu')) {
+                    document.querySelectorAll('.options-menu').forEach(m => m.classList.add('hidden'));
+                }
+            });
+        }
+
+        window.initCommentHandlers = function () {
+            // Media button triggers file input for comment forms
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest && e.target.closest('.comment-add-media');
+                if (btn) {
+                    e.preventDefault();
+                    const form = btn.closest('.comment-form');
+                    if (!form) return;
+                    const input = form.querySelector('.comment-media-input');
+                    if (input) input.click();
+                }
+                // Reply button: set the parent id on the nearest comment form and focus textarea
+                const reply = e.target.closest && e.target.closest('.reply-btn');
+                if (reply) {
+                    e.preventDefault();
+                    const commentId = reply.dataset.commentId;
+                    // Find the nearest post container that contains a comment form
+                    // Walk up until we find an ancestor that has a .comment-form inside it
+                    let ancestor = reply.closest('.bg-white');
+                    let form = null;
+                    while (ancestor) {
+                        form = ancestor.querySelector && ancestor.querySelector('.comment-form');
+                        if (form) break;
+                        ancestor = ancestor.parentElement && ancestor.parentElement.closest ? ancestor.parentElement.closest('.bg-white') : null;
+                    }
+                    // Fallback to any comment-form on the page (shouldn't usually happen)
+                    if (!form) form = document.querySelector('.comment-form');
+                    if (form) {
+                        form.dataset.parentId = commentId;
+                        const ta = form.querySelector('textarea[name="content"]');
+                        if (ta) {
+                            ta.focus();
+                            // Optionally prefill with @username
+                            try {
+                                const commenter = userMap[reply.dataset.commentId];
+                                if (commenter && commenter.username) {
+                                    ta.value = ta.value ? ta.value : `@${commenter.username} `;
+                                }
+                            } catch (err) {
+                            }
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        // Use capture phase to reliably intercept native submits before navigation
-        document.addEventListener('submit', async function(e) {
-            const form = e.target.closest && e.target.closest('.comment-form');
-            if (!form) return;
-            e.preventDefault();
-            const parentId = form.dataset.parentId || '0';
-            const fd = new FormData();
-            const author = form.querySelector('select[name="author"]')?.value || '';
-            const is_with = form.querySelector('select[name="is_with"]')?.value || '';
-            const feeling = form.querySelector('select[name="feeling"]')?.value || '';
-            const content = form.querySelector('textarea[name="content"]')?.value || '';
-            const likedVal = form.querySelector('input[name="liked"]')?.value || '0';
-            const hahaVal = form.querySelector('input[name="haha"]')?.value || '0';
-            const lovedVal = form.querySelector('input[name="loved"]')?.value || '0';
-            const surprisedVal = form.querySelector('input[name="surprised"]')?.value || '0';
-            const sadVal = form.querySelector('input[name="sad"]')?.value || '0';
-            fd.set('author', author);
-            fd.set('content', content);
-            fd.set('is_with', is_with);
-            fd.set('feeling', feeling);
-            fd.set('parent', parentId);
-            fd.set('id', '0');
-            fd.set('liked', String(Number(likedVal) || 0));
-            fd.set('haha', String(Number(hahaVal) || 0));
-            fd.set('loved', String(Number(lovedVal) || 0));
-            fd.set('surprised', String(Number(surprisedVal) || 0));
-            fd.set('sad', String(Number(sadVal) || 0));
-            const mediaInput = form.querySelector('.comment-media-input');
-            if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {
-                for (const f of mediaInput.files) fd.append('media', f);
-            }
-            try {
-                console.log("Submitting comment: ", fd);
-                const res = await fetch('/api/post', { method: 'POST', body: fd });
-                const data = await res.json().catch(() => ({}));
-                if (res.ok && !data.err) {
-                    // Clear and reload the page so counts update
-                    form.reset();
-                    window.location.reload();
-                } else {
-                    alert('Failed to post comment: ' + (data.err || res.statusText));
+            // Submit comment forms (Enter to submit, Shift+Enter for newline)
+            document.addEventListener('keydown', function (e) {
+                const ta = e.target && e.target.closest && e.target.closest('.comment-form') ? e.target : null;
+                if (!ta || ta.tagName !== 'TEXTAREA') return;
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const form = ta.closest('.comment-form');
+                    if (form) {
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.dispatchEvent(new Event('submit', {cancelable: true}));
+                        }
+                    }
                 }
-            } catch (err) {
-                alert('Failed to post comment: ' + err);
-            }
-        });
-    }
+            });
 
-    function editPost(id) {
-        window.location.href = `/post/edit/${id}`;
-    }
-
-    async function deletePost(id) {
-        if (!confirm('Are you sure you want to delete this post?')) return;
-        try {
-            // Try the endpoint pattern '/post/delete/{id}' first, fall back to '/delete/post/{id}'
-            let res = await fetch(`/api/post/delete/${id}`, { method: 'GET' });
-            if (!res.ok) {
-                console.log("Failed to delete", res.statusText);
-            
-            }
-            // Reload page after delete attempt
-            window.location.reload();
-        } catch (err) {
-            alert('Failed to delete post: ' + err);
+            // Use capture phase to reliably intercept native submits before navigation
+            document.addEventListener('submit', async function (e) {
+                const form = e.target.closest && e.target.closest('.comment-form');
+                if (!form) return;
+                e.preventDefault();
+                const parentId = form.dataset.parentId || '0';
+                const fd = new FormData();
+                const author = form.querySelector('select[name="author"]')?.value || '';
+                const is_with = form.querySelector('select[name="is_with"]')?.value || '';
+                const feeling = form.querySelector('select[name="feeling"]')?.value || '';
+                const content = form.querySelector('textarea[name="content"]')?.value || '';
+                const likedVal = form.querySelector('input[name="liked"]')?.value || '0';
+                const hahaVal = form.querySelector('input[name="haha"]')?.value || '0';
+                const lovedVal = form.querySelector('input[name="loved"]')?.value || '0';
+                const surprisedVal = form.querySelector('input[name="surprised"]')?.value || '0';
+                const sadVal = form.querySelector('input[name="sad"]')?.value || '0';
+                fd.set('author', author);
+                fd.set('content', content);
+                fd.set('is_with', is_with);
+                fd.set('feeling', feeling);
+                fd.set('parent', parentId);
+                fd.set('id', '0');
+                fd.set('liked', String(Number(likedVal) || 0));
+                fd.set('haha', String(Number(hahaVal) || 0));
+                fd.set('loved', String(Number(lovedVal) || 0));
+                fd.set('surprised', String(Number(surprisedVal) || 0));
+                fd.set('sad', String(Number(sadVal) || 0));
+                const mediaInput = form.querySelector('.comment-media-input');
+                if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {
+                    for (const f of mediaInput.files) fd.append('media', f);
+                }
+                try {
+                    console.log("Submitting comment: ", fd);
+                    const res = await fetch('/api/post', {method: 'POST', body: fd});
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && !data.err) {
+                        // Clear and reload the page so counts update
+                        form.reset();
+                        window.location.reload();
+                    } else {
+                        alert('Failed to post comment: ' + (data.err || res.statusText));
+                    }
+                } catch (err) {
+                    alert('Failed to post comment: ' + err);
+                }
+            });
         }
-    }
 
-    window.addEventListener("DOMContentLoaded", async () => {
-        await fetchUsers();
-        renderContacts();
-        renderPosts();
-        renderAuthorSelect();
-        handleAuthorChange();
-        handlePhotoVideo();
-        handleFeeling();
-        handleAddFeedForm();
-        initPostOptions();
-        initCommentHandlers();
-    });
+        function editPost(id) {
+            window.location.href = `/post/edit/${id}`;
+        }
+
+        async function deletePost(id) {
+            if (!confirm('Are you sure you want to delete this post?')) return;
+            try {
+                // Try the endpoint pattern '/post/delete/{id}' first, fall back to '/delete/post/{id}'
+                let res = await fetch(`/api/post/delete/${id}`, {method: 'GET'});
+                if (!res.ok) {
+                    console.log("Failed to delete", res.statusText);
+
+                }
+                // Reload page after delete attempt
+                window.location.reload();
+            } catch (err) {
+                alert('Failed to delete post: ' + err);
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            await fetchUsers();
+            renderContacts();
+            renderPosts();
+            renderAuthorSelect();
+            handleAuthorChange();
+            handlePhotoVideo();
+            handleFeeling();
+            handleAddFeedForm();
+            initPostOptions();
+            initCommentHandlers();
+        });
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&amp;display=swap"
-        rel="stylesheet" />
+          rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
+          rel="stylesheet"/>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -790,16 +734,20 @@
                 @apply bg-fb-bg text-[#050505];
             }
         }
+
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             font-size: 28px;
         }
+
         .nav-icon-active {
             @apply text-fb-blue border-b-4 border-fb-blue;
         }
+
         .nav-icon-active span {
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
         .active-dot {
             position: absolute;
             bottom: 0px;
@@ -810,252 +758,292 @@
             border: 2px solid white;
             border-radius: 50%;
         }
+
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
+
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
         .comment-bubble {
             @apply bg-fb-comment-bg rounded-[18px] px-3 py-2;
         }
+
         /* Reaction stack for comments (overlapped icons) */
-        .reaction-stack { display: inline-flex; align-items: center; }
-        .reaction-stack .reaction-icon { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 11px; border: 2px solid white; margin-left: -6px; }
-        .reaction-count { margin-left: 8px; color: #65676B; font-size: 13px; }
+        .reaction-stack {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .reaction-stack .reaction-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            border: 2px solid white;
+            margin-left: -6px;
+        }
+
+        .reaction-count {
+            margin-left: 8px;
+            color: #65676B;
+            font-size: 13px;
+        }
     </style>
 </head>
 
 <body class="min-h-screen">
-    <div class="layout-container flex flex-col min-h-screen">
-        <header class="sticky top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
-            <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
-                <div class="flex items-center gap-2 min-w-[300px]">
-                    <div class="text-fb-blue">
+<div class="layout-container flex flex-col min-h-screen">
+    <header class="sticky top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
+        <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
+            <div class="flex items-center gap-2 min-w-[300px]">
+                <div class="text-fb-blue">
+                    <a href="/">
                         <svg class="size-10" fill="currentColor" viewBox="0 0 36 36">
                             <path
-                                d="M20.181 35.89C29.094 34.791 36 27.197 36 18 36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.513 5.913 15.644 13.875 17.373v-12.28h-4.462v-5.093h4.462v-3.877c0-4.404 2.623-6.84 6.642-6.84 1.924 0 3.93.344 3.93.344v4.32h-2.213c-2.181 0-2.86 1.355-2.86 2.744v3.309h4.87l-.779 5.093h-4.091v12.28z">
+                                    d="M20.181 35.89C29.094 34.791 36 27.197 36 18 36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.513 5.913 15.644 13.875 17.373v-12.28h-4.462v-5.093h4.462v-3.877c0-4.404 2.623-6.84 6.642-6.84 1.924 0 3.93.344 3.93.344v4.32h-2.213c-2.181 0-2.86 1.355-2.86 2.744v3.309h4.87l-.779 5.093h-4.091v12.28z">
                             </path>
                         </svg>
-                    </div>
-                    <div class="relative group">
+                    </a>
+                </div>
+                <div class="relative group">
                         <span
-                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
-                        <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
-                            placeholder="Search" type="text" />
-                    </div>
+                                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
+                    <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
+                           placeholder="Search" type="text"/>
                 </div>
-                <div class="flex-1 hidden md:flex items-center justify-center h-full max-w-[680px]">
-                    <div class="flex items-center w-full h-full">
-                        <a class="flex-1 h-full flex items-center justify-center nav-icon-active hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">home</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">ondemand_video</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">storefront</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">groups</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">sports_esports</span>
-                        </a>
-                    </div>
+            </div>
+            <div class="flex-1 hidden md:flex items-center justify-center h-full max-w-[680px]">
+                <div class="flex items-center w-full h-full">
+                    <a class="flex-1 h-full flex items-center justify-center nav-icon-active hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">home</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">ondemand_video</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="/character">
+                        <span class="material-symbols-outlined">storefront</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="/group">
+                        <span class="material-symbols-outlined">groups</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">sports_esports</span>
+                    </a>
                 </div>
-                <div class="flex items-center gap-2 min-w-[300px] justify-end">
-                    <div class="flex items-center gap-2">
-                        <button
+            </div>
+            <div class="flex items-center gap-2 min-w-[300px] justify-end">
+                <div class="flex items-center gap-2">
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
-                            <span class="material-symbols-outlined !text-[20px]">apps</span>
-                        </button>
-                        <button
+                        <span class="material-symbols-outlined !text-[20px]">apps</span>
+                    </button>
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
                             <span
-                                class="material-symbols-outlined !text-[20px]">chat_bubble</span>
-                        </button>
-                        <button
+                                    class="material-symbols-outlined !text-[20px]">chat_bubble</span>
+                    </button>
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] relative">
                             <span
-                                class="material-symbols-outlined !text-[20px]">notifications</span>
-                            <span
+                                    class="material-symbols-outlined !text-[20px]">notifications</span>
+                        <span
                                 class="absolute -top-1 -right-1 size-5 bg-[#E41E3F] text-white text-[11px] font-bold rounded-full flex items-center justify-center">3</span>
-                        </button>
-                        <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
-                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
-                        </div>
+                    </button>
+                    <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
+                         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
                     </div>
                 </div>
             </div>
-        </header>
-        <main class="flex-1 w-full flex justify-between px-4">
-            <aside
+        </div>
+    </header>
+    <main class="flex-1 w-full flex justify-between px-4">
+        <aside
                 class="hidden xl:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
+            <div class="flex flex-col gap-0.5">
+                <div data-contacts-list class="flex flex-col gap-0.5"></div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-300">
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <h3 class="font-semibold text-fb-gray-text text-[17px]">Your shortcuts
+                    </h3>
+                    <button
+                            class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Edit
+                    </button>
+                </div>
                 <div class="flex flex-col gap-0.5">
-                    <div data-contacts-list class="flex flex-col gap-0.5"></div>
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-300">
-                    <div class="flex items-center justify-between px-2 mb-2">
-                        <h3 class="font-semibold text-fb-gray-text text-[17px]">Your shortcuts
-                        </h3>
-                        <button
-                            class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Edit</button>
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="size-9 rounded-lg bg-cover bg-center"
-                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
-                            </div>
-                            <span class="text-[15px] font-semibold">UI Design
-                                Community</span>
-                        </a>
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="size-9 rounded-lg bg-cover bg-center"
-                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
-                            </div>
-                            <span class="text-[15px] font-semibold">Photography Hub</span>
-                        </a>
-                    </div>
-                </div>
-            </aside>
-            <section class="flex-1 flex flex-col pt-6 max-w-[720px] mx-auto min-w-0">
-                <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                    <!-- Dynamic stories and users will be rendered here if needed -->
-                </div>
-                <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200" enctype="multipart/form-data">
-                    <div class="flex gap-2 items-center mb-3">
-                        <div id="author-avatar" class="author-post size-10 rounded-full bg-cover bg-center shrink-0"></div>
-                        <select id="author-select" name="author" class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-full text-fb-gray-text text-[17px] focus:outline-none"></select>
-                    </div>
-                    <textarea name="content" id="post-content" rows="2" class="w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none resize-none mb-2" placeholder="What's on your mind?"></textarea>
-                    <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
-                    <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden" />
-                    <input type="text" id="feeling-input" name="feeling" class="hidden mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none" placeholder="How are you feeling?" />
-                    <input type="text" id="is-with-input" name="is_with" class="mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none" placeholder="With (comma-separated usernames)" />
-                    <div class="grid grid-cols-3 gap-1 pt-2 border-t border-gray-100">
-                        <button type="button" id="photo-video-btn" class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
-                            <span class="material-symbols-outlined text-[#45BD62]">image</span>
-                            <span class="text-[15px] font-semibold text-fb-gray-text">Photo/video</span>
-                        </button>
-                        <button type="button" id="feeling-btn" class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
-                            <span class="material-symbols-outlined text-[#F7B928]">mood</span>
-                            <span class="text-[15px] font-semibold text-fb-gray-text">Feeling/activity</span>
-                        </button>
-                        <button type="submit" class="flex items-center justify-center gap-2 py-2 bg-fb-blue text-white rounded-lg transition-colors">
-                            <span class="material-symbols-outlined">send</span>
-                            <span class="text-[15px] font-semibold">Post</span>
-                        </button>
-                    </div>
-                </form>
-                <div data-posts-list></div>
-            </section>
-            <aside
-                class="hidden lg:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
-                <div class="mb-4">
-                    <h3 class="font-semibold text-fb-gray-text text-[17px] px-2 mb-2">Sponsored</h3>
-                    <div class="flex flex-col gap-2">
-                        <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
-                            href="#">
-                            <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
-                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
-                            </div>
-                            <div class="flex flex-col justify-center">
-                                <h4 class="text-[15px] font-semibold text-[#050505]">
-                                    Digital Nomads Retreat 2024</h4>
-                                <p class="text-[13px] text-fb-gray-text">retreats.io</p>
-                            </div>
-                        </a>
-                        <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
-                            href="#">
-                            <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
-                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
-                            </div>
-                            <div class="flex flex-col justify-center">
-                                <h4 class="text-[15px] font-semibold text-[#050505]">
-                                    Master UI/UX Design Course</h4>
-                                <p class="text-[13px] text-fb-gray-text">
-                                    designschool.edu</p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-                <div class="pt-4 border-t border-gray-300">
-                    <div class="flex items-center justify-between px-2 mb-2">
-                        <h3 class="font-semibold text-fb-gray-text text-[17px]">Contacts</h3>
-                        <div class="flex gap-2">
-                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
-                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">video_call</span></button>
-                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
-                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">search</span></button>
-                            <button class="p-2 hover:bg-fb-hover rounded-full"><span
-                                    class="material-symbols-outlined !text-[20px] text-fb-gray-text">more_horiz</span></button>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="size-9 rounded-lg bg-cover bg-center"
+                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
                         </div>
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="relative size-9">
-                                <div class="w-full h-full rounded-full bg-cover bg-center"
-                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB2sXMAt1saY1AjKDNINmwZbXcp3kvO744XqY42-6wBzeVpHhN6frudXuf3-Zk_0Q89VJb-99Sj8UPn4NZa5Qj-B9uwH6jYsM7Rr3ICQwBsMeiUUMkDLcWBFlkrvkozdcFdpR_pzjtm-hSyWGh19OjewWoQFETW3sUePN3vGPGACpyJD-j6MHvpuOb3NV32X9HCe5Oz3JjWSm0Rp65cBNfXw9xDUMueAu-tz-4hrkr-nQnYme7GHW6e9QiHCal5crifq0YIfNXZ1dnh');">
-                                </div>
-                                <div class="active-dot"></div>
-                            </div>
-                            <!-- User name rendered dynamically by JS -->
-                        </a>
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="relative size-9">
-                                <div class="w-full h-full rounded-full bg-cover bg-center"
-                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3B7jtKYWklRvH2uLuPrLHJ6zCHfc4h5J7dp-ZuhPx3vSJQAHkuEJ02UK1e5jxX1aKiu1mpFWFFPxU9_PgOgpTwtzhy3YZQ2a5V41lAkK9H84aI4LJlqvYT_fjUEqjfeP3-qlj_OVgawTUMGiJT58v2_45jPt1Gs5QTjoKbTvtKMVtqZNL7Gi7F_AdSmB7xKeSrDSXZZj7c3Io-1tcCodYEOKaVOf4ieN5fpnp7Q28DDNe4ReoNHRzvp4-oNYOAXt_jkxxawkY73CD');">
-                                </div>
-                                <div class="active-dot"></div>
-                            </div>
-                            <!-- User name rendered dynamically by JS -->
-                        </a>
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="relative size-9">
-                                <div class="w-full h-full rounded-full bg-cover bg-center"
-                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB4c7Cgx5dPxGjZbMJvCTH55jSnc_ubm6fORI9On20WvapNc_YbYr4j9iy4F1JckudJadkS2WVIvmtwLJSJEdfXF5cudhFL4LjwgSw7CQHwIw7oQBYdRwOCY9ExDc4dOpDtHo9cVafp-68rqtNfEu6x8iYs-RfTEpuVDUZ302SIoex13-n99kHytAsUG4WXo3gE-rQzO_iRlBISrE7HMWDW2cOHpuxemyKyOeAJJDGa2i_yhwxBqHvv4NWg20-QaUsAJ4UoI5QRrToZ');">
-                                </div>
-                                <div class="active-dot"></div>
-                            </div>
-                            <!-- User name rendered dynamically by JS -->
-                        </a>
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="relative size-9">
-                                <div class="w-full h-full rounded-full bg-cover bg-center"
-                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuATUoiE4z4CU5XJpxR1Flol_aKzbcljaR90UhPYzl6NmCZUhJAwh2qDYovzpcr5mra64sFTFErswza7lWswwwUj06QZQa80qVY5Fr5qGrcsRGAFzeAeHCbj2Hp0WIVhbNfIxYuvb78VSdlhW6lbcyrCw3ENmQwjg3JddHfz7-mMZPqig0BkJpmEw6iH20BKnwXrxcMprbEeRjAHO58YbrJLPDQcYcfmnhBbI2TLyoPbn7XinLDh_UJ9civdvlJR2tXis6bYLYa8R49O');">
-                                </div>
-                                <div class="active-dot"></div>
-                            </div>
-                            <!-- User name rendered dynamically by JS -->
-                        </a>
-                        <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                            href="#">
-                            <div class="relative size-9">
-                                <div class="w-full h-full rounded-full bg-cover bg-center"
-                                    style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAZTu58yHojuRZhO5gP03EMAUSuN1EwEm35Z3wo_Gn0te8bP_8HfI3cZNhK9KmWGA0ePNuADpnqIkCcqNqDXCNiFp8TBoSakrQCrxq-3qf-TZ7xrBBqyXVmJsOLT2jIyvAD7U3dbq9_0HWC3QEpedBlUFdc5F2GMLVjXPzkzF4mVopxeDdwVWnQPp0d4Uf5QVCiB8yEnpL4Viscx-HFn_g7Rm6InylErglbzCkj6bWrQoXqkqWP6KL8pPWV7bNFKBGc8w05ebyBRUK');">
-                                </div>
-                                <div class="active-dot"></div>
-                            </div>
-                            <!-- User name rendered dynamically by JS -->
-                        </a>
+                        <span class="text-[15px] font-semibold">UI Design
+                                Community</span>
+                    </a>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="size-9 rounded-lg bg-cover bg-center"
+                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
+                        </div>
+                        <span class="text-[15px] font-semibold">Photography Hub</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+        <section class="flex-1 flex flex-col pt-6 max-w-[720px] mx-auto min-w-0">
+            <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                <!-- Dynamic stories and users will be rendered here if needed -->
+            </div>
+            <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200"
+                  enctype="multipart/form-data">
+                <div class="flex gap-2 items-center mb-3">
+                    <div id="author-avatar" class="author-post size-10 rounded-full bg-cover bg-center shrink-0"></div>
+                    <select id="author-select" name="author"
+                            class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-full text-fb-gray-text text-[17px] focus:outline-none"></select>
+                </div>
+                <textarea name="content" id="post-content" rows="2"
+                          class="w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none resize-none mb-2"
+                          placeholder="What's on your mind?"></textarea>
+                <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
+                <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden"/>
+                <input type="text" id="feeling-input" name="feeling"
+                       class="hidden mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none"
+                       placeholder="How are you feeling?"/>
+                <input type="text" id="is-with-input" name="is_with"
+                       class="mt-2 w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none"
+                       placeholder="With (comma-separated usernames)"/>
+                <div class="grid grid-cols-3 gap-1 pt-2 border-t border-gray-100">
+                    <button type="button" id="photo-video-btn"
+                            class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[#45BD62]">image</span>
+                        <span class="text-[15px] font-semibold text-fb-gray-text">Photo/video</span>
+                    </button>
+                    <button type="button" id="feeling-btn"
+                            class="flex items-center justify-center gap-2 py-2 hover:bg-fb-hover rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[#F7B928]">mood</span>
+                        <span class="text-[15px] font-semibold text-fb-gray-text">Feeling/activity</span>
+                    </button>
+                    <button type="submit"
+                            class="flex items-center justify-center gap-2 py-2 bg-fb-blue text-white rounded-lg transition-colors">
+                        <span class="material-symbols-outlined">send</span>
+                        <span class="text-[15px] font-semibold">Post</span>
+                    </button>
+                </div>
+            </form>
+            <div data-posts-list></div>
+        </section>
+        <aside
+                class="hidden lg:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
+            <div class="mb-4">
+                <h3 class="font-semibold text-fb-gray-text text-[17px] px-2 mb-2">Sponsored</h3>
+                <div class="flex flex-col gap-2">
+                    <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
+                       href="#">
+                        <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
+                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <h4 class="text-[15px] font-semibold text-[#050505]">
+                                Digital Nomads Retreat 2024</h4>
+                            <p class="text-[13px] text-fb-gray-text">retreats.io</p>
+                        </div>
+                    </a>
+                    <a class="flex items-center gap-3 p-2 rounded-lg hover:bg-fb-hover group"
+                       href="#">
+                        <div class="size-28 rounded-lg bg-cover bg-center shrink-0"
+                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <h4 class="text-[15px] font-semibold text-[#050505]">
+                                Master UI/UX Design Course</h4>
+                            <p class="text-[13px] text-fb-gray-text">
+                                designschool.edu</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-gray-300">
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <h3 class="font-semibold text-fb-gray-text text-[17px]">Contacts</h3>
+                    <div class="flex gap-2">
+                        <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                class="material-symbols-outlined !text-[20px] text-fb-gray-text">video_call</span>
+                        </button>
+                        <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                class="material-symbols-outlined !text-[20px] text-fb-gray-text">search</span></button>
+                        <button class="p-2 hover:bg-fb-hover rounded-full"><span
+                                class="material-symbols-outlined !text-[20px] text-fb-gray-text">more_horiz</span>
+                        </button>
                     </div>
                 </div>
-            </aside>
-        </main>
-    </div>
+                <div class="flex flex-col gap-0.5">
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="relative size-9">
+                            <div class="w-full h-full rounded-full bg-cover bg-center"
+                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB2sXMAt1saY1AjKDNINmwZbXcp3kvO744XqY42-6wBzeVpHhN6frudXuf3-Zk_0Q89VJb-99Sj8UPn4NZa5Qj-B9uwH6jYsM7Rr3ICQwBsMeiUUMkDLcWBFlkrvkozdcFdpR_pzjtm-hSyWGh19OjewWoQFETW3sUePN3vGPGACpyJD-j6MHvpuOb3NV32X9HCe5Oz3JjWSm0Rp65cBNfXw9xDUMueAu-tz-4hrkr-nQnYme7GHW6e9QiHCal5crifq0YIfNXZ1dnh');">
+                            </div>
+                            <div class="active-dot"></div>
+                        </div>
+                        <!-- User name rendered dynamically by JS -->
+                    </a>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="relative size-9">
+                            <div class="w-full h-full rounded-full bg-cover bg-center"
+                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3B7jtKYWklRvH2uLuPrLHJ6zCHfc4h5J7dp-ZuhPx3vSJQAHkuEJ02UK1e5jxX1aKiu1mpFWFFPxU9_PgOgpTwtzhy3YZQ2a5V41lAkK9H84aI4LJlqvYT_fjUEqjfeP3-qlj_OVgawTUMGiJT58v2_45jPt1Gs5QTjoKbTvtKMVtqZNL7Gi7F_AdSmB7xKeSrDSXZZj7c3Io-1tcCodYEOKaVOf4ieN5fpnp7Q28DDNe4ReoNHRzvp4-oNYOAXt_jkxxawkY73CD');">
+                            </div>
+                            <div class="active-dot"></div>
+                        </div>
+                        <!-- User name rendered dynamically by JS -->
+                    </a>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="relative size-9">
+                            <div class="w-full h-full rounded-full bg-cover bg-center"
+                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB4c7Cgx5dPxGjZbMJvCTH55jSnc_ubm6fORI9On20WvapNc_YbYr4j9iy4F1JckudJadkS2WVIvmtwLJSJEdfXF5cudhFL4LjwgSw7CQHwIw7oQBYdRwOCY9ExDc4dOpDtHo9cVafp-68rqtNfEu6x8iYs-RfTEpuVDUZ302SIoex13-n99kHytAsUG4WXo3gE-rQzO_iRlBISrE7HMWDW2cOHpuxemyKyOeAJJDGa2i_yhwxBqHvv4NWg20-QaUsAJ4UoI5QRrToZ');">
+                            </div>
+                            <div class="active-dot"></div>
+                        </div>
+                        <!-- User name rendered dynamically by JS -->
+                    </a>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="relative size-9">
+                            <div class="w-full h-full rounded-full bg-cover bg-center"
+                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuATUoiE4z4CU5XJpxR1Flol_aKzbcljaR90UhPYzl6NmCZUhJAwh2qDYovzpcr5mra64sFTFErswza7lWswwwUj06QZQa80qVY5Fr5qGrcsRGAFzeAeHCbj2Hp0WIVhbNfIxYuvb78VSdlhW6lbcyrCw3ENmQwjg3JddHfz7-mMZPqig0BkJpmEw6iH20BKnwXrxcMprbEeRjAHO58YbrJLPDQcYcfmnhBbI2TLyoPbn7XinLDh_UJ9civdvlJR2tXis6bYLYa8R49O');">
+                            </div>
+                            <div class="active-dot"></div>
+                        </div>
+                        <!-- User name rendered dynamically by JS -->
+                    </a>
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
+                       href="#">
+                        <div class="relative size-9">
+                            <div class="w-full h-full rounded-full bg-cover bg-center"
+                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAZTu58yHojuRZhO5gP03EMAUSuN1EwEm35Z3wo_Gn0te8bP_8HfI3cZNhK9KmWGA0ePNuADpnqIkCcqNqDXCNiFp8TBoSakrQCrxq-3qf-TZ7xrBBqyXVmJsOLT2jIyvAD7U3dbq9_0HWC3QEpedBlUFdc5F2GMLVjXPzkzF4mVopxeDdwVWnQPp0d4Uf5QVCiB8yEnpL4Viscx-HFn_g7Rm6InylErglbzCkj6bWrQoXqkqWP6KL8pPWV7bNFKBGc8w05ebyBRUK');">
+                            </div>
+                            <div class="active-dot"></div>
+                        </div>
+                        <!-- User name rendered dynamically by JS -->
+                    </a>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
 
 </body>
 
