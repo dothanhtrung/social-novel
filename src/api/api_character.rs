@@ -30,6 +30,7 @@ struct CharacterForm {
     username: Text<String>,
     name: Text<String>,
     avatar: Option<TempFile>,
+    description: Text<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -107,6 +108,7 @@ async fn update(
         username: data.username.0,
         name: data.name.0,
         id: data.id.0,
+        description: data.description.0,
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {

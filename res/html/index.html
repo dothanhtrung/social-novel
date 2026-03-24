@@ -148,7 +148,9 @@
                         <div class="flex items-start gap-3">
                             <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
                             <div class="flex-1">
-                                <div class="text-[15px] text-[#050505]"><strong>${a.name || a.username}</strong></div>
+
+                                <div class="text-[15px] text-[#050505]"><strong><a href="/${a.username}">${a.name || a.username}</a></strong></div>
+
                                         <div class="text-[15px] text-fb-black-text">${renderContentWithMentions(c.content || '')}</div>
                                         ${commentMediaHtml}
                                         <div class="mt-1 flex items-center justify-between">

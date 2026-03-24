@@ -40,6 +40,8 @@ pub struct Post {
     pub feeling: String,
     #[serde(default)]
     pub is_with: String,
+    #[serde(default)]
+    pub group: Option<i64>,
 }
 
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {

@@ -1,14 +1,14 @@
+use crate::api::{delete_file, save_file, CommonMessage};
 use crate::ConfigData;
-use crate::api::{CommonMessage, delete_file, save_file};
-use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
+use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
-use actix_web::{Responder, get, post, web};
+use actix_web::{get, post, web, Responder};
 use serde::{Deserialize, Serialize};
 use sn_internal::db::db_media::Media;
 use sn_internal::db::db_post::Post;
-use sn_internal::db::{DBPool, db_media, db_post};
+use sn_internal::db::{db_media, db_post, DBPool};
 use sqlx::types::time::OffsetDateTime;
 use std::cmp::max;
 use std::path::{Path, PathBuf};
@@ -46,6 +46,7 @@ struct PostForm {
     sad: Text<i32>,
     feeling: Text<String>,
     is_with: Text<String>,
+    group: Text<i64>,
 }
 
 #[get("")]
@@ -98,7 +99,7 @@ async fn update(
     let config = config_data.config.read().await;
     let form_parent = data.parent.into_inner();
     let parent = if form_parent > 0 { Some(form_parent) } else { None };
-
+    let group = if data.group.0 == 0 { None } else { Some(data.group.0) };
     let post = Post {
         id: data.id.into_inner(),
         content: data.content.into_inner(),
@@ -113,6 +114,7 @@ async fn update(
         is_with: data.is_with.into_inner(),
         created_at: OffsetDateTime::now_utc(),
         updated_at: OffsetDateTime::now_utc(),
+        group,
     };
 
     let mut post_id = post.id;

@@ -11,6 +11,8 @@ pub struct Character {
     pub name: String,
     #[serde(default)]
     pub id: i64,
+    #[serde(default)]
+    pub description: String,
 }
 
 pub async fn search(db_pool: &DBPool, search: &str) -> Result<Vec<Character>, sqlx::Error> {
