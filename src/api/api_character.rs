@@ -36,6 +36,7 @@ struct CharacterForm {
 struct SearchQuery {
     #[serde(default)]
     search: String,
+    username: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
@@ -45,14 +46,21 @@ struct CharacterResponse {
 }
 
 #[get("")]
-async fn search(db_pool: web::Data<DBPool>, queries: web::Query<SearchQuery>) -> Result<CreatedJson<CharacterResponse>, ErrorResponse> {
+async fn search(db_pool: web::Data<DBPool>, queries: web::Query<SearchQuery>) -> impl Responder {
     let mut characters = Vec::new();
     let mut err = String::new();
-    match db_character::search(&db_pool, queries.search.as_str()).await {
-        Ok(c) => characters = c,
-        Err(e) => err = e.to_string(),
+    if let Some(username) = queries.username.as_ref() {
+        match db_character::get_by_username(&db_pool, username.as_str()).await{
+            Ok(c) => characters.push(c),
+            Err(e) => err = e.to_string(),
+        }
+    }else {
+        match db_character::search(&db_pool, queries.search.as_str()).await {
+            Ok(c) => characters = c,
+            Err(e) => err = e.to_string(),
+        }
     }
-    Ok(CreatedJson(CharacterResponse { characters, err }))
+    web::Json(CharacterResponse { characters, err })
 }
 
 #[get("/{id}")]

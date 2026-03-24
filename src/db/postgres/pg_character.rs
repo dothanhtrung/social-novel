@@ -49,3 +49,9 @@ pub(crate) async fn get(pool: &PgPool, id: i64) -> Result<Character, sqlx::Error
         .fetch_one(pool)
         .await
 }
+
+pub(crate) async fn get_by_username(pool: &PgPool, username: &str) -> Result<Character, sqlx::Error> {
+    sqlx::query_as!(Character, "SELECT * FROM character WHERE username = $1", username)
+        .fetch_one(pool)
+        .await
+}
