@@ -197,11 +197,10 @@
         // Fetch profile user data
         async function fetchProfileUser(username) {
             try {
-                const res = await fetch("/api/character");
+                const res = await fetch(`/api/character?username=${encodeURIComponent(username)}`);
                 const data = await res.json();
-                if (data.characters) {
-                    const user = data.characters.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
-                    return user;
+                if (data.characters && data.characters.length > 0) {
+                    return data.characters[0];
                 }
             } catch (e) {
                 console.error("Failed to fetch profile user:", e);
