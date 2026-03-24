@@ -18,7 +18,7 @@ async fn index(tmpl: web::Data<Tera>) -> impl Responder {
     }
 }
 
-#[get("/{name}")]
+#[get("/u/{name}")]
 async fn profile(tmpl: web::Data<Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
     match tmpl.render("profile.html", &ctx) {
@@ -29,7 +29,7 @@ async fn profile(tmpl: web::Data<Tera>) -> impl Responder {
     }
 }
 
-#[get("/post/{id}")]
+#[get("/p/{id}")]
 async fn get(tmpl: web::Data<Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
     // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
@@ -42,7 +42,7 @@ async fn get(tmpl: web::Data<Tera>) -> impl Responder {
     }
 }
 
-#[get("/post/edit/{id}")]
+#[get("/p/edit/{id}")]
 async fn edit(tmpl: web::Data<Tera>) -> impl Responder {
     let mut ctx = tera::Context::new();
     match tmpl.render("post_edit.html", &ctx) {

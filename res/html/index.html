@@ -149,7 +149,7 @@
                             <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
                             <div class="flex-1">
 
-                                <div class="text-[15px] text-[#050505]"><strong><a href="/${a.username}">${a.name || a.username}</a></strong></div>
+                                <div class="text-[15px] text-[#050505]"><strong><a href="/u/${a.username}">${a.name || a.username}</a></strong></div>
 
                                         <div class="text-[15px] text-fb-black-text">${renderContentWithMentions(c.content || '')}</div>
                                         ${commentMediaHtml}
@@ -227,7 +227,7 @@
                                     <div class='size-10 rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(a)}");'></div>
                                     <div>
                                         <div class="flex items-center gap-2">
-                                        <a href="/${a.username}">
+                                        <a href="/u/${a.username}">
                                             <h4 class='text-[15px] font-bold hover:underline cursor-pointer text-[#050505]'>${a.name || a.username}</h4>
                                         </a>
                                             ${metaHtml}
@@ -674,7 +674,7 @@
         }
 
         function editPost(id) {
-            window.location.href = `/post/edit/${id}`;
+            window.location.href = `/p/edit/${id}`;
         }
 
         async function deletePost(id) {

@@ -2,8 +2,8 @@
 <html class="light" lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Profile - Social Novel</title>
 
     <link href="/css/tailwind_output.min.css" rel="stylesheet">
@@ -12,9 +12,9 @@
     <script src="/js/utils.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&amp;display=swap"
-        rel="stylesheet" />
+          rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
+          rel="stylesheet"/>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -43,13 +43,16 @@
                 @apply bg-fb-bg text-[#050505];
             }
         }
+
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             font-size: 28px;
         }
+
         .nav-icon-active {
             @apply text-fb-blue border-b-4 border-fb-blue;
         }
+
         .nav-icon-active span {
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
@@ -57,256 +60,264 @@
 </head>
 
 <body class="min-h-screen">
-    <div class="layout-container flex flex-col min-h-screen">
-        <header class="sticky top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
-            <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
-                <div class="flex items-center gap-2 min-w-[300px]">
-                    <div class="text-fb-blue">
+<div class="layout-container flex flex-col min-h-screen">
+    <header class="sticky top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
+        <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
+            <div class="flex items-center gap-2 min-w-[300px]">
+                <div class="text-fb-blue">
+                    <a href="/">
                         <svg class="size-10" fill="currentColor" viewBox="0 0 36 36">
                             <path
-                                d="M20.181 35.89C29.094 34.791 36 27.197 36 18 36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.513 5.913 15.644 13.875 17.373v-12.28h-4.462v-5.093h4.462v-3.877c0-4.404 2.623-6.84 6.642-6.84 1.924 0 3.93.344 3.93.344v4.32h-2.213c-2.181 0-2.86 1.355-2.86 2.744v3.309h4.87l-.779 5.093h-4.091v12.28z">
+                                    d="M20.181 35.89C29.094 34.791 36 27.197 36 18 36 8.059 27.941 0 18 0S0 8.059 0 18c0 8.513 5.913 15.644 13.875 17.373v-12.28h-4.462v-5.093h4.462v-3.877c0-4.404 2.623-6.84 6.642-6.84 1.924 0 3.93.344 3.93.344v4.32h-2.213c-2.181 0-2.86 1.355-2.86 2.744v3.309h4.87l-.779 5.093h-4.091v12.28z">
                             </path>
                         </svg>
-                    </div>
-                    <div class="relative group">
+                    </a>
+                </div>
+                <div class="relative group">
                         <span
-                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
-                        <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
-                            placeholder="Search" type="text" />
-                    </div>
+                                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
+                    <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
+                           placeholder="Search" type="text"/>
                 </div>
-                <div class="flex-1 hidden md:flex items-center justify-center h-full max-w-[680px]">
-                    <div class="flex items-center w-full h-full">
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="/">
-                            <span class="material-symbols-outlined">home</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="/characters">
-                            <span class="material-symbols-outlined">groups</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">ondemand_video</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">storefront</span>
-                        </a>
-                        <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                            href="#">
-                            <span class="material-symbols-outlined">sports_esports</span>
-                        </a>
-                    </div>
+            </div>
+            <div class="flex-1 hidden md:flex items-center justify-center h-full max-w-[680px]">
+                <div class="flex items-center w-full h-full">
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="/">
+                        <span class="material-symbols-outlined">home</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="/characters">
+                        <span class="material-symbols-outlined">groups</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">ondemand_video</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">storefront</span>
+                    </a>
+                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="#">
+                        <span class="material-symbols-outlined">sports_esports</span>
+                    </a>
                 </div>
-                <div class="flex items-center gap-2 min-w-[300px] justify-end">
-                    <div class="flex items-center gap-2">
-                        <button
+            </div>
+            <div class="flex items-center gap-2 min-w-[300px] justify-end">
+                <div class="flex items-center gap-2">
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
-                            <span class="material-symbols-outlined !text-[20px]">apps</span>
-                        </button>
-                        <button
+                        <span class="material-symbols-outlined !text-[20px]">apps</span>
+                    </button>
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
                             <span
-                                class="material-symbols-outlined !text-[20px]">chat_bubble</span>
-                        </button>
-                        <button
+                                    class="material-symbols-outlined !text-[20px]">chat_bubble</span>
+                    </button>
+                    <button
                             class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] relative">
                             <span
-                                class="material-symbols-outlined !text-[20px]">notifications</span>
-                            <span
+                                    class="material-symbols-outlined !text-[20px]">notifications</span>
+                        <span
                                 class="absolute -top-1 -right-1 size-5 bg-[#E41E3F] text-white text-[11px] font-bold rounded-full flex items-center justify-center">3</span>
-                        </button>
-                        <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
-                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
-                        </div>
+                    </button>
+                    <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
+                         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
                     </div>
                 </div>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <main class="flex-1 w-full flex justify-center">
-            <section class="flex-1 flex flex-col max-w-[900px] w-full">
-                <!-- Profile Header Section -->
-                <div class="bg-white mb-4">
-                    <!-- Banner -->
-                    <div id="banner" class="w-full h-80 bg-cover bg-center bg-gray-300">
-                    </div>
-
-                    <!-- Profile Info -->
-                    <div class="px-6 pb-6">
-                        <div class="flex items-end gap-4 -mt-20 mb-6 relative z-10">
-                            <!-- Avatar -->
-                            <div id="avatar" class="w-40 h-40 rounded-full border-4 border-white bg-cover bg-center bg-gray-200 shadow-lg">
-                            </div>
-
-                            <!-- Profile Details -->
-                            <div class="flex-1 pb-2">
-                                <h1 id="profile-name" class="text-4xl font-bold text-[#050505]">Loading...</h1>
-                                <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
-                            </div>
-                        </div>
-
-                        <!-- Profile Tabs/Actions -->
-                        <div class="flex items-center gap-4 border-t border-gray-200 pt-4">
-                            <a href="#" class="text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-fb-blue">Timeline</a>
-                            <a href="#" class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">About</a>
-                            <a href="#" class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Photos</a>
-                            <a href="#" class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Friends</a>
-                        </div>
-                    </div>
+    <main class="flex-1 w-full flex justify-center">
+        <section class="flex-1 flex flex-col max-w-[900px] w-full">
+            <!-- Profile Header Section -->
+            <div class="bg-white mb-4">
+                <!-- Banner -->
+                <div id="banner" class="w-full h-80 bg-cover bg-center bg-gray-300">
                 </div>
 
-                <!-- Posts Section -->
-                <div class="px-4">
-                    <div id="posts-list"></div>
+                <!-- Profile Info -->
+                <div class="px-6 pb-6">
+                    <div class="flex items-end gap-4 -mt-20 mb-6 relative z-10">
+                        <!-- Avatar -->
+                        <div id="avatar"
+                             class="w-40 h-40 rounded-full border-4 border-white bg-cover bg-center bg-gray-200 shadow-lg">
+                        </div>
+
+                        <!-- Profile Details -->
+                        <div class="flex-1 pb-2">
+                            <h1 id="profile-name" class="text-4xl font-bold text-[#050505]">Loading...</h1>
+                            <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tabs/Actions -->
+                    <div class="flex items-center gap-4 border-t border-gray-200 pt-4">
+                        <a href="#" class="text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-fb-blue">Timeline</a>
+                        <a href="#"
+                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">About</a>
+                        <a href="#"
+                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Photos</a>
+                        <a href="#"
+                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Friends</a>
+                    </div>
                 </div>
-            </section>
-        </main>
-    </div>
+            </div>
 
-    <script>
-        let userData = null;
-        let userMap = {};
-        let usernameMapLower = {};
+            <!-- Posts Section -->
+            <div class="px-4">
+                <div id="posts-list"></div>
+            </div>
+        </section>
+    </main>
+</div>
 
-        // Extract username from URL path (e.g., /john -> john)
-        function getProfileUsername() {
-            const path = window.location.pathname;
-            const parts = path.split('/').filter(p => p);
-            return parts[parts.length - 1] || null;
-        }
+<script>
+    let userData = null;
+    let userMap = {};
+    let usernameMapLower = {};
 
-        // Fetch all users to build userMap
-        async function fetchUsers() {
-            try {
-                const res = await fetch("/api/character");
-                const data = await res.json();
-                if (data.characters) {
-                    userMap = {};
-                    for (const user of data.characters) {
-                        userMap[user.id] = user;
-                        if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
-                    }
+    // Extract username from URL path (e.g., /john -> john)
+    function getProfileUsername() {
+        const path = window.location.pathname;
+        const parts = path.split('/').filter(p => p);
+        return parts[parts.length - 1] || null;
+    }
+
+    // Fetch all users to build userMap
+    async function fetchUsers() {
+        try {
+            const res = await fetch("/api/character");
+            const data = await res.json();
+            if (data.characters) {
+                userMap = {};
+                for (const user of data.characters) {
+                    userMap[user.id] = user;
+                    if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
                 }
-            } catch (e) {
-                console.error("Failed to fetch users:", e);
             }
+        } catch (e) {
+            console.error("Failed to fetch users:", e);
         }
+    }
 
-        // Fetch profile user data
-        async function fetchProfileUser(username) {
-            try {
-                const res = await fetch(`/api/character?username=${encodeURIComponent(username)}`);
-                const data = await res.json();
-                if (data.characters && data.characters.length > 0) {
-                    return data.characters[0];
-                }
-            } catch (e) {
-                console.error("Failed to fetch profile user:", e);
+    // Fetch profile user data
+    async function fetchProfileUser(username) {
+        try {
+            const res = await fetch(`/api/character?username=${encodeURIComponent(username)}`);
+            const data = await res.json();
+            if (data.characters && data.characters.length > 0) {
+                return data.characters[0];
             }
-            return null;
+        } catch (e) {
+            console.error("Failed to fetch profile user:", e);
         }
+        return null;
+    }
 
-        // Render profile header
-        function renderProfileHeader(user) {
-            if (!user) return;
+    // Render profile header
+    function renderProfileHeader(user) {
+        if (!user) return;
 
-            const banner = document.getElementById('banner');
-            const avatar = document.getElementById('avatar');
-            const name = document.getElementById('profile-name');
-            const username = document.getElementById('profile-username');
+        const banner = document.getElementById('banner');
+        const avatar = document.getElementById('avatar');
+        const name = document.getElementById('profile-name');
+        const username = document.getElementById('profile-username');
 
-            banner.style.backgroundImage = `url('/data/banner/${user.username}.png')`;
-            avatar.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
-            name.textContent = user.name || user.username;
-            username.textContent = `@${user.username}`;
-        }
+        banner.style.backgroundImage = `url('/data/banner/${user.username}.png')`;
+        avatar.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
+        name.textContent = user.name || user.username;
+        username.textContent = `@${user.username}`;
+    }
 
-        // Render user's posts
-        async function renderPosts() {
-            const postsContainer = document.getElementById('posts-list');
-            if (!postsContainer || !userData) return;
+    // Render user's posts
+    async function renderPosts() {
+        const postsContainer = document.getElementById('posts-list');
+        if (!postsContainer || !userData) return;
 
-            try {
-                const author = userData.id;
-                const res = await fetch(`/api/post?author=${author}`);
-                const data = await res.json();
+        try {
+            const author = userData.id;
+            const res = await fetch(`/api/post?author=${author}`);
+            const data = await res.json();
 
-                if (!data.posts || data.posts.length === 0) {
-                    postsContainer.innerHTML = '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts yet</div>';
-                    return;
+            if (!data.posts || data.posts.length === 0) {
+                postsContainer.innerHTML = '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts yet</div>';
+                return;
+            }
+
+            const posts = data.posts;
+            const byId = {};
+            for (const p of posts) {
+                byId[p.id] = {...p, comments: []};
+            }
+            const roots = [];
+            for (const id in byId) {
+                const p = byId[id];
+                if (p.parent && p.parent > 0 && byId[p.parent]) {
+                    byId[p.parent].comments.push(p);
+                } else {
+                    roots.push(p);
+                }
+            }
+
+            // Sort comments for each post: oldest first
+            Object.values(byId).forEach(post => {
+                if (post.comments && post.comments.length > 0) {
+                    post.comments.sort((a, b) => {
+                        const ta = parseTimestamp(a.updated_at || a.created_at);
+                        const tb = parseTimestamp(b.updated_at || b.created_at);
+                        return ta - tb;
+                    });
+                }
+            });
+
+            // Fetch media for all posts
+            const allPostIds = [];
+
+            function collectIds(node) {
+                allPostIds.push(node.id);
+                if (node.comments && node.comments.length > 0) {
+                    node.comments.forEach(ch => collectIds(ch));
+                }
+            }
+
+            roots.forEach(r => collectIds(r));
+            const uniqIds = Array.from(new Set(allPostIds));
+            await Promise.all(uniqIds.map(async id => {
+                try {
+                    const mres = await fetch(`/api/media?post=${id}`);
+                    const mdata = await mres.json().catch(() => ({}));
+                    if (mdata && Array.isArray(mdata.media)) {
+                        if (byId[id]) byId[id].media = mdata.media.map(m => ({
+                            ...m,
+                            url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
+                        }));
+                    }
+                } catch (err) {
+                    // ignore per-item failures
+                }
+            }));
+
+            // Sort roots by updated_at (newest first)
+            roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
+
+            function renderComment(c, depth = 0) {
+                const a = userMap[c.author] || {username: 'unknown', name: 'Unknown'};
+                let commentMediaHtml = '';
+                if (c.media && c.media.length > 0) {
+                    const m = c.media[0];
+                    const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                    if (m.file_type === "Image") {
+                        commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                    } else if (m.file_type === "Video") {
+                        commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                    }
                 }
 
-                const posts = data.posts;
-                const byId = {};
-                for (const p of posts) {
-                    byId[p.id] = { ...p, comments: [] };
-                }
-                const roots = [];
-                for (const id in byId) {
-                    const p = byId[id];
-                    if (p.parent && p.parent > 0 && byId[p.parent]) {
-                        byId[p.parent].comments.push(p);
-                    } else {
-                        roots.push(p);
-                    }
-                }
-
-                // Sort comments for each post: oldest first
-                Object.values(byId).forEach(post => {
-                    if (post.comments && post.comments.length > 0) {
-                        post.comments.sort((a, b) => {
-                            const ta = parseTimestamp(a.updated_at || a.created_at);
-                            const tb = parseTimestamp(b.updated_at || b.created_at);
-                            return ta - tb;
-                        });
-                    }
-                });
-
-                // Fetch media for all posts
-                const allPostIds = [];
-                function collectIds(node) {
-                    allPostIds.push(node.id);
-                    if (node.comments && node.comments.length > 0) {
-                        node.comments.forEach(ch => collectIds(ch));
-                    }
-                }
-                roots.forEach(r => collectIds(r));
-                const uniqIds = Array.from(new Set(allPostIds));
-                await Promise.all(uniqIds.map(async id => {
-                    try {
-                        const mres = await fetch(`/api/media?post=${id}`);
-                        const mdata = await mres.json().catch(() => ({}));
-                        if (mdata && Array.isArray(mdata.media)) {
-                            if (byId[id]) byId[id].media = mdata.media.map(m => ({
-                                ...m,
-                                url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
-                            }));
-                        }
-                    } catch (err) {
-                        // ignore per-item failures
-                    }
-                }));
-
-                // Sort roots by updated_at (newest first)
-                roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
-
-                function renderComment(c, depth = 0) {
-                    const a = userMap[c.author] || { username: 'unknown', name: 'Unknown' };
-                    let commentMediaHtml = '';
-                    if (c.media && c.media.length > 0) {
-                        const m = c.media[0];
-                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                        if (m.file_type === "Image") {
-                            commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                        } else if (m.file_type === "Video") {
-                            commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
-                        }
-                    }
-
-                    const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
-                    const commentHtml = `
+                const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
+                const commentHtml = `
                     <div ${indentStyle} class="pr-4 py-3 border-t border-gray-100 bg-white relative">
                         <div class="flex items-start gap-3">
                             <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
@@ -326,49 +337,49 @@
                         </div>
                     </div>`;
 
-                    let childrenHtml = '';
-                    if (c.comments && c.comments.length > 0) {
-                        childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
-                    }
-                    return commentHtml + childrenHtml;
+                let childrenHtml = '';
+                if (c.comments && c.comments.length > 0) {
+                    childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
                 }
+                return commentHtml + childrenHtml;
+            }
 
-                function renderPost(p) {
-                    const a = userMap[p.author] || { username: 'unknown', name: 'Unknown' };
-                    const feeling = p.feeling || '';
-                    const is_with = p.is_with || '';
-                    let metaHtml = '';
-                    if (feeling || is_with) {
-                        const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
-                        let isWithHtml = '';
-                        if (is_with) {
-                            const m = is_with.match(/^(with|by)\s+(.*)/i);
-                            if (m) {
-                                const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
-                                const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
-                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                                }).join('');
-                                isWithHtml = `${prefix} ${rest}`;
-                            } else {
-                                isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
-                                    return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                                }).join('');
-                            }
-                        }
-                        metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
-                    }
-                    let mediaHtml = '';
-                    if (p.media && p.media.length > 0) {
-                        const m = p.media[0];
-                        const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                        if (m.file_type === "Image") {
-                            mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                        } else if (m.file_type === "Video") {
-                            mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+            function renderPost(p) {
+                const a = userMap[p.author] || {username: 'unknown', name: 'Unknown'};
+                const feeling = p.feeling || '';
+                const is_with = p.is_with || '';
+                let metaHtml = '';
+                if (feeling || is_with) {
+                    const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
+                    let isWithHtml = '';
+                    if (is_with) {
+                        const m = is_with.match(/^(with|by)\s+(.*)/i);
+                        if (m) {
+                            const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
+                            const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
+                                return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                            }).join('');
+                            isWithHtml = `${prefix} ${rest}`;
+                        } else {
+                            isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
+                                return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+                            }).join('');
                         }
                     }
-                    const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
-                    return `
+                    metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
+                }
+                let mediaHtml = '';
+                if (p.media && p.media.length > 0) {
+                    const m = p.media[0];
+                    const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                    if (m.file_type === "Image") {
+                        mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+                    } else if (m.file_type === "Video") {
+                        mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                    }
+                }
+                const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
+                return `
                     <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
                         <div class='px-4 py-3'>
                             <div class='flex items-center justify-between'>
@@ -394,33 +405,33 @@
                             </div>
                         </div>
                     </div>`;
-                }
-
-                postsContainer.innerHTML = roots.map(renderPost).join('');
-            } catch (e) {
-                console.error("Failed to load posts:", e);
-                postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
             }
+
+            postsContainer.innerHTML = roots.map(renderPost).join('');
+        } catch (e) {
+            console.error("Failed to load posts:", e);
+            postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
+        }
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+        const username = getProfileUsername();
+        if (!username) {
+            document.getElementById('posts-list').innerHTML = '<div class="text-red-500">Invalid username</div>';
+            return;
         }
 
-        window.addEventListener("DOMContentLoaded", async () => {
-            const username = getProfileUsername();
-            if (!username) {
-                document.getElementById('posts-list').innerHTML = '<div class="text-red-500">Invalid username</div>';
-                return;
-            }
+        await fetchUsers();
+        userData = await fetchProfileUser(username);
+        if (!userData) {
+            document.getElementById('posts-list').innerHTML = '<div class="text-red-500">User not found</div>';
+            return;
+        }
 
-            await fetchUsers();
-            userData = await fetchProfileUser(username);
-            if (!userData) {
-                document.getElementById('posts-list').innerHTML = '<div class="text-red-500">User not found</div>';
-                return;
-            }
-
-            renderProfileHeader(userData);
-            await renderPosts();
-        });
-    </script>
+        renderProfileHeader(userData);
+        await renderPosts();
+    });
+</script>
 </body>
 
 </html>
