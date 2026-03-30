@@ -8,7 +8,9 @@
 
     <link href="/css/tailwind_output.min.css" rel="stylesheet">
     <link href="/css/post.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script src="/js/utils.js"></script>
 
     <script>
@@ -138,7 +140,7 @@
                             if (m.file_type === "Image") {
                                 commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
                             } else if (m.file_type === "Video") {
-                                commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                                commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
                             }
                         }
 
@@ -215,7 +217,7 @@
                             if (m.file_type === "Image") {
                                 mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
                             } else if (m.file_type === "Video") {
-                                mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='w-full rounded-lg' controls></video></div>`;
+                                mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
                             }
                         }
                         const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
@@ -302,6 +304,8 @@
                     }
 
                     postsContainer.innerHTML = roots.map(renderPost).join('');
+                    // Initialize Plyr on any rendered videos
+                    initPlyrVideos(postsContainer);
                     // Render pager below the posts list
                     renderPager(roots.length, page, count);
                 }

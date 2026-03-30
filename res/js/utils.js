@@ -117,6 +117,19 @@ function renderCommentReactions(p) {
     return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
 }
 
+// Initialize Plyr on all video elements with class 'plyr-video' that haven't been initialized yet
+function initPlyrVideos(container) {
+    const root = container || document;
+    const videos = root.querySelectorAll('video.plyr-video:not(.plyr--setup)');
+    videos.forEach(function(v) {
+        v.classList.add('plyr--setup');
+        new Plyr(v, {
+            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+            resetOnEnd: true,
+        });
+    });
+}
+
 // Render content and replace @username mentions with full Name in blue (requires usernameMapLower in global scope)
 function renderContentWithMentions(text) {
     if (!text) return '';
