@@ -37,10 +37,6 @@ pub struct Media {
 }
 
 pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_media::insert(&dbpool.sqlite_pool, media)
-        .await
-        .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
     return postgres::pg_media::insert(&dbpool.pg_pool, media)
@@ -49,10 +45,6 @@ pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error
 }
 
 pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, anyhow::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_media::get_by_post(&dbpool.sqlite_pool, post_id)
-        .await
-        .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
     postgres::pg_media::get_by_post(&dbpool.pg_pool, post_id)
@@ -62,10 +54,6 @@ pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, an
 
 
 pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>, anyhow::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_media::delete_by_post(&dbpool.sqlite_pool, post_id)
-        .await
-        .map_err(|e| e.into());
 
     #[cfg(feature = "postgres")]
     return postgres::pg_media::delete_by_post(&dbpool.pg_pool, post_id)

@@ -45,7 +45,6 @@ tikv-jemallocator = "0.6"
 [features]
 default = ["postgres"]
 postgres = ["sqlx/postgres"]
-sqlite = ["sqlx/sqlite"]
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

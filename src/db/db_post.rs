@@ -45,24 +45,18 @@ pub struct Post {
 }
 
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::insert(&db_pool.sqlite_pool, post).await;
 
     #[cfg(feature = "postgres")]
     return postgres::pg_post::insert(&db_pool.pg_pool, post).await;
 }
 
 pub async fn get_by_id(db_pool: &DBPool, id: i64) -> Result<Post, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::get_by_id(&db_pool.sqlite_pool, id).await;
 
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_by_id(&db_pool.pg_pool, id).await;
 }
 
 pub async fn get_all(db_pool: &DBPool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::get_all(&db_pool.sqlite_pool, limit, offset).await;
 
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_all(&db_pool.pg_pool, limit, offset).await;
@@ -74,33 +68,22 @@ pub async fn get_by_author(
     limit: i64,
     offset: i64,
 ) -> Result<Vec<Post>, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::get_by_author(&db_pool.sqlite_pool, author_id, limit, offset).await;
 
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_by_author(&db_pool.pg_pool, author_id, limit, offset).await;
 }
 
 pub async fn get_by_parent(db_pool: &DBPool, parent_id: i64) -> Result<Vec<Post>, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::get_by_parent(&db_pool.sqlite_pool, parent_id).await;
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_by_parent(&db_pool.pg_pool, parent_id).await;
 }
 
 pub async fn update(db_pool: &DBPool, post: &Post) -> Result<u64, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::update(&db_pool.sqlite_pool, post).await;
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::update(&db_pool.pg_pool, post).await;
 }
 
 pub async fn delete(db_pool: &DBPool, id: i64) -> Result<u64, sqlx::Error> {
-    #[cfg(feature = "sqlite")]
-    return sqlite::sqlite_post::delete(&db_pool.sqlite_pool, id).await;
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::delete(&db_pool.pg_pool, id).await;
 }
