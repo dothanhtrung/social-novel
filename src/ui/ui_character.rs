@@ -14,7 +14,8 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
 #[get("")]
 async fn index(tmpl: web::Data<Tera>)-> impl Responder {
     let mut ctx = tera::Context::new();
-    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+    ctx.insert("title", "Characters - Social Novel");
+    ctx.insert("active_nav", "character");
 
     match tmpl.render("characters.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
@@ -27,7 +28,8 @@ async fn index(tmpl: web::Data<Tera>)-> impl Responder {
 #[get("/{id}")]
 async fn get(tmpl: web::Data<Tera>)-> impl Responder {
     let mut ctx = tera::Context::new();
-    // ctx.insert("search", &query_params.search.clone().unwrap_or_default());
+    ctx.insert("title", "Edit Character - Social Novel");
+    ctx.insert("active_nav", "character");
 
     match tmpl.render("character.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
