@@ -56,6 +56,7 @@ pub async fn update(dbpool: &DBPool, character: &Character) -> Result<u64, sqlx:
         character.id,
         character.name.as_str(),
         character.username.as_str(),
+        character.description.as_str(),
     )
         .await
 }

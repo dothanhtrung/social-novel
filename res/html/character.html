@@ -1,4 +1,3 @@
-
 {% include "include/head.html" %}
 </head>
 
@@ -30,6 +29,13 @@
                     </div>
 
                     <div>
+                        <label class="block text-[15px] font-semibold mb-2">Description</label>
+                        <textarea name="description" type="text"
+                                  class="w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none border border-gray-200"
+                        ></textarea>
+                    </div>
+
+                    <div>textarea
                         <label class="block text-[15px] font-semibold mb-2">Current Avatar</label>
                         <img id="current-avatar" src="" alt="Avatar"
                              class="w-24 h-24 object-cover rounded-full mb-2 border-2 border-fb-blue"/>
@@ -57,7 +63,8 @@
     </main>
 </div>
 
-{% raw %}<script>
+{% raw %}
+<script>
     const form = document.getElementById("character-form");
     const avatarImg = document.getElementById("current-avatar");
     const deleteBtn = document.getElementById("delete-btn");
@@ -85,6 +92,7 @@
             form.elements["id"].value = char.id;
             form.elements["username"].value = char.username;
             form.elements["name"].value = char.name;
+            form.elements["description"].value = char.description;
             // Prefer helper if available
             try {
                 avatarImg.src = getAvatarUrl ? getAvatarUrl(char) : `/data/avatar/${char.username}.png`;
@@ -126,7 +134,7 @@
             const res = await fetch(`/api/character/delete/${charId}`);
             const text = await res.text();
             alert("Deleted: " + text);
-            window.location.href = "/characters"; // redirect after deletion
+            window.location.href = "/character"; // redirect after deletion
         } catch (err) {
             alert("Failed to delete: " + (err.message || err));
         }
@@ -134,7 +142,8 @@
 
     // Initial load
     loadCharacter();
-</script>{% endraw %}
+</script>
+{% endraw %}
 
 </body>
 </html>

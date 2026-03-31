@@ -23,11 +23,12 @@ pub(crate) async fn insert(pool: &PgPool, name: &str, username: &str) -> Result<
     Ok(id)
 }
 
-pub(crate) async fn update(pool: &PgPool, id: i64, name: &str, username: &str) -> Result<u64, sqlx::Error> {
+pub(crate) async fn update(pool: &PgPool, id: i64, name: &str, username: &str, description: &str) -> Result<u64, sqlx::Error> {
     let count = sqlx::query!(
-        "UPDATE character SET name = $1, username = $2 WHERE id = $3",
+        "UPDATE character SET name = $1, username = $2, description = $3 WHERE id = $4",
         name,
         username,
+        description,
         id
     )
     .execute(pool)
