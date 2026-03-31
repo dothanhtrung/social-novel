@@ -2,6 +2,7 @@ mod api_character;
 mod api_media;
 mod api_post;
 mod api_chat;
+mod api_group;
 
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::http::StatusCode;
@@ -46,7 +47,7 @@ impl ResponseError for ErrorResponse {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 struct CommonMessage {
     msg: String,
     err: String,

@@ -4,3 +4,4 @@ pub mod pg_post;
 pub mod pg_setting;
 pub mod pg_ads;
 pub mod pg_chat;
+mod pg_group;

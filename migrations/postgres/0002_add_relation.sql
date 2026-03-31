@@ -32,17 +32,17 @@ alter table public.post
             references public."group"
             on update cascade on delete cascade;
 
-create table if not exists public.group_character
+create table if not exists public.group_member
 (
     id        bigserial
-        constraint group_character_pk
+        constraint group_member_pk
             primary key,
     character bigint  not null
-        constraint group_character_character_id_fk
+        constraint group_member_character_id_fk
             references public.character
             on update cascade on delete cascade,
     "group"   bigint  not null
-        constraint group_character_group_id_fk
+        constraint group_member_group_id_fk
             references public."group"
             on update cascade on delete cascade,
     role      integer not null

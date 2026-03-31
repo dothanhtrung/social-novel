@@ -1,16 +1,17 @@
 //! Copyright (c) 2025 Trung Do <dothanhtrung@pm.me>.
 
+pub mod db_ads;
 pub mod db_character;
+pub mod db_chat;
+pub mod db_group;
 pub mod db_media;
 pub mod db_post;
 #[cfg(feature = "postgres")]
 mod postgres;
-mod db_ads;
-mod db_chat;
 
 use crate::config::DBConfig;
 #[cfg(feature = "postgres")]
-use sqlx::{PgPool, postgres::PgConnectOptions};
+use sqlx::{postgres::PgConnectOptions, PgPool};
 use std::str::FromStr;
 
 pub struct DBPool {
