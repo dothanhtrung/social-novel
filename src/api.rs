@@ -1,12 +1,12 @@
 mod api_character;
 mod api_media;
 mod api_post;
+mod api_chat;
 
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::http::StatusCode;
 use actix_web::{ResponseError, web};
 use anyhow::anyhow;
-use apistos::ApiErrorComponent;
 use core::fmt::Formatter;
 use serde::{Deserialize, Serialize};
 use sn_internal::db::db_media::MediaType;
@@ -27,13 +27,7 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
     );
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, ApiErrorComponent)]
-#[openapi_error(
-    status(code = 403),
-    status(code = 404),
-    status(code = 405, description = "Invalid input"),
-    status(code = 409)
-)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ErrorResponse {
     MethodNotAllowed(String),
     NotFound(String),

@@ -5,13 +5,11 @@ use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, web};
 use actix_web::{post, Responder};
-use apistos::actix::CreatedJson;
-use apistos::{ApiComponent, api_operation};
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sn_internal::db::db_character::Character;
+use sn_internal::db::db_character::{Bio, Character};
 use sn_internal::db::{db_character, DBPool};
 use std::path::PathBuf;
+use sqlx::types::Json;
 use tracing::error;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
@@ -40,7 +38,7 @@ struct SearchQuery {
     username: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct CharacterResponse {
     characters: Vec<Character>,
     err: String,
@@ -109,6 +107,7 @@ async fn update(
         name: data.name.0,
         id: data.id.0,
         description: data.description.0,
+        bio: Json::default(),
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {

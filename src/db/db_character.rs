@@ -1,11 +1,9 @@
-#[cfg(feature = "sqlite")]
-use crate::db::sqlite;
-use crate::db::{postgres, DBPool};
-use apistos::ApiComponent;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, ApiComponent)]
+use crate::db::{postgres, DBPool};
+use serde::{Deserialize, Serialize};
+use sqlx::types::Json;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {
     pub username: String,
     pub name: String,
@@ -13,6 +11,13 @@ pub struct Character {
     pub id: i64,
     #[serde(default)]
     pub description: String,
+    #[serde(default)]
+    pub bio: Json<Bio>,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct Bio {
+    pub love: Option<String>,
 }
 
 pub async fn search(db_pool: &DBPool, search: &str) -> Result<Vec<Character>, sqlx::Error> {

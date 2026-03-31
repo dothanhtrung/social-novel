@@ -5,6 +5,8 @@ pub mod db_media;
 pub mod db_post;
 #[cfg(feature = "postgres")]
 mod postgres;
+mod db_ads;
+mod db_chat;
 
 use crate::config::DBConfig;
 #[cfg(feature = "postgres")]

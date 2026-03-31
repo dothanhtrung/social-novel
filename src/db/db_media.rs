@@ -1,7 +1,5 @@
 #[cfg(feature = "postgres")]
 use crate::db::postgres;
-#[cfg(feature = "sqlite")]
-use crate::db::sqlite;
 use crate::db::DBPool;
 use serde::{Deserialize, Serialize};
 

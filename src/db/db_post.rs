@@ -1,7 +1,5 @@
 #[cfg(feature = "postgres")]
 use crate::db::postgres;
-#[cfg(feature = "sqlite")]
-use crate::db::sqlite;
 use crate::db::DBPool;
 use actix_web::cookie::time::format_description::well_known::Iso8601;
 use serde::de::Error;
