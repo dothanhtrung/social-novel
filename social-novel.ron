@@ -1,9 +1,6 @@
 (
-    data_dir: "/tmp",
+    data_dir: "/path/to/folder/to/store/photo",
     db: (
-        sqlite: (
-            db_path: "social-novel.sqlite",
-        ),
         postgres: (
             db_path: "postgresql://dev:dev@localhost:5432/social_novel",
         ),
