@@ -47,6 +47,7 @@ struct PostForm {
     feeling: Text<String>,
     is_with: Text<String>,
     group: Text<i64>,
+    room: Text<i64>,
 }
 
 #[get("")]
@@ -100,6 +101,7 @@ async fn update(
     let form_parent = data.parent.into_inner();
     let parent = if form_parent > 0 { Some(form_parent) } else { None };
     let group = if data.group.0 == 0 { None } else { Some(data.group.0) };
+    let room = if data.room.0 == 0 { None } else { Some(data.room.0) };
     let post = Post {
         id: data.id.into_inner(),
         content: data.content.into_inner(),
@@ -115,6 +117,7 @@ async fn update(
         created_at: OffsetDateTime::now_utc(),
         updated_at: OffsetDateTime::now_utc(),
         group,
+        room,
     };
 
     let mut post_id = post.id;

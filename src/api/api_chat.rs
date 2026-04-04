@@ -1,5 +1,4 @@
 use crate::api::CommonMessage;
-use crate::ConfigData;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
@@ -54,26 +53,23 @@ async fn get(dbpool: web::Data<DBPool>, query_params: Query<ChatQuery>) -> impl 
         }
     }
 
-    ChatResponse { chats, err }
+    web::Json(ChatResponse { chats, err })
 }
 
 #[post("")]
-async fn update(
-    dbpool: web::Data<DBPool>,
-    query_params: Query<ChatQuery>,
-) -> impl Responder {
+async fn update(dbpool: web::Data<DBPool>, query_params: Query<ChatQuery>) -> impl Responder {
     let mut chats = Vec::new();
     let mut err = None;
 
-    ChatResponse { chats, err }
+    web::Json(ChatResponse { chats, err })
 }
 
 #[get("delete/{id}")]
 async fn delete(dbpool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
-    CommonMessage::default()
+    web::Json(CommonMessage::default())
 }
 
 #[get("kick/{id}")]
 async fn kick(dbpool: web::Data<DBPool>, member: web::Path<i64>) -> impl Responder {
-    CommonMessage::default()
+    web::Json(CommonMessage::default())
 }

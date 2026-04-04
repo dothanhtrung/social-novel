@@ -40,22 +40,21 @@ pub struct Post {
     pub is_with: String,
     #[serde(default)]
     pub group: Option<i64>,
+    #[serde(default)]
+    pub room: Option<i64>,
 }
 
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::insert(&db_pool.pg_pool, post).await;
 }
 
 pub async fn get_by_id(db_pool: &DBPool, id: i64) -> Result<Post, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_by_id(&db_pool.pg_pool, id).await;
 }
 
 pub async fn get_all(db_pool: &DBPool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_all(&db_pool.pg_pool, limit, offset).await;
 }
@@ -66,7 +65,6 @@ pub async fn get_by_author(
     limit: i64,
     offset: i64,
 ) -> Result<Vec<Post>, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_post::get_by_author(&db_pool.pg_pool, author_id, limit, offset).await;
 }
