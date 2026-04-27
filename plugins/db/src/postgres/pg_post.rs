@@ -1,4 +1,4 @@
-use crate::db::db_post::Post;
+use crate::db_post::Post;
 use sqlx::PgPool;
 
 pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Error> {

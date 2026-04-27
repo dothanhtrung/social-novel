@@ -1,4 +1,4 @@
-use crate::db::db_chat::ChatRoom;
+use crate::db_chat::ChatRoom;
 use sqlx::PgPool;
 
 pub(crate) async fn get_by_id(pool: &PgPool, id: i64) -> Result<Vec<ChatRoom>, sqlx::Error> {

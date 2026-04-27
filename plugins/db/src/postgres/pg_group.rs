@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use crate::db::db_group::Group;
+use crate::db_group::Group;
 
 pub(crate) async fn search(pool: &PgPool, search: &str) -> Result<Vec<Group>, sqlx::Error> {
     sqlx::query_as!(

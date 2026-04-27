@@ -1,0 +1,19 @@
+[package]
+name = "my_api"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+my_config = { workspace = true }
+my_db = { workspace = true }
+
+anyhow = { workspace = true }
+actix-web = { workspace = true }
+actix-multipart = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "time", "migrate"] }
+tracing = { workspace = true }
+blake3 = { workspace = true }
+infer = { workspace = true }

@@ -4,7 +4,7 @@ use actix_web::{
     web::{self, Query},
 };
 use serde::{Deserialize, Serialize};
-use sn_internal::db::{
+use my_db::{
     DBPool,
     db_group::{self, Group},
 };

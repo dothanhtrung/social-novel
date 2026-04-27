@@ -8,11 +8,10 @@ pub mod db_media;
 pub mod db_post;
 #[cfg(feature = "postgres")]
 mod postgres;
-
-use crate::config::DBConfig;
 #[cfg(feature = "postgres")]
 use sqlx::{postgres::PgConnectOptions, PgPool};
 use std::str::FromStr;
+use my_config::DBConfig;
 
 pub struct DBPool {
     #[cfg(feature = "postgres")]
@@ -25,7 +24,7 @@ impl DBPool {
         let pg_pool = {
             let pg_opts = PgConnectOptions::from_str(&config.postgres.db_path)?;
             let pool = PgPool::connect_with(pg_opts).await?;
-            sqlx::migrate!("./migrations/postgres").run(&pool).await?;
+            sqlx::migrate!("../../migrations/postgres").run(&pool).await?;
             pool
         };
 

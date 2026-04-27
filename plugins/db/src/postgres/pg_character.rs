@@ -1,4 +1,4 @@
-use crate::db::db_character::Character;
+use crate::db_character::Character;
 use sqlx::types::Json;
 use sqlx::PgPool;
 use super::super::db_character::Bio;

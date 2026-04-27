@@ -1,43 +1,39 @@
-[package]
-name = "social-novel"
+[workspace]
+members = ["social-novel", "plugins/config", "plugins/db", "plugins/api"]
+resolver = "3"
+
+[workspace.package]
 version = "0.0.3"
 authors = ["Trung Do <dothanhtrung@pm.me>"]
 edition = "2024"
 
-[lib]
-name = "sn_internal"
-path = "src/lib.rs"
+[workspace.dependencies]
+my_config = { path = "./plugins/config" }
+my_db = { path = "./plugins/db" }
+my_api = { path = "./plugins/api" }
 
-[dependencies]
-anyhow = "1.0"
+anyhow = { version = "1.0" }
 actix-web = { version = "4.12" }
 actix-files = "0.6"
 actix-multipart = { version = "0.7" }
 actix-cors = "0.7"
 actix-web-lab = "0.26"
 actix-web-httpauth = "0.8"
-clap = { version = "4.6", features = ["derive"] }
+clap = { version = "4.6" }
 ron = "0.12"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0" }
 serde_json = "1.0"
-tokio = { version = "1.49", features = ["rt-multi-thread", "macros"] }
-tokio-stream = {version = "0.1"}
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "time", "migrate"] }
+tokio = { version = "1.49" }
+tokio-stream = { version = "0.1" }
+sqlx = { version = "0.8" }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3" }
 tera = "1.20"
 blake3 = "1.8"
 dotenvy = "0.15"
 infer = "0.19"
 parking_lot = "0.12"
 futures-util = "0.3.31"
-
-[target.'cfg(all(target_os = "linux", not(target_arch = "aarch64")))'.dependencies]
-tikv-jemallocator = "0.6"
-
-[features]
-default = ["postgres"]
-postgres = ["sqlx/postgres"]
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

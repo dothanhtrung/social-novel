@@ -1,12 +1,12 @@
-use crate::api::CommonMessage;
+use crate::CommonMessage;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
 use actix_web::{get, post, web, Responder};
+use my_db::db_chat::ChatRoom;
+use my_db::{db_chat, DBPool};
 use serde::{Deserialize, Serialize};
-use sn_internal::db::db_chat::ChatRoom;
-use sn_internal::db::{db_chat, DBPool};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/chat").service(get).service(delete).service(update));

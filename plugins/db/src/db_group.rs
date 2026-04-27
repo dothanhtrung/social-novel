@@ -1,8 +1,7 @@
-use serde::{Deserialize, Serialize};
-
-use crate::db::DBPool;
 #[cfg(feature = "postgres")]
-use crate::db::postgres;
+use crate::postgres;
+use crate::DBPool;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Group {

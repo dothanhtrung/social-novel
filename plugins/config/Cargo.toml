@@ -1,0 +1,12 @@
+[package]
+name = "my_config"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

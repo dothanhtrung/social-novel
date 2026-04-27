@@ -4,7 +4,8 @@ use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tokio::sync::RwLock;
 use tracing::log::info;
 
 const DEFAULT_LISTEN_ADDR: &str = "0.0.0.0";
@@ -119,4 +120,9 @@ impl Config {
         let mut file = File::create(config_path)?;
         file.write_all(ron_str.as_bytes()).map_err(|e| anyhow::anyhow!(e))
     }
+}
+
+pub struct ConfigData {
+    pub config: RwLock<Config>,
+    pub config_path: PathBuf,
 }

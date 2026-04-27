@@ -7,7 +7,6 @@ use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-mod api;
 mod ui;
 
 use crate::ui::Broadcaster;
@@ -24,12 +23,12 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use anyhow::anyhow;
 use clap::Parser;
 use parking_lot::Mutex;
-use sn_internal::config::Config;
-use sn_internal::db::DBPool;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing_subscriber::EnvFilter;
+use my_config::{Config, ConfigData};
+use my_db::DBPool;
 
 const BASE_PATH_PREFIX: &str = "base_";
 
@@ -41,10 +40,6 @@ struct Cli {
     config: PathBuf,
 }
 
-struct ConfigData {
-    config: RwLock<Config>,
-    config_path: PathBuf,
-}
 
 async fn basic_auth_validator(
     req: ServiceRequest,
@@ -121,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
                     .app_data(Data::from(Arc::clone(&broadcaster)))
                     .service(Files::new("/data", config.data_dir.clone()));
 
-                app = app.service(web::scope("").configure(api::scope_config).configure(ui::scope_config));
+                app = app.service(web::scope("").configure(my_api::scope_config).configure(ui::scope_config));
                 app
             }
         })

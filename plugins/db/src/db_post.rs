@@ -1,6 +1,6 @@
 #[cfg(feature = "postgres")]
-use crate::db::postgres;
-use crate::db::DBPool;
+use crate::postgres;
+use crate::DBPool;
 use actix_web::cookie::time::format_description::well_known::Iso8601;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

@@ -1,4 +1,4 @@
-use crate::db::db_media::Media;
+use crate::db_media::Media;
 use sqlx::PgPool;
 
 pub(crate) async fn insert(pool: &PgPool, media: &Media) -> Result<i64, sqlx::Error> {

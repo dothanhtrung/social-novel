@@ -1,0 +1,18 @@
+[package]
+name = "my_db"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+my_config = { workspace = true }
+
+anyhow = { workspace = true }
+actix-web = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "time", "migrate"] }
+tracing = { workspace = true }
+
+[features]
+default = ["postgres"]
+postgres = ["sqlx/postgres"]

@@ -10,7 +10,6 @@ use actix_web::{ResponseError, web};
 use anyhow::anyhow;
 use core::fmt::Formatter;
 use serde::{Deserialize, Serialize};
-use sn_internal::db::db_media::MediaType;
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::fs::File;
@@ -18,6 +17,7 @@ use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tracing::{error, info, warn};
+use my_db::db_media::MediaType;
 
 pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(

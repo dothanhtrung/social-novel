@@ -1,5 +1,6 @@
-
-use crate::db::{postgres, DBPool};
+#[cfg(feature = "postgres")]
+use crate::postgres;
+use crate::DBPool;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 
@@ -21,30 +22,21 @@ pub struct Bio {
 }
 
 pub async fn search(db_pool: &DBPool, search: &str) -> Result<Vec<Character>, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     postgres::pg_character::search(&db_pool.pg_pool, search).await
 }
 
 pub async fn insert(db_pool: &DBPool, character: &Character) -> Result<i64, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
-    postgres::pg_character::insert(
-        &db_pool.pg_pool,
-        character.name.as_str(),
-        character.username.as_str(),
-    )
-        .await
+    postgres::pg_character::insert(&db_pool.pg_pool, character.name.as_str(), character.username.as_str()).await
 }
 
 pub async fn get(db_pool: &DBPool, id: i64) -> Result<Character, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     postgres::pg_character::get(&db_pool.pg_pool, id).await
 }
 
 pub async fn get_by_username(db_pool: &DBPool, username: &str) -> Result<Character, sqlx::Error> {
-
     #[cfg(feature = "postgres")]
     postgres::pg_character::get_by_username(&db_pool.pg_pool, username).await
 }
@@ -63,5 +55,5 @@ pub async fn update(dbpool: &DBPool, character: &Character) -> Result<u64, sqlx:
         character.username.as_str(),
         character.description.as_str(),
     )
-        .await
+    .await
 }

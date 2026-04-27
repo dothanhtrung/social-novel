@@ -1,7 +1,7 @@
 use actix_web::{get, web, Responder};
+use my_db::db_media::Media;
+use my_db::{db_media, DBPool};
 use serde::{Deserialize, Serialize};
-use sn_internal::db::{db_media, DBPool};
-use sn_internal::db::db_media::Media;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/media").service(get));

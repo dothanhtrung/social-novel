@@ -1,6 +1,6 @@
 #[cfg(feature = "postgres")]
-use crate::db::postgres;
-use crate::db::DBPool;
+use crate::postgres;
+use crate::DBPool;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -35,7 +35,6 @@ pub struct Media {
 }
 
 pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_media::insert(&dbpool.pg_pool, media)
         .await
@@ -43,16 +42,13 @@ pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error
 }
 
 pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, anyhow::Error> {
-
     #[cfg(feature = "postgres")]
     postgres::pg_media::get_by_post(&dbpool.pg_pool, post_id)
         .await
         .map_err(|e| e.into())
 }
 
-
 pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>, anyhow::Error> {
-
     #[cfg(feature = "postgres")]
     return postgres::pg_media::delete_by_post(&dbpool.pg_pool, post_id)
         .await

@@ -1,5 +1,7 @@
+#[cfg(feature = "postgres")]
+use crate::postgres;
+use crate::DBPool;
 use serde::{Deserialize, Serialize};
-use crate::db::{postgres, DBPool};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatRoom {

@@ -1,16 +1,16 @@
-use crate::api::{CommonMessage, ErrorResponse, save_avatar};
-use crate::ConfigData;
+use crate::{CommonMessage, ErrorResponse, save_avatar};
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, web};
 use actix_web::{post, Responder};
 use serde::{Deserialize, Serialize};
-use sn_internal::db::db_character::{Bio, Character};
-use sn_internal::db::{db_character, DBPool};
 use std::path::PathBuf;
 use sqlx::types::Json;
 use tracing::error;
+use my_config::ConfigData;
+use my_db::db_character::Character;
+use my_db::{db_character, DBPool};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
