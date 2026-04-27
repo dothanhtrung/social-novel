@@ -44,6 +44,13 @@ pub struct Post {
     pub room: Option<i64>,
 }
 
+#[derive(Default)]
+pub struct SearchPostCondition {
+    pub authors: Option<Vec<i64>>,
+    pub groups: Option<Vec<i64>>,
+    pub rooms: Option<Vec<i64>>,
+}
+
 pub async fn insert(db_pool: &DBPool, post: &Post) -> Result<i64, sqlx::Error> {
     #[cfg(feature = "postgres")]
     return postgres::pg_post::insert(&db_pool.pg_pool, post).await;
@@ -54,19 +61,9 @@ pub async fn get_by_id(db_pool: &DBPool, id: i64) -> Result<Post, sqlx::Error> {
     return postgres::pg_post::get_by_id(&db_pool.pg_pool, id).await;
 }
 
-pub async fn get_all(db_pool: &DBPool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
+pub async fn get_all(db_pool: &DBPool, limit: i64, offset: i64, cond: &SearchPostCondition) -> Result<Vec<Post>, sqlx::Error> {
     #[cfg(feature = "postgres")]
-    return postgres::pg_post::get_all(&db_pool.pg_pool, limit, offset).await;
-}
-
-pub async fn get_by_author(
-    db_pool: &DBPool,
-    author_id: i64,
-    limit: i64,
-    offset: i64,
-) -> Result<Vec<Post>, sqlx::Error> {
-    #[cfg(feature = "postgres")]
-    return postgres::pg_post::get_by_author(&db_pool.pg_pool, author_id, limit, offset).await;
+    return postgres::pg_post::get_all(&db_pool.pg_pool, limit, offset, cond).await;
 }
 
 pub async fn get_by_parent(db_pool: &DBPool, parent_id: i64) -> Result<Vec<Post>, sqlx::Error> {
@@ -79,9 +76,19 @@ pub async fn update(db_pool: &DBPool, post: &Post) -> Result<u64, sqlx::Error> {
     return postgres::pg_post::update(&db_pool.pg_pool, post).await;
 }
 
-pub async fn delete(db_pool: &DBPool, id: i64) -> Result<u64, sqlx::Error> {
+pub async fn delete_by_id(db_pool: &DBPool, id: i64) -> Result<u64, sqlx::Error> {
     #[cfg(feature = "postgres")]
-    return postgres::pg_post::delete(&db_pool.pg_pool, id).await;
+    return postgres::pg_post::delete_by_id(&db_pool.pg_pool, id).await;
+}
+
+pub async fn delete_by_group(db_pool: &DBPool, group_id: i64) -> Result<u64, sqlx::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_post::delete_by_group(&db_pool.pg_pool, group_id).await;
+}
+
+pub async fn delete_by_room(db_pool: &DBPool, room_id: i64) -> Result<u64, sqlx::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_post::delete_by_room(&db_pool.pg_pool, room_id).await;
 }
 
 fn offsetdatetime_serialize<S>(offset_datetime: &OffsetDateTime, serializer: S) -> Result<S::Ok, S::Error>

@@ -1,13 +1,13 @@
-use crate::{delete_file, save_file, CommonMessage};
+use crate::{CommonMessage, delete_file, save_file};
+use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
-use actix_web::{get, post, web, Responder};
+use actix_web::{Responder, get, post, web};
 use my_config::ConfigData;
 use my_db::db_media::Media;
-use my_db::db_post::Post;
-use my_db::{db_media, db_post, DBPool};
+use my_db::db_post::{Post, SearchPostCondition};
+use my_db::{DBPool, db_media, db_post};
 use serde::{Deserialize, Serialize};
 use sqlx::types::time::OffsetDateTime;
 use std::cmp::max;
@@ -31,6 +31,8 @@ struct PostQuery {
     count: Option<i64>,
     author: Option<i64>,
     parent: Option<i64>,
+    group: Option<i64>, // TODO: query by multiple groups, authors
+    room: Option<i64>,
 }
 
 #[derive(MultipartForm, Debug)]
@@ -60,6 +62,26 @@ async fn get(
     let config = config_data.config.read().await;
     let mut ret = Vec::new();
     let mut err = String::new();
+    let page = max(1, query_params.page.unwrap_or(1)) - 1;
+    let limit = max(0, query_params.count.unwrap_or(config.api.per_page as i64));
+    let offset = page * limit;
+    let mut cond = SearchPostCondition::default();
+    cond.authors = if query_params.author.is_some() {
+        Some(vec![query_params.author.unwrap()])
+    } else {
+        None
+    };
+    cond.groups = if query_params.group.is_some() {
+        Some(vec![query_params.group.unwrap()])
+    } else {
+        None
+    };
+    cond.rooms = if query_params.room.is_some() {
+        Some(vec![query_params.room.unwrap()])
+    } else {
+        None
+    };
+
     if let Some(id) = query_params.id {
         match db_post::get_by_id(&dbpool, id).await {
             Ok(post) => ret = vec![post],
@@ -71,19 +93,9 @@ async fn get(
             Err(e) => err = e.to_string(),
         }
     } else {
-        let page = max(1, query_params.page.unwrap_or(1)) - 1;
-        let limit = max(0, query_params.count.unwrap_or(config.api.per_page as i64));
-        let offset = page * limit;
-        if let Some(author) = query_params.author {
-            match db_post::get_by_author(&dbpool, author, limit, offset).await {
-                Ok(posts) => ret = posts,
-                Err(e) => err = e.to_string(),
-            }
-        } else {
-            match db_post::get_all(&dbpool, limit, offset).await {
-                Ok(posts) => ret = posts,
-                Err(e) => err = e.to_string(),
-            }
+        match db_post::get_all(&dbpool, limit, offset, &cond).await {
+            Ok(posts) => ret = posts,
+            Err(e) => err = e.to_string(),
         }
     }
 
@@ -176,7 +188,7 @@ async fn delete(dbpool: web::Data<DBPool>, config_data: web::Data<ConfigData>, i
     let mut err = String::new();
     let config = config_data.config.read().await;
     let post_id = id.into_inner();
-    match db_post::delete(&dbpool, post_id).await {
+    match db_post::delete_by_id(&dbpool, post_id).await {
         Ok(_) => {
             if let Ok(urls) = db_media::delete_by_post(&dbpool, post_id).await {
                 let data_dir = Path::new(&config.data_dir);

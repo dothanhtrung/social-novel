@@ -1,4 +1,4 @@
-use crate::db_post::Post;
+use crate::db_post::{Post, SearchPostCondition};
 use sqlx::PgPool;
 
 pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Error> {
@@ -27,27 +27,21 @@ pub(crate) async fn get_by_id(pool: &PgPool, id: i64) -> Result<Post, sqlx::Erro
         .await
 }
 
-pub(crate) async fn get_all(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<Post>, sqlx::Error> {
+pub(crate) async fn get_all(pool: &PgPool, limit: i64, offset: i64, cond: &SearchPostCondition) -> Result<Vec<Post>, sqlx::Error> {
+    let author_ids = cond.authors.as_deref();
+    let group_ids = cond.groups.as_deref();
+    let room_ids = cond.rooms.as_deref();
     sqlx::query_as!(
         Post,
-        r#"SELECT * FROM post ORDER BY updated_at DESC LIMIT $1 OFFSET $2"#,
-        limit,
-        offset
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub(crate) async fn get_by_author(
-    pool: &PgPool,
-    author_id: i64,
-    limit: i64,
-    offset: i64,
-) -> Result<Vec<Post>, sqlx::Error> {
-    sqlx::query_as!(
-        Post,
-        r#"SELECT * FROM post WHERE author = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3"#,
-        author_id,
+        r#"SELECT * FROM post
+        WHERE
+            (CASE WHEN $1::INT8[] IS NOT NULL THEN author = ANY($1) ELSE TRUE END)
+            AND (CASE WHEN $2::INT8[] IS NOT NULL THEN "group" = ANY($1) ELSE TRUE END)
+            AND (CASE WHEN $3::INT8[] IS NOT NULL THEN room = ANY($1) ELSE TRUE END)
+        ORDER BY updated_at DESC LIMIT $4 OFFSET $5"#,
+        author_ids,
+        group_ids,
+        room_ids,
         limit,
         offset
     )
@@ -85,8 +79,24 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
     Ok(count)
 }
 
-pub(crate) async fn delete(pool: &PgPool, id: i64) -> Result<u64, sqlx::Error> {
+pub(crate) async fn delete_by_id(pool: &PgPool, id: i64) -> Result<u64, sqlx::Error> {
     let count = sqlx::query!("DELETE FROM post WHERE id = $1", id)
+        .execute(pool)
+        .await?
+        .rows_affected();
+    Ok(count)
+}
+
+pub(crate) async fn delete_by_group(pool: &PgPool, group_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(r#"DELETE FROM post WHERE "group" = $1"#, group_id)
+        .execute(pool)
+        .await?
+        .rows_affected();
+    Ok(count)
+}
+
+pub(crate) async fn delete_by_room(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(r#"DELETE FROM post WHERE room = $1"#, room_id)
         .execute(pool)
         .await?
         .rows_affected();
