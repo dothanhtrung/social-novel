@@ -17,6 +17,7 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
 
 #[derive(Debug, Deserialize)]
 struct GroupQuery {
+    #[serde(default)]
     search: String,
 }
 

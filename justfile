@@ -1,6 +1,6 @@
 #!/usr/bin/env just --justfile
 
-VERSION := `cargo pkgid | sed 's/.*#//'`
+VERSION := `cd social-novel && cargo pkgid | sed 's/.*#//'`
 
 css:
     npx @tailwindcss/cli -i ./res/css/tailwind_input.css -o ./res/css/tailwind_output.min.css --watch --minify

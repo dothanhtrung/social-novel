@@ -401,6 +401,41 @@
             });
         }
 
+        async function renderGroups() {
+            async function fetchGroups() {
+                try {
+                    const res = await fetch('/api/group');
+                    const data = await res.json();
+                    if (data.err) {
+                        console.error('Failed to fetch groups:', data.err);
+                        return [];
+                    }
+                    return data.groups;
+                } catch (err) {
+                    console.error('Error fetching groups:', err);
+                    return [];
+                }
+            }
+
+            const groups = await fetchGroups();
+            const container = document.getElementById('groups-container');
+            container.innerHTML = '';
+            for (const group of groups) {
+                const a = document.createElement('a');
+                a.href = '#'; // or link to group page
+                a.className = 'flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors';
+                const div = document.createElement('div');
+                div.className = 'size-9 rounded-lg bg-cover bg-center';
+                div.style.backgroundImage = `url('/data/group/${group.id}.png')`;
+                const span = document.createElement('span');
+                span.className = 'text-[15px] font-semibold';
+                span.textContent = group.name;
+                a.appendChild(div);
+                a.appendChild(span);
+                container.appendChild(a);
+            }
+        }
+
         function renderAuthorSelect() {
             const select = document.getElementById('author-select');
             if (!select) return;
@@ -692,6 +727,7 @@
 
         window.addEventListener("DOMContentLoaded", async () => {
             await fetchUsers();
+            renderGroups();
             renderContacts();
             renderPosts();
             renderAuthorSelect();
@@ -716,28 +752,14 @@
             </div>
             <div class="mt-4 pt-4 border-t border-gray-300">
                 <div class="flex items-center justify-between px-2 mb-2">
-                    <h3 class="font-semibold text-fb-gray-text text-[17px]">Your shortcuts
+                    <h3 class="font-semibold text-fb-gray-text text-[17px]">Your groups
                     </h3>
                     <button
-                            class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Edit
+                            class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Add
                     </button>
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="size-9 rounded-lg bg-cover bg-center"
-                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZRGqbWkTlCm3sWKbYOgxCADboKnoU_bfpHVfmHmCcxnDMUpIEe8h00hEzrekXa9JdWpj4P0qXcAJcy6MXPaugYQ0lTVVKZwtXU3xJsCtYTce-IkXZrKcAHddThjdge7N140100_UF8wBCrhtZ7cHaShZba1GQN9wvu39YCRm_zz7SHGm1i-QbhCZHexfmovbPVW9AeAYKELe5B4e48Vzt7jAk4YfDzv8z_VCEgNSbLVOfRpmVeN7625_umr8L4Xknvl0yEBs4f1_L');">
-                        </div>
-                        <span class="text-[15px] font-semibold">UI Design
-                                Community</span>
-                    </a>
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="size-9 rounded-lg bg-cover bg-center"
-                             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjjJbkGC7waBOZYhzyjiYF3jb4nBJMD7Ogo0PCTOtcLwpFEn-Mi-d39vdNPK0YhpqqTTUqbK8zWkKbX9XbJdzErHk6pwuZuNkM2374OopX-xJh9DgBmlkonRHIvnNH7FEzYBU0BqtOnuK0O6cLjD57aER_tP7CAD8fXwcWRqZEIOqj7YzBEyxaWC6ArIksMn0VvxpZgvE7oycxNeMxzkflTcWw11ixDLE5QxeopF2yosETPW0vx4Ptivz7k0gNoh7WObON0rxHEOYc');">
-                        </div>
-                        <span class="text-[15px] font-semibold">Photography Hub</span>
-                    </a>
+                <div id="groups-container" class="flex flex-col gap-0.5">
+                    <!-- Groups will be rendered here dynamically -->
                 </div>
             </div>
         </aside>
