@@ -24,7 +24,7 @@ impl DBPool {
         let pg_pool = {
             let pg_opts = PgConnectOptions::from_str(&config.postgres.db_path)?;
             let pool = PgPool::connect_with(pg_opts).await?;
-            sqlx::migrate!("../../migrations/postgres").run(&pool).await?;
+            sqlx::migrate!("../../db/migrations/postgres").run(&pool).await?;
             pool
         };
 
