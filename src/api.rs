@@ -1,8 +1,8 @@
 mod api_character;
-mod api_media;
-mod api_post;
 mod api_chat;
 mod api_group;
+mod api_media;
+mod api_post;
 
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::http::StatusCode;
@@ -23,6 +23,7 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
             .configure(api_character::scope)
+            .configure(api_group::scope)
             .configure(api_media::scope)
             .configure(api_post::scope),
     );
@@ -111,7 +112,7 @@ async fn save_file(
         }
     } else {
         info!("File {saved_name} exists");
-	return Err(anyhow!("exist"));
+        return Err(anyhow!("exist"));
     }
 
     let file_type = file_type(&path).await;

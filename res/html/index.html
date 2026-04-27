@@ -487,6 +487,7 @@
                 }
                 // Attach all selected media files
                 const mediaInput = document.getElementById('media-input');
+                formData.delete('media');
                 for (const file of mediaInput.files) {
                     formData.append('media', file);
                 }
@@ -498,9 +499,14 @@
                 formData.set('loved', '0');
                 formData.set('surprised', '0');
                 formData.set('sad', '0');
+                formData.set('group', '0');
+                formData.set('room', '0');
                 const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
                 formData.set('is_with', isWithVal);
                 try {
+                    for (var pair of formData.entries()) {
+                        console.log(pair[0]+ ', ' + pair[1]); 
+                    }
                     const res = await fetch('/api/post', {
                         method: 'POST',
                         body: formData

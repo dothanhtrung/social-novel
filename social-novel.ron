@@ -1,5 +1,5 @@
 (
-    data_dir: "/path/to/folder/to/store/photo",
+    data_dir: "./data-media",
     db: (
         postgres: (
             db_path: "postgresql://dev:dev@localhost:5432/social_novel",

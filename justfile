@@ -27,3 +27,6 @@ release: windows linux
 
 watch:
     bacon run-long -- -- -c ./social-novel.ron
+
+clean:
+    cargo sweep -t 30

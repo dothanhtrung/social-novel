@@ -25,7 +25,7 @@ create table if not exists public.chat_room_member
 
 
 alter table public.post
-    add room bigint
+    add if not exists room bigint
         constraint post_chat_room_id_fk
             references public.chat_room
             on update cascade on delete cascade;

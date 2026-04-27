@@ -10,6 +10,7 @@ use sn_internal::db::db_media::Media;
 use sn_internal::db::db_post::Post;
 use sn_internal::db::{db_media, db_post, DBPool};
 use sqlx::types::time::OffsetDateTime;
+use tracing::debug;
 use std::cmp::max;
 use std::path::{Path, PathBuf};
 
@@ -32,7 +33,7 @@ struct PostQuery {
     parent: Option<i64>,
 }
 
-#[derive(MultipartForm)]
+#[derive(MultipartForm, Debug)]
 struct PostForm {
     id: Text<i64>,
     content: Text<String>,
@@ -98,6 +99,7 @@ async fn update(
     let mut msg = String::new();
     let mut err = String::new();
     let config = config_data.config.read().await;
+    debug!("Received form: {:?}", data);
     let form_parent = data.parent.into_inner();
     let parent = if form_parent > 0 { Some(form_parent) } else { None };
     let group = if data.group.0 == 0 { None } else { Some(data.group.0) };
