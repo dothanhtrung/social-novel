@@ -200,5 +200,6 @@ async fn delete(dbpool: web::Data<DBPool>, config_data: web::Data<ConfigData>, i
         }
         Err(e) => err = e.to_string(),
     }
+    // TODO: Delete media file
     web::Json(CommonMessage::new(msg, err))
 }
