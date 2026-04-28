@@ -4,7 +4,7 @@ social-novel
 Make social story for your favorite characters.
 
 > IN PROGRESS  
-> Frontend is slop, Backend is not.
+> Backend is human slop. Frontend is mixed slop.
 
 How to run
 ----------
@@ -33,4 +33,3 @@ How to build
 ```shell
 cargo build --release
 ```
-

@@ -1,6 +1,6 @@
+use crate::DBPool;
 #[cfg(feature = "postgres")]
 use crate::postgres;
-use crate::DBPool;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -22,6 +22,13 @@ pub async fn search(dbpool: &DBPool, search: &str) -> Result<Vec<Group>, anyhow:
     postgres::pg_group::search(&dbpool.pg_pool, search)
         .await
         .map_err(|e| e.into())
+}
+
+pub async fn update(dbpool: &DBPool, group: &Group) -> Result<(), anyhow::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_group::update(&dbpool.pg_pool, group)
+        .await
+        .map_err(|e| e.into());
 }
 
 pub async fn delete_by_id(dbpool: &DBPool, group_id: i64) -> Result<u64, anyhow::Error> {

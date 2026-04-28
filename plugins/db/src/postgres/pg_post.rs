@@ -3,7 +3,10 @@ use sqlx::PgPool;
 
 pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Error> {
     let id = sqlx::query!(
-        "INSERT INTO post (content, author, parent, liked, haha, loved, surprised, sad, feeling, is_with) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+        r#"INSERT INTO post
+            (content, author, parent, liked, haha, loved, surprised, sad, feeling, is_with, "group", room)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            RETURNING id"#,
         post.content,
         post.author,
         post.parent,
@@ -14,6 +17,8 @@ pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Erro
         post.sad,
         post.feeling,
         post.is_with,
+        post.group,
+        post.room,
     )
         .fetch_one(pool)
         .await?
@@ -27,7 +32,12 @@ pub(crate) async fn get_by_id(pool: &PgPool, id: i64) -> Result<Post, sqlx::Erro
         .await
 }
 
-pub(crate) async fn get_all(pool: &PgPool, limit: i64, offset: i64, cond: &SearchPostCondition) -> Result<Vec<Post>, sqlx::Error> {
+pub(crate) async fn get_all(
+    pool: &PgPool,
+    limit: i64,
+    offset: i64,
+    cond: &SearchPostCondition,
+) -> Result<Vec<Post>, sqlx::Error> {
     let author_ids = cond.authors.as_deref();
     let group_ids = cond.groups.as_deref();
     let room_ids = cond.rooms.as_deref();
@@ -62,7 +72,20 @@ pub(crate) async fn get_by_parent(pool: &PgPool, parent_id: i64) -> Result<Vec<P
 pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Error> {
     // TODO: Update updated_at
     let count = sqlx::query!(
-        "UPDATE post SET content = $1, author = $2, parent = $3, liked = $4, haha = $5, loved = $6, surprised = $7, sad = $8, feeling = $9, is_with = $10 WHERE id = $11",
+        r#"UPDATE post SET
+                content = $1,
+                author = $2,
+                parent = $3,
+                liked = $4,
+                haha = $5,
+                loved = $6,
+                surprised = $7,
+                sad = $8,
+                feeling = $9,
+                is_with = $10,
+                "group" = $11,
+                room = $12
+            WHERE id = $13"#,
         post.content,
         post.author,
         post.parent,
@@ -73,6 +96,8 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
         post.sad,
         post.feeling,
         post.is_with,
+        post.group,
+        post.room,
         post.id
     ).execute(pool).await?.rows_affected();
 
