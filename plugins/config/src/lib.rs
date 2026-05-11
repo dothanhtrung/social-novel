@@ -1,4 +1,3 @@
-//! Copyright (c) 2025 Trung Do <dothanhtrung@pm.me>.
 
 use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
@@ -7,48 +6,13 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use tokio::sync::RwLock;
 use tracing::log::info;
+use web_misc::db::DBConfig;
 
 const DEFAULT_LISTEN_ADDR: &str = "0.0.0.0";
-const DEFAULT_LISTEN_PORT: u32 = 9696;
-
-const DEFAULT_SQLITE_PATH: &str = "social-novel.sqlite";
+const DEFAULT_LISTEN_PORT: u32 = 9876;
 
 const DEFAULT_API_PER_PAGE: u32 = 20;
 const DEFAULT_PARALLEL: usize = 8;
-
-#[derive(Deserialize, Debug, Serialize, Clone)]
-pub struct PostgresConfig {
-    pub db_path: String,
-}
-
-impl Default for PostgresConfig {
-    fn default() -> Self {
-        Self {
-            db_path: DEFAULT_LISTEN_ADDR.to_string(),
-        }
-    }
-}
-
-#[derive(Deserialize, Debug, Serialize, Clone)]
-pub struct SQLiteConfig {
-    pub db_path: String,
-}
-
-impl Default for SQLiteConfig {
-    fn default() -> Self {
-        Self {
-            db_path: DEFAULT_SQLITE_PATH.to_string(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Default, Clone)]
-pub struct DBConfig {
-    #[serde(default)]
-    pub sqlite: SQLiteConfig,
-    #[serde(default)]
-    pub postgres: PostgresConfig,
-}
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct APIConfig {

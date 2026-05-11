@@ -2,35 +2,9 @@
 
 pub mod db_ads;
 pub mod db_character;
-pub mod db_chat;
+pub mod db_room;
 pub mod db_group;
 pub mod db_media;
 pub mod db_post;
 #[cfg(feature = "postgres")]
-mod postgres;
-#[cfg(feature = "postgres")]
-use sqlx::{postgres::PgConnectOptions, PgPool};
-use std::str::FromStr;
-use my_config::DBConfig;
-
-pub struct DBPool {
-    #[cfg(feature = "postgres")]
-    pub pg_pool: PgPool,
-}
-
-impl DBPool {
-    pub async fn init(config: &DBConfig) -> anyhow::Result<Self> {
-        #[cfg(feature = "postgres")]
-        let pg_pool = {
-            let pg_opts = PgConnectOptions::from_str(&config.postgres.db_path)?;
-            let pool = PgPool::connect_with(pg_opts).await?;
-            sqlx::migrate!("../../db/migrations/postgres").run(&pool).await?;
-            pool
-        };
-
-        Ok(Self {
-            #[cfg(feature = "postgres")]
-            pg_pool,
-        })
-    }
-}
+pub mod postgres;

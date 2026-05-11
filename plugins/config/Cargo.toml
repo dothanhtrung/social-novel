@@ -5,6 +5,7 @@ authors = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
+web-misc = { workspace = true }
 anyhow = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

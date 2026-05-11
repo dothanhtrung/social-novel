@@ -8,6 +8,7 @@ edition = { workspace = true }
 my_config = { workspace = true }
 my_db = { workspace = true }
 
+web-misc = { workspace = true }
 anyhow = { workspace = true }
 actix-web = { workspace = true }
 actix-multipart = { workspace = true }

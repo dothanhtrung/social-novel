@@ -9,7 +9,6 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 mod ui;
 
-use crate::ui::Broadcaster;
 use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::dev::{ServerHandle, ServiceRequest};
@@ -22,13 +21,14 @@ use actix_web_httpauth::extractors::basic::BasicAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use anyhow::anyhow;
 use clap::Parser;
+use my_config::{Config, ConfigData};
 use parking_lot::Mutex;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing_subscriber::EnvFilter;
-use my_config::{Config, ConfigData};
-use my_db::DBPool;
+use web_misc::db::DBPool;
+use web_misc::web::broadcaster::Broadcaster;
 
 const BASE_PATH_PREFIX: &str = "base_";
 
@@ -39,7 +39,6 @@ struct Cli {
     #[clap(short, long, default_value = "./social-novel.ron")]
     config: PathBuf,
 }
-
 
 async fn basic_auth_validator(
     req: ServiceRequest,
@@ -116,7 +115,11 @@ async fn main() -> anyhow::Result<()> {
                     .app_data(Data::from(Arc::clone(&broadcaster)))
                     .service(Files::new("/data", config.data_dir.clone()));
 
-                app = app.service(web::scope("").configure(my_api::scope_config).configure(ui::scope_config));
+                app = app.service(
+                    web::scope("")
+                        .configure(my_api::scope_config)
+                        .configure(ui::scope_config),
+                );
                 app
             }
         })

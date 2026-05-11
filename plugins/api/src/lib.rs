@@ -1,5 +1,5 @@
 mod api_character;
-mod api_chat;
+mod api_room;
 mod api_group;
 mod api_media;
 mod api_post;
@@ -25,6 +25,7 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
             .configure(api_character::scope)
             .configure(api_group::scope)
             .configure(api_media::scope)
+            .configure(api_room::scope)
             .configure(api_post::scope),
     );
 }

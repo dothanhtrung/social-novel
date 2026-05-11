@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sqlx::types::Json;
 use tracing::error;
+use web_misc::db::DBPool;
 use my_config::ConfigData;
 use my_db::db_character::Character;
-use my_db::{db_character, DBPool};
+use my_db::{db_character};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -32,7 +33,7 @@ struct CharacterForm {
 }
 
 #[derive(Deserialize, Serialize)]
-struct SearchQuery {
+struct CharacterQuery {
     #[serde(default)]
     search: String,
     username: Option<String>,
@@ -45,7 +46,7 @@ struct CharacterResponse {
 }
 
 #[get("")]
-async fn search(db_pool: web::Data<DBPool>, queries: web::Query<SearchQuery>) -> impl Responder {
+async fn search(db_pool: web::Data<DBPool>, queries: web::Query<CharacterQuery>) -> impl Responder {
     let mut characters = Vec::new();
     let mut err = String::new();
     if let Some(username) = queries.username.as_ref() {
@@ -80,7 +81,7 @@ async fn delete(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responde
     } else {
         CommonMessage::from_msg(String::from("Success"))
     };
-    
+
     // TODO: delete media and avatar
 
     web::Json(res)

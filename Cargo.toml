@@ -12,6 +12,7 @@ my_config = { path = "./plugins/config" }
 my_db = { path = "./plugins/db" }
 my_api = { path = "./plugins/api" }
 
+web-misc = { version = "0.1", path = "../web-misc" }
 anyhow = { version = "1.0" }
 actix-web = { version = "4.12" }
 actix-files = "0.6"

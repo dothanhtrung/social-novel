@@ -1,20 +1,19 @@
 use std::path::PathBuf;
 
-use actix_multipart::form::{MultipartForm, tempfile::TempFile, text::Text};
+use crate::{save_avatar, CommonMessage};
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
-    Responder, get, post,
-    web::{self, Query},
+    get, post, web::{self, Query},
+    Responder,
 };
 use my_config::ConfigData;
 use my_db::{
-    DBPool,
     db_group::{self, Group},
     db_post,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-
-use crate::{CommonMessage, save_avatar};
+use web_misc::db::DBPool;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/group").service(search).service(delete).service(update));

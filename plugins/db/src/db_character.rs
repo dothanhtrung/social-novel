@@ -1,8 +1,8 @@
 #[cfg(feature = "postgres")]
 use crate::postgres;
-use crate::DBPool;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
+use web_misc::db::DBPool;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {

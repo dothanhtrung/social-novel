@@ -4,7 +4,7 @@ use sqlx::PgPool;
 pub(crate) async fn search(pool: &PgPool, search: &str) -> Result<Vec<Group>, sqlx::Error> {
     sqlx::query_as!(
         Group,
-        r#"SELECT * FROM groups
+        r#"SELECT id, name, description FROM groups
             WHERE name ILIKE '%' || $1 || '%'
             ORDER BY name"#,
         search,

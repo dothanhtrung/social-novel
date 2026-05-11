@@ -46,8 +46,8 @@ pub(crate) async fn get_all(
         r#"SELECT * FROM post
         WHERE
             (CASE WHEN $1::INT8[] IS NOT NULL THEN author = ANY($1) ELSE TRUE END)
-            AND (CASE WHEN $2::INT8[] IS NOT NULL THEN "group" = ANY($1) ELSE TRUE END)
-            AND (CASE WHEN $3::INT8[] IS NOT NULL THEN room = ANY($1) ELSE TRUE END)
+            AND (CASE WHEN $2::INT8[] IS NOT NULL THEN "group" = ANY($2) ELSE TRUE END)
+            AND (CASE WHEN $3::INT8[] IS NOT NULL THEN room = ANY($3) ELSE TRUE END)
         ORDER BY updated_at DESC LIMIT $4 OFFSET $5"#,
         author_ids,
         group_ids,

@@ -1,4 +1,4 @@
-use crate::DBPool;
+use web_misc::db::DBPool;
 #[cfg(feature = "postgres")]
 use crate::postgres;
 use serde::{Deserialize, Serialize};

@@ -9,6 +9,7 @@ my_config = { workspace = true }
 my_db = { workspace = true }
 my_api = { workspace = true }
 
+web-misc = { workspace = true }
 anyhow = { workspace = true }
 actix-web = { workspace = true }
 actix-files = { workspace = true }
@@ -29,7 +30,6 @@ futures-util = { workspace = true }
 [target.'cfg(all(target_os = "linux", not(target_arch = "aarch64")))'.dependencies]
 tikv-jemallocator = "0.6"
 
-
 [features]
 default = ["postgres"]
-postgres = ["my_db/postgres"]
+postgres = ["my_db/postgres", "web-misc/postgres"]
