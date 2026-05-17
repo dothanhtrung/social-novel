@@ -7,9 +7,9 @@
 
     <main class="flex-1 w-full flex justify-center px-4">
         <section class="flex-1 flex flex-col pt-6 max-w-6xl mx-auto min-w-0 w-full">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-6 max-w-2xl mx-auto w-full">
+            <div class="form-section max-w-2xl mx-auto w-full">
                 <!-- Post edit form (kept from original) -->
-                <form id="post-form" action="/api/post" method="POST" enctype="multipart/form-data" class="max-w-2xl mx-auto bg-white p-0 rounded shadow space-y-4 w-full">
+                <form id="post-form" action="/api/post" method="POST" enctype="multipart/form-data" class="space-y-4 w-full">
                     <h2 class="text-xl font-bold">Edit Post</h2>
 
     <!-- Hidden ids -->
@@ -18,43 +18,43 @@
 
     <!-- Author (searchable select) -->
     <div>
-        <label for="author-search" class="block font-medium mb-1">Author</label>
-        <input id="author-search" placeholder="Search by name or username" class="w-full border border-gray-300 rounded px-3 py-2 mb-2" />
-        <select id="author-select" name="author" class="w-full border border-gray-300 rounded px-3 py-2" required>
+        <label for="author-search" class="fb-label">Author</label>
+        <input id="author-search" placeholder="Search by name or username" class="fb-input mb-2" />
+        <select id="author-select" name="author" class="fb-input" required>
             <!-- Options inserted by JS -->
         </select>
     </div>
 
     <!-- Timestamp -->
     <div>
-        <label for="updated_at" class="block font-medium mb-1">Timestamp</label>
-        <input id="updated_at" name="updated_at" type="datetime-local" class="w-full border border-gray-300 rounded px-3 py-2" />
+        <label for="updated_at" class="fb-label">Timestamp</label>
+        <input id="updated_at" name="updated_at" type="datetime-local" class="fb-input" />
         <p class="text-sm text-fb-gray-text mt-1">Edit the post timestamp (local).</p>
     </div>
 
     <!-- Feeling -->
     <div>
-        <label for="feeling" class="block font-medium mb-1">Feeling</label>
-        <input id="feeling" name="feeling" type="text" class="w-full border border-gray-300 rounded px-3 py-2" />
+        <label for="feeling" class="fb-label">Feeling</label>
+        <input id="feeling" name="feeling" type="text" class="fb-input" />
     </div>
 
     <!-- Is With -->
     <div>
-        <label for="is_with" class="block font-medium mb-1">Is With</label>
+        <label for="is_with" class="fb-label">Is With</label>
         <input id="is_with" name="is_with" type="text"
                placeholder="Type character names separated by commas"
-               class="w-full border border-gray-300 rounded px-3 py-2"  />
+               class="fb-input"  />
     </div>
 
     <!-- Content -->
     <div>
-        <label for="content" class="block font-medium mb-1">Content</label>
-        <textarea id="content" name="content" placeholder="What's on your mind?" rows=9 class="w-full border border-gray-300 rounded px-3 py-2 h-48 resize-vertical"></textarea>
+        <label for="content" class="fb-label">Content</label>
+        <textarea id="content" name="content" placeholder="What's on your mind?" rows=9 class="fb-input h-48 resize-y"></textarea>
     </div>
 
     <!-- Media (optional) -->
     <div>
-        <label class="block font-medium mb-1">Attach media</label>
+        <label class="fb-label">Attach media</label>
         <input name="media" type="file" accept="image/*,video/*" class="w-full" multiple />
     </div>
 
@@ -86,8 +86,8 @@
     <div class="flex items-center justify-between">
         <a href="/" class="text-fb-gray-text hover:underline">Cancel</a>
         <div>
-            <button id="delete-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded mr-2">Delete</button>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+            <button id="delete-btn" type="button" class="fb-btn-danger px-3 py-2 mr-2">Delete</button>
+            <button type="submit" class="fb-btn px-4 py-2">Save</button>
         </div>
     </div>
                 </form>

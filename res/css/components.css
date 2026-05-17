@@ -1,0 +1,183 @@
+/* components.css - Common reusable styles to avoid duplication across HTML files */
+
+/* Card container - used in characters, character_edit, post_edit, posts, etc. */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+}
+
+.card-hover {
+    transition: box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Form input styles - the fb-input style used across forms */
+.fb-input {
+    width: 100%;
+    padding: 8px 16px;
+    background: #F0F2F5;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #050505;
+    outline: none;
+    border: 1px solid #e5e7eb;
+}
+
+.fb-input:focus {
+    outline: none;
+}
+
+/* File input variant */
+.fb-input-file {
+    width: 100%;
+    padding: 8px 16px;
+    background: #F0F2F5;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    border: 1px solid #e5e7eb;
+}
+
+/* Form label style */
+.fb-label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Primary button */
+.fb-btn {
+    background: #1877F2;
+    color: white;
+    padding: 8px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.fb-btn:hover {
+    background: #155ab9;
+}
+
+/* Secondary/Danger button */
+.fb-btn-danger {
+    background: #dc2626;
+    color: white;
+    padding: 8px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.fb-btn-danger:hover {
+    background: #b91c1c;
+}
+
+/* Character card styles (for dynamically created cards) */
+.character-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.character-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+.character-card-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    transition: background-color 0.2s ease;
+}
+
+.character-card-link:hover {
+    background: #E4E6EB;
+}
+
+.character-card-avatar {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 9999px;
+    margin-bottom: 12px;
+    border: 2px solid #1877F2;
+}
+
+.character-card-name {
+    text-align: center;
+    font-weight: 600;
+    font-size: 15px;
+    color: #050505;
+    margin-bottom: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.character-card-username {
+    text-align: center;
+    color: #65676B;
+    font-size: 13px;
+    margin-bottom: 8px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.character-card-delete-btn {
+    width: 100%;
+    background: #ef4444;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.character-card-delete-btn:hover {
+    background: #dc2626;
+}
+
+/* Section title */
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+/* Form section container */
+.form-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+/* Responsive form grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 768px) {
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

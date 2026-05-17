@@ -118,7 +118,7 @@
             const data = await res.json();
 
             if (!data.posts || data.posts.length === 0) {
-                postsContainer.innerHTML = '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts yet</div>';
+                postsContainer.innerHTML = '<div class="card p-8 text-center text-fb-gray-text">No posts yet</div>';
                 return;
             }
 
@@ -255,7 +255,7 @@
                 }
                 const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
                 return `
-                    <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
+                    <div class='card mb-4'>
                         <div class='px-4 py-3'>
                             <div class='flex items-center justify-between'>
                                 <div class='flex items-center gap-2'>
