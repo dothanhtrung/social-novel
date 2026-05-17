@@ -1,5 +1,5 @@
 [workspace]
-members = ["social-novel", "plugins/config", "plugins/db", "plugins/api"]
+members = ["social-novel", "crates/config", "crates/db", "crates/api"]
 resolver = "3"
 
 [workspace.package]
@@ -8,9 +8,9 @@ authors = ["Trung Do <dothanhtrung@pm.me>"]
 edition = "2024"
 
 [workspace.dependencies]
-my_config = { path = "./plugins/config" }
-my_db = { path = "./plugins/db" }
-my_api = { path = "./plugins/api" }
+my_config = { path = "crates/config" }
+my_db = { path = "crates/db" }
+my_api = { path = "crates/api" }
 
 web-misc = { version = "0.1", path = "../web-misc" }
 anyhow = { version = "1.0" }

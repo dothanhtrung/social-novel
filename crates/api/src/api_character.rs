@@ -1,17 +1,17 @@
-use crate::{CommonMessage, ErrorResponse, save_avatar};
+use crate::{save_avatar, CommonMessage};
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, web};
 use actix_web::{post, Responder};
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use sqlx::types::Json;
-use tracing::error;
-use web_misc::db::DBPool;
 use my_config::ConfigData;
 use my_db::db_character::Character;
-use my_db::{db_character};
+use my_db::db_character;
+use serde::{Deserialize, Serialize};
+use sqlx::types::Json;
+use std::path::PathBuf;
+use tracing::error;
+use web_misc::db::DBPool;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -50,11 +50,11 @@ async fn search(db_pool: web::Data<DBPool>, queries: web::Query<CharacterQuery>)
     let mut characters = Vec::new();
     let mut err = String::new();
     if let Some(username) = queries.username.as_ref() {
-        match db_character::get_by_username(&db_pool, username.as_str()).await{
+        match db_character::get_by_username(&db_pool, username.as_str()).await {
             Ok(c) => characters.push(c),
             Err(e) => err = e.to_string(),
         }
-    }else {
+    } else {
         match db_character::search(&db_pool, queries.search.as_str()).await {
             Ok(c) => characters = c,
             Err(e) => err = e.to_string(),

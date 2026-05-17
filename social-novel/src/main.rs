@@ -30,8 +30,6 @@ use tracing_subscriber::EnvFilter;
 use web_misc::db::DBPool;
 use web_misc::web::broadcaster::Broadcaster;
 
-const BASE_PATH_PREFIX: &str = "base_";
-
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
