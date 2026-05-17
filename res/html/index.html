@@ -684,6 +684,8 @@
                 fd.set('loved', String(Number(lovedVal) || 0));
                 fd.set('surprised', String(Number(surprisedVal) || 0));
                 fd.set('sad', String(Number(sadVal) || 0));
+                fd.set('group', '0');
+                fd.set('room', '0');
                 const mediaInput = form.querySelector('.comment-media-input');
                 if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {
                     for (const f of mediaInput.files) fd.append('media', f);
