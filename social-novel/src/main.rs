@@ -87,6 +87,9 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
+        #[cfg(feature = "postgres")]
+        sqlx::migrate!("../db/migrations/postgres").run(&db_pool.pg_pool).await?;
+
         let listen_addr = format!("{}:{}", &config.listen_addr, &config.listen_port);
 
         let ref_db_pool = Arc::new(db_pool);

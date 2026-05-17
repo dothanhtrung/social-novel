@@ -1,19 +1,21 @@
-create sequence if not exists group_id_seq
+create sequence group_id_seq
     as integer;
 
-create sequence if not exists group_character_id_seq;
+create sequence group_character_id_seq;
 
 create table if not exists character
 (
-    name        text                      not null,
-    username    varchar                   not null
+    name        text                                         not null,
+    username    varchar                                      not null
         constraint character_pk_2
             unique,
     id          bigint generated always as identity
         constraint character_pk
             primary key,
-    description text  default ''::text    not null,
-    bio         jsonb default '{}'::jsonb not null
+    description text                     default ''::text    not null,
+    bio         jsonb                    default '{}'::jsonb not null,
+    created_at  timestamp with time zone default now()       not null,
+    updated_at  timestamp with time zone default now()       not null
 );
 
 create table if not exists relation
@@ -34,11 +36,13 @@ create table if not exists relation
 
 create table if not exists groups
 (
-    id          bigint default nextval('group_id_seq'::regclass) not null
+    id          bigint                   default nextval('group_id_seq'::regclass) not null
         constraint group_pk
             primary key,
-    name        text                                             not null,
-    description text   default ''::text                          not null
+    name        text                                                               not null,
+    description text                     default ''::text                          not null,
+    created_at  timestamp with time zone default now()                             not null,
+    updated_at  timestamp with time zone default now()                             not null
 );
 
 alter sequence group_id_seq owned by groups.id;
@@ -64,16 +68,20 @@ create table if not exists ads
     id          bigserial
         constraint ads_pk
             primary key,
-    description text    default ''::text not null,
-    active      boolean default true     not null
+    description text                     default ''::text not null,
+    active      boolean                  default true     not null,
+    created_at  timestamp with time zone default now()    not null,
+    updated_at  timestamp with time zone default now()    not null
 );
 
 create table if not exists chat_room
 (
-    id   bigserial
+    id         bigserial
         constraint chat_room_pk
             primary key,
-    name text default ''::text not null
+    name       text                     default ''::text not null,
+    created_at timestamp with time zone default now()    not null,
+    updated_at timestamp with time zone default now()    not null
 );
 
 create table if not exists post
@@ -139,3 +147,5 @@ create table if not exists chat_room_member
             on update cascade on delete cascade,
     role      integer default 0 not null
 );
+
+

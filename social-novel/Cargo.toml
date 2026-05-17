@@ -14,22 +14,19 @@ anyhow = { workspace = true }
 actix-web = { workspace = true }
 actix-files = { workspace = true }
 actix-cors = { workspace = true }
-actix-web-lab = { workspace = true }
 actix-web-httpauth = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-tokio-stream = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tera = { workspace = true }
 dotenvy = { workspace = true }
 parking_lot = { workspace = true }
-futures-util = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "time", "migrate"] }
 
 [target.'cfg(all(target_os = "linux", not(target_arch = "aarch64")))'.dependencies]
 tikv-jemallocator = "0.6"
 
 [features]
 default = ["postgres"]
-postgres = ["my_db/postgres", "web-misc/postgres"]
+postgres = ["my_db/postgres", "web-misc/postgres", "sqlx/postgres"]
