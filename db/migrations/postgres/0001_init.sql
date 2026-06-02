@@ -1,7 +1,7 @@
-create sequence group_id_seq
+create sequence if not exists group_id_seq
     as integer;
 
-create sequence group_character_id_seq;
+create sequence if not exists group_character_id_seq;
 
 create table if not exists character
 (
@@ -147,5 +147,3 @@ create table if not exists chat_room_member
             on update cascade on delete cascade,
     role      integer default 0 not null
 );
-
-
