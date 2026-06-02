@@ -22,7 +22,7 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tera = { workspace = true }
 dotenvy = { workspace = true }
 parking_lot = { workspace = true }
-sqlx = { workspace = true, features = ["runtime-tokio-rustls", "time", "migrate"] }
+sqlx = { workspace = true, features = ["runtime-tokio", "tls-rustls-ring-webpki", "time", "migrate"] }
 
 [target.'cfg(all(target_os = "linux", not(target_arch = "aarch64")))'.dependencies]
 tikv-jemallocator = "0.6"

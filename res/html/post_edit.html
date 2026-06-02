@@ -15,6 +15,8 @@
     <!-- Hidden ids -->
     <input name="id" type="number" value="0" hidden />
     <input name="parent" type="number" value="0" hidden />
+    <input name="room" id="room" type="number" value="0" hidden />
+    <input name="group" id="group" type="number" value="0" hidden />
 
     <!-- Author (searchable select) -->
     <div>
@@ -164,13 +166,13 @@ async function fetchCharactersPopulate() {
     }
 }
 
-// Load post if id is present in query param or in path (/post/edit/{id})
+// Load post if id is present in query param or in path (/p/edit/{id})
 async function loadPostForEdit() {
     const params = new URLSearchParams(window.location.search);
     let id = params.get('id');
     if (!id) {
         // Try to extract from pathname like /post/edit/123
-        const m = window.location.pathname.match(/\/post\/edit\/(\d+)/);
+        const m = window.location.pathname.match(/\/p\/edit\/(\d+)/);
         if (m) id = m[1];
     }
     if (!id) return;
@@ -191,6 +193,8 @@ async function loadPostForEdit() {
             document.getElementById('loved').value = post.loved || 0;
             document.getElementById('surprised').value = post.surprised || 0;
             document.getElementById('sad').value = post.sad || 0;
+            document.getElementById('group').value = post.group || 0;
+            document.getElementById('room').value = post.room || 0;
             // timestamp
             const d = normalizeBackendToDate(post.updated_at || post.created_at);
             if (d) document.getElementById('updated_at').value = toDateTimeLocalValue(d);
