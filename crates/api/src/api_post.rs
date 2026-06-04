@@ -1,9 +1,9 @@
-use crate::{delete_file, save_file, CommonMessage};
+use crate::{CommonMessage, delete_file, save_file};
+use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
-use actix_web::{get, post, web, Responder};
+use actix_web::{Responder, get, post, web};
 use my_config::ConfigData;
 use my_db::db_media::Media;
 use my_db::db_post::{Post, SearchPostCondition};
@@ -189,18 +189,25 @@ async fn delete(dbpool: web::Data<DBPool>, config_data: web::Data<ConfigData>, i
     let mut err = String::new();
     let config = config_data.config.read().await;
     let post_id = id.into_inner();
+
+    // Clean media
+    match db_media::delete_by_post(&dbpool, post_id).await {
+        Ok(urls) => {
+            let data_dir = Path::new(&config.data_dir);
+            for url in urls {
+                delete_file(data_dir, url.as_str()).await;
+            }
+        }
+        Err(e) => {
+            err = e.to_string();
+        }
+    }
+
     match db_post::delete_by_id(&dbpool, post_id).await {
         Ok(_) => {
-            if let Ok(urls) = db_media::delete_by_post(&dbpool, post_id).await {
-                let data_dir = Path::new(&config.data_dir);
-                for url in urls {
-                    delete_file(data_dir, url.as_str()).await;
-                }
-                msg = "Success".to_string();
-            }
+            msg = "Success".to_string();
         }
         Err(e) => err = e.to_string(),
     }
-    // TODO: Delete media file
     web::Json(CommonMessage::new(msg, err))
 }
