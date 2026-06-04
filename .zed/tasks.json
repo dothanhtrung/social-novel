@@ -3,6 +3,12 @@
 // Example:
 [
   {
+    "label": "CSS",
+    "command": "just css",
+    "allow_concurrent_runs": false,
+    "show_command": true,
+  },
+  {
     "label": "Watch",
     "command": "just watch",
     //"args": [],

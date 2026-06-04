@@ -147,3 +147,5 @@ create table if not exists chat_room_member
             on update cascade on delete cascade,
     role      integer default 0 not null
 );
+
+

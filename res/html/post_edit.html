@@ -48,6 +48,14 @@
                class="fb-input"  />
     </div>
 
+    <!-- Liked By -->
+    <div>
+        <label for="liked_by" class="fb-label">Liked By</label>
+        <input id="liked_by" name="liked_by" type="text"
+               placeholder="Type character names separated by commas"
+               class="fb-input"  />
+    </div>
+
     <!-- Content -->
     <div>
         <label for="content" class="fb-label">Content</label>
@@ -187,6 +195,7 @@ async function loadPostForEdit() {
             // set feelings / content
             document.getElementById('feeling').value = post.feeling || '';
             document.getElementById('is_with').value = post.is_with || '';
+            document.getElementById('liked_by').value = post.liked_by || '';
             document.getElementById('content').value = post.content || '';
             document.getElementById('liked').value = post.liked || 0;
             document.getElementById('haha').value = post.haha || 0;

@@ -50,6 +50,7 @@ struct PostForm {
     sad: Text<i32>,
     feeling: Text<String>,
     is_with: Text<String>,
+    liked_by: Text<String>,
     group: Text<i64>,
     room: Text<i64>,
 }
@@ -129,6 +130,7 @@ async fn update(
         sad: data.sad.into_inner(),
         feeling: data.feeling.into_inner(),
         is_with: data.is_with.into_inner(),
+        liked_by: data.liked_by.into_inner(),
         created_at: OffsetDateTime::now_utc(),
         updated_at: OffsetDateTime::now_utc(),
         group,

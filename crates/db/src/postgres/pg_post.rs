@@ -4,8 +4,8 @@ use sqlx::PgPool;
 pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Error> {
     let id = sqlx::query!(
         r#"INSERT INTO post
-            (content, author, parent, liked, haha, loved, surprised, sad, feeling, is_with, "group", room)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            (content, author, parent, liked, haha, loved, surprised, sad, feeling, is_with, liked_by, "group", room)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             RETURNING id"#,
         post.content,
         post.author,
@@ -17,6 +17,7 @@ pub(crate) async fn insert(pool: &PgPool, post: &Post) -> Result<i64, sqlx::Erro
         post.sad,
         post.feeling,
         post.is_with,
+        post.liked_by,
         post.group,
         post.room,
     )
@@ -83,9 +84,10 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
                 sad = $8,
                 feeling = $9,
                 is_with = $10,
-                "group" = $11,
-                room = $12
-            WHERE id = $13"#,
+                liked_by = $11,
+                "group" = $12,
+                room = $13
+            WHERE id = $14"#,
         post.content,
         post.author,
         post.parent,
@@ -96,6 +98,7 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
         post.sad,
         post.feeling,
         post.is_with,
+        post.liked_by,
         post.group,
         post.room,
         post.id

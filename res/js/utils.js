@@ -99,22 +99,11 @@ function renderReactions(p) {
     if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
     if (items.length === 0) return '';
     const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
-    return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
-}
 
-// Render reactions for comments: if none, render empty string; otherwise overlapped icons + total
-function renderCommentReactions(p) {
-    const items = [];
-    let total = 0;
-    if (p.liked && p.liked > 0) { items.push({ color: '#1877F2', emoji: '👍', count: p.liked }); total += Number(p.liked); }
-    if (p.loved && p.loved > 0) { items.push({ color: '#F3425E', emoji: '❤️', count: p.loved }); total += Number(p.loved); }
-    if (p.haha && p.haha > 0) { items.push({ color: '#F7B500', emoji: '😂', count: p.haha }); total += Number(p.haha); }
-    if (p.surprised && p.surprised > 0) { items.push({ color: '#9B8CFF', emoji: '😮', count: p.surprised }); total += Number(p.surprised); }
-    if (p.sad && p.sad > 0) { items.push({ color: '#6E6E6E', emoji: '😢', count: p.sad }); total += Number(p.sad); }
-    if (items.length === 0) return '';
-    // show up to 3 icons overlapped
-    const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
-    return `<span class='reaction-stack'>${icons}<span class='reaction-count'>${total}</span></span>`;
+    let likedByHtml = p.liked_by.split(',').map((part, i) => {
+        return (i ? `<span class='text-fb-gray-text'>, </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
+    }).join('');
+    return `<span class='reaction-stack'>${icons}<span class='reaction-count'>by ${likedByHtml} and <span class='text-fb-blue'>${total} others</span></span></span>`;
 }
 
 // Initialize Plyr on all video elements with class 'plyr-video' that haven't been initialized yet
@@ -148,4 +137,3 @@ function renderContentWithMentions(text) {
     });
     return out;
 }
-

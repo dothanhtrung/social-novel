@@ -148,7 +148,7 @@
                                                 <button class='text-[13px] text-fb-blue hover:underline reply-btn' data-comment-id='${c.id}'>Reply</button>
                                             </div>
                                             <div>
-                                                ${renderCommentReactions(c)}
+                                                ${renderReactions(c)}
                                             </div>
                                         </div>
                             </div>
@@ -534,6 +534,7 @@
                 formData.set('loved', '0');
                 formData.set('surprised', '0');
                 formData.set('sad', '0');
+                formData.set('liked_by', '');
                 formData.set('group', '0');
                 formData.set('room', '0');
                 const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
@@ -673,6 +674,7 @@
                 const lovedVal = form.querySelector('input[name="loved"]')?.value || '0';
                 const surprisedVal = form.querySelector('input[name="surprised"]')?.value || '0';
                 const sadVal = form.querySelector('input[name="sad"]')?.value || '0';
+                const likedBy = form.querySelector('input[name="liked_by"]')?.value || '';
                 fd.set('author', author);
                 fd.set('content', content);
                 fd.set('is_with', is_with);
@@ -684,6 +686,7 @@
                 fd.set('loved', String(Number(lovedVal) || 0));
                 fd.set('surprised', String(Number(surprisedVal) || 0));
                 fd.set('sad', String(Number(sadVal) || 0));
+                fd.set('liked_by', String(Number(likedBy) || 0));
                 fd.set('group', '0');
                 fd.set('room', '0');
                 const mediaInput = form.querySelector('.comment-media-input');

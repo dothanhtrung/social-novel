@@ -25,6 +25,8 @@ pub struct Post {
     pub updated_at: OffsetDateTime,
     pub parent: Option<i64>,
     #[serde(default)]
+    pub liked_by: String,
+    #[serde(default)]
     pub liked: i32,
     #[serde(default)]
     pub haha: i32,
