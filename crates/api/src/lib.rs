@@ -113,6 +113,7 @@ async fn save_file(
         }
     } else {
         info!("File {saved_name} exists");
+        // TODO: Allow one media for multiple posts
         return Err(anyhow!("exist"));
     }
 

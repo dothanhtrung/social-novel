@@ -86,8 +86,9 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
                 is_with = $10,
                 liked_by = $11,
                 "group" = $12,
-                room = $13
-            WHERE id = $14"#,
+                room = $13,
+                updated_at = $14
+            WHERE id = $15"#,
         post.content,
         post.author,
         post.parent,
@@ -101,6 +102,7 @@ pub(crate) async fn update(pool: &PgPool, post: &Post) -> Result<u64, sqlx::Erro
         post.liked_by,
         post.group,
         post.room,
+        post.updated_at,
         post.id
     ).execute(pool).await?.rows_affected();
 

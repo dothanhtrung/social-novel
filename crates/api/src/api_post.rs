@@ -6,7 +6,7 @@ use actix_web::web::Query;
 use actix_web::{Responder, get, post, web};
 use my_config::ConfigData;
 use my_db::db_media::Media;
-use my_db::db_post::{Post, SearchPostCondition};
+use my_db::db_post::{Post, SearchPostCondition, string_to_offsetdatetime};
 use my_db::{db_media, db_post};
 use serde::{Deserialize, Serialize};
 use sqlx::types::time::OffsetDateTime;
@@ -53,6 +53,7 @@ struct PostForm {
     liked_by: Text<String>,
     group: Text<i64>,
     room: Text<i64>,
+    updated_at: Option<Text<String>>,
 }
 
 #[get("")]
@@ -118,6 +119,11 @@ async fn update(
     let parent = if form_parent > 0 { Some(form_parent) } else { None };
     let group = if data.group.0 == 0 { None } else { Some(data.group.0) };
     let room = if data.room.0 == 0 { None } else { Some(data.room.0) };
+    let updated_at = if let Some(timestamp) = data.updated_at {
+        string_to_offsetdatetime(timestamp.into_inner().as_str()).unwrap_or(OffsetDateTime::now_utc())
+    } else {
+        OffsetDateTime::now_utc()
+    };
     let post = Post {
         id: data.id.into_inner(),
         content: data.content.into_inner(),
@@ -132,7 +138,7 @@ async fn update(
         is_with: data.is_with.into_inner(),
         liked_by: data.liked_by.into_inner(),
         created_at: OffsetDateTime::now_utc(),
-        updated_at: OffsetDateTime::now_utc(),
+        updated_at,
         group,
         room,
     };
