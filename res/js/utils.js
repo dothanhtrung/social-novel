@@ -88,6 +88,27 @@ function updateUrlParams(page, count) {
     window.history.pushState({}, '', newUrl);
 }
 
+
+// Render content and replace @username mentions with full Name in blue (requires usernameMapLower in global scope)
+function renderContentWithMentions(text) {
+    if (!text) return '';
+    // Escape first
+    let out = escapeHtml(text);
+    // Replace newlines with <br>
+    out = out.replace(/\r?\n/g, '<br>');
+    // Replace @username (alphanumeric and underscore, hyphen allowed) with full name when available
+    out = out.replace(/@([A-Za-z0-9_\-\.]+)/g, function(_, uname) {
+      const found = usernameMapLower[uname.toLowerCase()];
+        if (found) {
+            const display = escapeHtml(found.name || found.username);
+            return `<span class="text-fb-blue">${display}</span>`;
+        }
+        return `@${escapeHtml(uname)}`;
+    });
+    return out;
+}
+
+
 // Render reactions with overlapped icons and total count
 function renderReactions(p) {
     const items = [];
@@ -117,23 +138,4 @@ function initPlyrVideos(container) {
             resetOnEnd: true,
         });
     });
-}
-
-// Render content and replace @username mentions with full Name in blue (requires usernameMapLower in global scope)
-function renderContentWithMentions(text) {
-    if (!text) return '';
-    // Escape first
-    let out = escapeHtml(text);
-    // Replace newlines with <br>
-    out = out.replace(/\r?\n/g, '<br>');
-    // Replace @username (alphanumeric and underscore, hyphen allowed) with full name when available
-    out = out.replace(/@([A-Za-z0-9_\-\.]+)/g, function(_, uname) {
-        const found = usernameMapLower[uname.toLowerCase()];
-        if (found) {
-            const display = escapeHtml(found.name || found.username);
-            return `<span class="text-fb-blue">${display}</span>`;
-        }
-        return `@${escapeHtml(uname)}`;
-    });
-    return out;
 }
