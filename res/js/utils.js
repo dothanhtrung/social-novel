@@ -121,10 +121,12 @@ function renderReactions(p) {
     if (items.length === 0) return '';
     const icons = items.slice(0,3).map((it, idx) => `<span class='reaction-icon' style='background:${it.color}; z-index:${10 - idx}; margin-left:${idx === 0 ? 0 : -6}px'>${it.emoji}</span>`).join('');
 
+  let totalHtml = (total-1) === 0 ? '' : `and <span class='text-fb-blue'>${ total - 1 } others</span>`;
+  
     let likedByHtml = p.liked_by.split(',').map((part, i) => {
-        return (i ? `<span class='text-fb-gray-text'>, </span>` : '') + `<span class='text-fb-blue'>${renderContentWithMentions(part)}</span>`;
+        return (i ? `<span class='text-fb-gray-text'>, </span>` : '') + `${renderContentWithMentions(part)}`;
     }).join('');
-    return `<span class='reaction-stack'>${icons}<span class='reaction-count'>by ${likedByHtml} and <span class='text-fb-blue'>${total} others</span></span></span>`;
+    return `<span class='reaction-stack'>${icons}<span class='reaction-count'>by ${likedByHtml} ${totalHtml}</span></span>`;
 }
 
 // Initialize Plyr on all video elements with class 'plyr-video' that haven't been initialized yet

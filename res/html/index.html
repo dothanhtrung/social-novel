@@ -674,7 +674,7 @@
                 fd.set('loved', String(Number(lovedVal) || 0));
                 fd.set('surprised', String(Number(surprisedVal) || 0));
                 fd.set('sad', String(Number(sadVal) || 0));
-                fd.set('liked_by', String(Number(likedBy) || 0));
+                fd.set('liked_by', likedBy);
                 fd.set('group', '0');
                 fd.set('room', '0');
                 const mediaInput = form.querySelector('.comment-media-input');
