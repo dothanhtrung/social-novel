@@ -33,3 +33,11 @@ How to build
 ```shell
 cargo build --release
 ```
+
+---------
+
+<div align="center">
+
+![git_social-novel](https://count.getloli.com/@git_social-novel?name=git_social-novel&theme=random&padding=10&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)
+
+</div>
