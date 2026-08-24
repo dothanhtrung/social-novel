@@ -47,722 +47,700 @@ struct PostForm {
     room: Text<i64>,
 }
 -->
-
 <!DOCTYPE html>
-<html class="light" lang="en">
-<head>
-    <!-- Reuse exact same head from index.html -->
-    {% include "include/head.html" %}
 
-    <title>Messenger - Social Novel</title>
-    <style>
-        /* Messenger-specific styles that match FB Messenger design */
-        .messenger-container {
-            height: 100vh;
-            background: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .messenger-main {
-            flex: 1;
-            display: flex;
-            height: calc(100vh - 56px);
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Messenger - Product Design Team</title>
+<link href="/css/tailwind_output.min.css" rel="stylesheet">
+<script src="/js/utils.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#005db7",
+                    "tertiary": "#9a4100",
+                    "inverse-on-surface": "#f1f1f1",
+                    "on-secondary-fixed": "#001848",
+                    "text-secondary": "#65676B",
+                    "tertiary-fixed-dim": "#ffb691",
+                    "on-tertiary-fixed-variant": "#783100",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "outline": "#717786",
+                    "background": "#f9f9f9",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-container": "#0073df",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#e2e2e2",
+                    "secondary-container": "#086aff",
+                    "surface": "#f9f9f9",
+                    "primary-fixed": "#d6e3ff",
+                    "on-secondary-container": "#fefcff",
+                    "tertiary-container": "#c15300",
+                    "surface-background": "#FFFFFF",
+                    "bubble-recipient": "#E4E6EB",
+                    "on-primary-container": "#fefcff",
+                    "surface-container-low": "#f3f3f3",
+                    "secondary": "#0053ce",
+                    "on-background": "#1a1c1c",
+                    "on-tertiary-fixed": "#341100",
+                    "on-surface-variant": "#414754",
+                    "surface-container": "#eeeeee",
+                    "surface-dim": "#dadada",
+                    "on-primary": "#ffffff",
+                    "online-indicator": "#31A24C",
+                    "on-error": "#ffffff",
+                    "primary": "#005bb3",
+                    "on-secondary-fixed-variant": "#0040a1",
+                    "surface-container-highest": "#e2e2e2",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#001b3d",
+                    "on-surface": "#1a1c1c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-container": "#fffbff",
+                    "surface-bright": "#f9f9f9",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#a9c7ff",
+                    "surface-container-high": "#e8e8e8",
+                    "inverse-surface": "#2f3131",
+                    "on-primary-fixed-variant": "#00468c",
+                    "secondary-fixed-dim": "#b2c5ff",
+                    "outline-variant": "#c0c6d6",
+                    "text-primary": "#050505",
+                    "secondary-fixed": "#dae2ff",
+                    "tertiary-fixed": "#ffdbcb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "space-sm": "8px",
+                    "space-xl": "20px",
+                    "margin-desktop": "24px",
+                    "space-md": "12px",
+                    "space-lg": "16px",
+                    "gutter": "12px",
+                    "space-xs": "4px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Be Vietnam Pro"],
+                    "body-sm": ["Be Vietnam Pro"],
+                    "body-md": ["Be Vietnam Pro"],
+                    "headline-lg-mobile": ["Be Vietnam Pro"],
+                    "headline-lg": ["Be Vietnam Pro"],
+                    "headline-md": ["Be Vietnam Pro"],
+                    "body-lg": ["Be Vietnam Pro"]
+            },
+            "fontSize": {
+                    "label-lg": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "body-sm": ["13px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "26px", "fontWeight": "700"}],
+                    "headline-lg": ["24px", {"lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["17px", {"lineHeight": "22px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #FFFFFF;
             overflow: hidden;
         }
-
-        .chat-sidebar {
-            width: 360px;
-            background: white;
-            border-right: 1px solid #e4e6ea;
-            display: flex;
-            flex-direction: column;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
         }
-
-        .chat-sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid #e4e6ea;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-
-        .new-chat-btn {
-            flex: 1;
-            background: #42b883;
-            color: white;
-            border: none;
-            height: 40px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
         }
-
-        .new-chat-btn:hover {
-            background: #36a26f;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e2e2;
+            border-radius: 10px;
         }
-
-        .chat-list {
-            flex: 1;
-            overflow-y: auto;
+        .message-bubble-in {
+            border-radius: 4px 18px 18px 18px;
         }
-
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f2f5;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .chat-item:hover, .chat-item.active {
-            background: #f0f2f5;
-        }
-
-        .chat-item img {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-
-        .chat-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .chat-name {
-            font-weight: 600;
-            color: #1c1e21;
-            margin-bottom: 2px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .chat-preview {
-            color: #65676b;
-            font-size: 14px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .chat-time {
-            font-size: 12px;
-            color: #65676b;
-            white-space: nowrap;
-            flex-shrink: 0;
-            margin-left: 12px;
-        }
-
-        .main-chat {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #e5e5e5;
-        }
-
-        .main-char-selector {
-            background: white;
-            padding: 12px 20px;
-            border-bottom: 1px solid #e4e6ea;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #e5e5e5;
-        }
-
-        .message {
-            display: flex;
-            margin-bottom: 16px;
-            animation: messageSlideIn 0.3s ease-out;
-        }
-
-        @keyframes messageSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.right {
-            flex-direction: row-reverse;
-            justify-content: flex-end;
-        }
-
-        .message-bubble {
-            max-width: 70%;
-            padding: 8px 12px;
-            border-radius: 18px;
-            position: relative;
-            word-wrap: break-word;
-        }
-
-        .message.right .message-bubble {
-            background: #0084ff;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.left .message-bubble {
-            background: white;
-            color: #1c1e21;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.07);
-        }
-
-        .message-author {
-            font-size: 12px;
-            color: #667781;
-            margin-bottom: 4px;
-            font-weight: 500;
-        }
-
-        .message.right .message-author {
-            display: none;
-        }
-
-        .message img {
-            max-width: 200px;
-            border-radius: 8px;
-            margin-top: 8px;
-        }
-
-        .message-input-area {
-            background: white;
-            padding: 12px 20px;
-            border-top: 1px solid #c1d2e3;
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-        }
-
-        .input-controls {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .author-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .author-selector label {
-            font-size: 13px;
-            color: #65676b;
-            font-weight: 500;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 10px 16px;
-            border: 1px solid #c1d2e3;
-            border-radius: 22px;
-            font-size: 15px;
-            resize: none;
-            min-height: 44px;
-            max-height: 100px;
-            outline: none;
-            line-height: 20px;
-        }
-
-        .message-input:focus {
-            border-color: #0084ff;
-            box-shadow: 0 0 0 2px rgba(0,132,255,0.2);
-        }
-
-        .input-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .action-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 50%;
-            background: #f0f2f5;
-            color: #65676b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            background: #e4e6ea;
-        }
-
-        .send-btn {
-            background: #0084ff;
-            color: white;
-            width: 44px;
-            height: 44px;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            background: #0066cc;
-        }
-
-        .send-btn:disabled {
-            background: #b0b3b8;
-            cursor: not-allowed;
-        }
-
-        .members-panel {
-            width: 320px;
-            background: white;
-            border-left: 1px solid #e4e6ea;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .members-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e4e6ea;
-            font-weight: 600;
-            color: #1c1e21;
-        }
-
-        .members-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .member-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            border-bottom: 1px solid #f7f7f7;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .member-item:hover {
-            background: #f0f2f5;
-        }
-
-        .member-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 12px;
-        }
-
-        .member-name {
-            font-weight: 500;
-            color: #1c1e21;
-        }
-
-        .no-chat-selected {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #8f95a0;
-            font-size: 18px;
-            text-align: center;
-        }
-
-        @media (max-width: 1400px) {
-            .members-panel {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .chat-sidebar {
-                width: 100%;
-                position: absolute;
-                z-index: 50;
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-            }
-            
-            .chat-sidebar.open {
-                transform: translateX(0);
-            }
+        .message-bubble-out {
+            border-radius: 18px 4px 18px 18px;
         }
     </style>
 </head>
-<body>
-    <!-- Reuse exact same header from index.html with Messenger active styling -->
-    {% include "include/header.html" %}
-
-    <div class="messenger-container">
-        <div class="messenger-main">
-            <!-- Left Sidebar -->
-            <div class="chat-sidebar" id="chatSidebar">
-                <div class="chat-sidebar-header">
-                    <button class="new-chat-btn" onclick="createNewRoom()">
-                        ➕ New Message
-                    </button>
-                </div>
-                <div class="chat-list" id="chatList">
-                    <div class="p-8 text-center text-fb-gray-text">
-                        Loading chats...
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Chat Area -->
-            <div class="main-chat">
-                <div class="main-char-selector">
-                    <label class="font-medium text-fb-gray-text">Main Character:</label>
-                    <select id="mainCharacterSelect" class="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                        <option value="">Select main character...</option>
-                    </select>
-                </div>
-
-                <div class="chat-messages" id="chatMessages">
-                    <div class="no-chat-selected">
-                        <div>
-                            <div class="text-3xl mb-4">💬</div>
-                            <div>Start a conversation</div>
-                            <div class="text-fb-gray-text text-sm mt-1">Pick a chat or start a new one</div>
+<body class="bg-surface-background text-on-surface">
+<!-- Top Navigation Bar (Global Anchor) -->
+<header class="fixed top-0 w-full z-50 bg-surface-background border-b border-outline-variant flex justify-between items-center px-4 h-14">
+<div class="flex items-center gap-3">
+<span class="font-headline-md text-headline-md text-primary font-extrabold tracking-tight">Messenger</span>
+<div class="relative ml-4 hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" style="font-size: 18px;">search</span>
+<input class="bg-surface-container border-none rounded-full py-2 pl-10 pr-4 text-body-sm w-64 focus:ring-2 focus:ring-primary-container outline-none transition-all" placeholder="Search Messenger" type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">groups</span></button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">videocam</span></button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User profile" data-alt="Close-up portrait of a professional male user with a friendly expression, soft studio lighting, clean minimalist corporate background, high resolution photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVRSmZUApYQRTXPglNhW98VzNneBoe3VoLKE_-mes477Fv48963oxjhm6i9ZKXC1ctdYqfEYpT5pU-wi-AXBnE6_Xi5leJSYHZLroOd6vdKKN0josaJcNB70EvEJBiDI6EXAdMc2sQfIPNO9VSz61K3yYTwwaDGukCRLQ5z9WywYrbGhKDbvLrwf_N0nzJlmCSi22f5oZw9kUUYNjyGW38yKPIgVw51V2Fs_pmRxudT4fk7XfM8rhe1g"/>
+</div>
+</div>
+</header>
+<div class="pt-14 h-screen flex overflow-hidden">
+<!-- Left Sidebar: Chat List -->
+<aside class="w-90 border-r border-outline-variant flex flex-col bg-surface-background">
+<div class="p-4 flex items-center justify-between">
+<h1 class="font-headline-lg text-headline-lg">Chats</h1>
+<div class="flex gap-1">
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</div>
+</div>
+<div id="room-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+<!-- Room items are rendered by renderRoomList() -->
+</div>
+<div class="p-4">
+<button class="w-full bg-primary py-2 px-4 rounded-lg text-on-primary font-semibold text-body-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95">
+<span class="material-symbols-outlined">add_comment</span>
+                    New Message
+                </button>
+</div>
+</aside>
+<!-- Center Pane: Chat Conversation -->
+<main class="flex-1 flex flex-col bg-surface-background relative">
+<!-- Chat Header -->
+<header class="h-14 flex items-center justify-between px-4 border-b border-outline-variant">
+<div class="flex items-center gap-3 cursor-pointer p-1 hover:bg-surface-container rounded-lg transition-colors">
+<div id="chat-header-avatar" class="w-10 h-10 relative flex-shrink-0">
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md leading-tight" id="chat-header-name">Product Design Team</h2>
+<p class="text-body-sm text-text-secondary" id="chat-header-members">Marcus, Alex, Sarah, and 2 others</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">call</span></button>
+<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">videocam</span></button>
+<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">info</span></button>
+</div>
+</header>
+<!-- Chat History -->
+<div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+<!-- Time divider -->
+<div class="flex justify-center">
+<span class="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Today, 2:45 PM</span>
+</div>
+<!-- Recipient Message -->
+<div class="flex gap-2 max-w-[80%] items-end">
+<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
+<img alt="Alex Rivera" data-alt="A portrait of Alex Rivera." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwOUL-yoC7pWJBaymJsAfO96xsHGHdF1iBldvwVlp1DtE1Db5nFKEeKOuznU7_Pl0Fn2NqIOtH-rfsQKvnm3O9zH8zpB4GDi-HOX9KzVW6VBfUZ1JrGMJo_IPHtzRGR1IM2zhZm58gXsDbAqcSLkKbajMMUPi5tSDu19crn1ZcSAgPOtwqgVgaAB4AXUP5IjrZ1zSP50BuUpLqGPjdn4zWXjM__cmZyHXRds36j9HHtqoFSMAf-2r_jA"/>
+</div>
+<div class="space-y-1">
+<span class="text-[12px] text-text-secondary ml-1">Alex Rivera</span>
+<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
+                            Hey team, did everyone see the updated brand guidelines for the mobile app?
                         </div>
-                    </div>
-                </div>
-
-                <div class="message-input-area">
-                    <div class="input-controls">
-                        <div class="author-selector">
-                            <label>From:</label>
-                            <select id="messageAuthorSelect" class="border border-gray-200 rounded-lg px-3 py-1 text-sm">
-                                <option value="">Choose character...</option>
-                            </select>
+</div>
+</div>
+<!-- Recipient Message 2 -->
+<div class="flex gap-2 max-w-[80%] items-end">
+<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
+<img alt="Sarah Jenkins" data-alt="A portrait of Sarah Jenkins." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbgxndzVminAypKaieYihYw8ceBKvX3tF3m-FiOld-y33kHphTjv8vkoK1t4-sS5Ap7wWPb4gQiL1dbDEIugs9EdOPBPHskCiN0NQ51lVhGdHjbrERN7wdecrJUN_JWaiZIgE6f-MFO-Kz4UW0nY4Wr92JXA9QPdlQAqZOuovtAvN_txCSD0_BC3tVG4e4aNshGJaIQSdoBHic06ShAn6ddH5Wjy-RtU4csMJtoVes_ERlcCtuPpCIMQ"/>
+</div>
+<div class="space-y-1">
+<span class="text-[12px] text-text-secondary ml-1">Sarah Jenkins</span>
+<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
+                            Checking them now! The blue seems much more vibrant than the previous version.
                         </div>
-                        <textarea 
-                            id="messageInput" 
-                            class="message-input" 
-                            placeholder="Aa"
-                            disabled
-                            rows="1"
-                        ></textarea>
+</div>
+</div>
+<!-- Outgoing Message -->
+<div class="flex flex-col items-end gap-1">
+<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">
+                        Yeah, it's a great improvement. I've already started mapping the new tokens in our design system.
                     </div>
-                    <div class="input-actions">
-                        <input type="file" id="imageInput" accept="image/*" class="hidden">
-                        <button class="action-btn" onclick="document.getElementById('imageInput').click()" title="Photo/video">
-                            📎
+<span class="text-[11px] text-text-secondary mr-1 flex items-center gap-1">Delivered <span class="material-symbols-outlined text-[12px]">check_circle</span></span>
+</div>
+<!-- Recipient Message 3 -->
+<div class="flex gap-2 max-w-[80%] items-end">
+<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
+<img alt="Marcus Chen" data-alt="A portrait of Marcus Chen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIz77t37-KPK50q0QsgLAN7YejmNecLsfA3k8yAai8r1Ivd3v4h5tO8bjCZXy_XvvTMASaU2IZtctlXq9BgVmW3zSpC4zsTzCz9sTqJiMAEoNhWTY9K3F4Yx7IVxHBAyrFKcL2WJ3IwzTFkReMUylV_6ps9NrVRr_sXT3k5N8m9oPfr5jn4_sVH4bbWf0sfcLV4pu6ZLMdtILfAwBKXCv2JxD_2c1nYdBYLigte9MUV1Sy7AXqe0weQ"/>
+</div>
+<div class="space-y-1">
+<span class="text-[12px] text-text-secondary ml-1">Marcus Chen</span>
+<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
+                            I've updated the Figma components with the new palette. Let me know if the contrast ratios look okay on your end. 🎨
+                        </div>
+</div>
+</div>
+<!-- Image Attachment from Marcus -->
+<div class="flex gap-2 max-w-[80%] items-end">
+<div class="w-7 h-7 rounded-full opacity-0 flex-shrink-0"></div> <!-- Placeholder for avatar consistency -->
+<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity">
+<img class="w-full h-full object-cover" data-alt="A high-end UI design layout showing a minimalist dashboard with clean typography and vibrant blue accents, professional interface presentation style, soft shadows, pristine light mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqB0p50MWF8BKbleoqyfgQ7QyQpZuc4iOwUKdrMdrfM1BNhyketKdJDmE6qTuXs4Azq43TJlEbvv-vnOUwX1_nnbeHdxHstpKWpEJDcU0GYRUQbmiXgM2GthnjttAvDQz2RQ5PPTEnf9ICSqsoF7dT7jv1A3QTfF8WTO_ahwnP51QsABeOXgZ8u2qls3zu01J6rKclYCbnNWL00DmauhhwfMXvOm7VJj04xAFKcQNgrBv6TkBn46TLkA"/>
+</div>
+</div>
+</div>
+<!-- Bottom Composer Bar -->
+<footer class="p-4 bg-surface-background">
+<form id="composer-form" class="flex flex-col gap-2">
+<div id="composer-preview" class="hidden flex-wrap gap-2 px-2"></div>
+<div class="flex items-center gap-2">
+<div class="flex gap-1 text-primary">
+<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">add_circle</span></button>
+<button id="composer-attach-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">image</span></button>
+<input id="composer-media" accept="image/*,video/*" hidden multiple type="file"/>
+<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">sticky_note_2</span></button>
+<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">gif_box</span></button>
+</div>
+<div class="flex-1 bg-surface-container rounded-full px-4 py-2 flex items-center">
+<input id="composer-content" class="bg-transparent border-none w-full text-body-md focus:ring-0 focus:outline-none" placeholder="Aa" type="text"/>
+<button class="text-primary hover:bg-surface-container-highest p-1 rounded-full" type="button"><span class="material-symbols-outlined">sentiment_satisfied</span></button>
+</div>
+<button class="text-primary hover:scale-110 active:scale-95 transition-transform" type="submit"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span></button>
+</div>
+</form>
+</footer>
+</main>
+<!-- Right Sidebar: Group Details -->
+<aside class="w-80 border-l border-outline-variant flex flex-col bg-surface-background">
+<div class="overflow-y-auto custom-scrollbar flex-1">
+<!-- Group Info Header -->
+<div class="p-6 flex flex-col items-center text-center space-y-3">
+<div id="group-header-avatar" class="relative w-20 h-20">
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md" id="group-header-name">Product Design Team</h2>
+<p class="text-body-sm text-text-secondary">Active now</p>
+</div>
+<div class="flex gap-6 pt-2">
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">person</span></button>
+<span class="text-label-lg font-normal text-text-secondary">Profile</span>
+</div>
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<span class="text-label-lg font-normal text-text-secondary">Mute</span>
+</div>
+<div class="flex flex-col items-center gap-1 group cursor-pointer">
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">search</span></button>
+<span class="text-label-lg font-normal text-text-secondary">Search</span>
+</div>
+</div>
+</div>
+<!-- Chat Members Section -->
+<div class="px-4 py-2">
+<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
+                        Chat Members
+                        <span class="material-symbols-outlined">expand_more</span>
+</button>
+<div id="member-list" class="mt-1 space-y-1">
+<!-- Member items are rendered by renderMemberList() -->
+</div>
+</div>
+<!-- Media, Files & Links -->
+<div class="px-4 py-2">
+<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
+                        Media, Files &amp; Links
+                        <span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Privacy & Support Section -->
+<div class="px-4 py-2">
+<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
+                        Privacy &amp; Support
+                        <span class="material-symbols-outlined">expand_more</span>
+</button>
+<div class="mt-1 space-y-1">
+<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications_off</span>
+                            Mute Notifications
                         </button>
-                        <button class="action-btn send-btn" id="sendButton" onclick="sendMessage()" disabled>
-                            ➤
+<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+                            Leave Group
                         </button>
-                    </div>
-                </div>
-            </div>
+<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[20px]">report</span>
+                            Report
+                        </button>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Image lightbox overlay -->
+<div id="image-overlay" class="hidden fixed inset-0 bg-black/80 z-[100] items-center justify-center cursor-zoom-out">
+<img id="image-overlay-img" class="max-w-[90vw] max-h-[90vh] rounded-lg object-contain" src=""/>
+</div>
+<!-- Micro-interaction JS -->
+<script>
+        document.querySelectorAll('button, .cursor-pointer').forEach(el => {
+            el.addEventListener('click', function(e) {
+                // Generic ripple effect or simple feedback can be added here
+            });
+        });
 
-            <!-- Right Members Panel -->
-            <div class="members-panel">
-                <div class="members-header">Members</div>
-                <div class="members-list" id="membersList">
-                    <div class="p-8 text-center text-fb-gray-text">
-                        Select a chat to see members
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        // Chat scroll to bottom on load
+        const chatHistory = document.getElementById('chat-history');
+        chatHistory.scrollTop = chatHistory.scrollHeight;
 
-    <script src="/js/utils.js"></script>
-    <script>
-        // Messenger-specific variables
-        let rooms = [];
-        let currentRoomId = null;
-        let currentPosts = [];
-        let characters = [];
-        let mainCharacterId = null;
-        let selectedImageFile = null;
+        // Simple input focus behavior
+        const chatInput = document.querySelector('input[placeholder="Aa"]');
+        chatInput.addEventListener('focus', () => {
+            chatInput.parentElement.classList.add('ring-2', 'ring-primary-container');
+        });
+        chatInput.addEventListener('blur', () => {
+            chatInput.parentElement.classList.remove('ring-2', 'ring-primary-container');
+        });
 
-        // Initialize messenger
-        async function initMessenger() {
-            try {
-                await Promise.allSettled([
-                    fetchRooms(),
-                    fetchCharacters()
-                ]);
-                setupMessengerEvents();
-            } catch (error) {
-                console.error('Messenger init failed:', error);
-            }
-        }
-
-        // Fetch rooms (reuse fetch pattern from utils.js)
+        // Fetch room list from backend and render room names
         async function fetchRooms() {
-            const res = await fetch('/api/room');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            rooms = await res.json();
-            renderChatList();
-        }
+            try {
+                const res = await fetch('/api/room');
+                const data = await res.json();
 
-        // Fetch characters
-        async function fetchCharacters() {
-            const res = await fetch('/api/character');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            characters = await res.json();
-            renderCharacterSelectors();
-        }
+                if (data.err) {
+                    alert('Error: ' + data.err);
+                    return;
+                }
 
-        // Render chat list using escapeHtml from utils.js
-        function renderChatList() {
-            const container = document.getElementById('chatList');
-            if (!rooms.length) {
-                container.innerHTML = '<div class="p-8 text-center text-fb-gray-text">No chats yet</div>';
-                return;
+                currentRooms = data.rooms || [];
+
+                await Promise.all(currentRooms.map(async room => {
+                    try {
+                        const cRes = await fetch(`/api/character?room=${room.id}`);
+                        const cData = await cRes.json();
+                        room.members = cData.characters || [];
+                    } catch (err) {
+                        room.members = [];
+                    }
+                }));
+
+                renderRoomList(currentRooms);
+
+                if (currentRooms.length > 0) {
+                    selectRoom(currentRooms[0].id);
+                }
+            } catch (err) {
+                alert('Failed to fetch rooms: ' + err);
             }
+        }
 
-            container.innerHTML = rooms.map(room => {
-                const roomImg = `/data/room/${room.id}.png`;
-                return `
-                    <div class="chat-item ${currentRoomId === room.id ? 'active' : ''}" data-room-id="${room.id}" onclick="selectRoom('${room.id}')">
-                        <img src="${roomImg}" alt="${escapeHtml(room.name)}" 
-                             onerror="this.src='/data/room/default.png'">
-                        <div class="chat-info">
-                            <div class="chat-name">${escapeHtml(room.name)}</div>
-                            <div class="chat-preview">${room.members?.length || 0} members</div>
+        function renderRoomList(rooms) {
+            const list = document.getElementById('room-list');
+            list.innerHTML = '';
+
+            rooms.forEach(room => {
+                const item = document.createElement('div');
+                item.className = 'hover:bg-surface-container-low rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-all';
+                item.dataset.roomId = room.id;
+                item.addEventListener('click', () => selectRoom(room.id));
+
+                item.innerHTML = `
+                    ${buildRoomAvatarHtml(room.members, 'w-12 h-12')}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="font-body-lg text-body-lg truncate text-on-surface">${escapeHtml(room.name)}</h3>
                         </div>
-                        <div class="chat-time">${timeAgo(room.updated_at || room.created_at)}</div>
                     </div>
                 `;
-            }).join('');
-        }
 
-        // Render character selectors
-        function renderCharacterSelectors() {
-            const mainSelect = document.getElementById('mainCharacterSelect');
-            const authorSelect = document.getElementById('messageAuthorSelect');
-            
-            const options = characters.map(c => 
-                `<option value="${c.id}">${escapeHtml(c.name)}</option>`
-            ).join('');
-            
-            mainSelect.innerHTML = '<option value="">Select main character...</option>' + options;
-            authorSelect.innerHTML = '<option value="">Choose character...</option>' + options;
-        }
-
-        // Select room
-        async function selectRoom(roomId) {
-            currentRoomId = roomId;
-            
-            // Update active state
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('active');
+                list.appendChild(item);
             });
-            event.currentTarget.classList.add('active');
-            
-            // Load messages
-            await loadRoomMessages(roomId);
-            
-            // Update members
-            renderMembersPanel();
-            
-            // Enable input
-            toggleMessageInput(true);
         }
 
-        // Load room messages (posts)
-        async function loadRoomMessages(roomId) {
+        // Room avatar: the other member's avatar for a 2-person room, otherwise a mosaic of the first four members
+        function buildRoomAvatarHtml(members, sizeClass) {
+            sizeClass = sizeClass || 'w-12 h-12';
+            if (!members || members.length === 0) {
+                return `<div class="${sizeClass} flex-shrink-0 rounded-full bg-surface-container-high"></div>`;
+            }
+
+            if (members.length <= 2) {
+                const other = members.find(m => Number(m.id) !== Number(mainCharacterId)) || members[0];
+                return `<img class="${sizeClass} flex-shrink-0 rounded-full object-cover" alt="${escapeHtml(other.name)}" src="${getAvatarUrl(other)}"/>`;
+            }
+
+            const cells = members.slice(0, 4).map(m => `<img class="w-full h-full object-cover" alt="${escapeHtml(m.name)}" src="${getAvatarUrl(m)}"/>`).join('');
+            return `<div class="${sizeClass} flex-shrink-0 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 bg-surface-container-high">${cells}</div>`;
+        }
+
+        let selectedRoomId = null;
+        // Character shown on the right side of the conversation, chosen from the members panel
+        let mainCharacterId = null;
+        let charactersById = {};
+        let currentPosts = [];
+        let currentRooms = [];
+
+        async function selectRoom(roomId) {
+            selectedRoomId = roomId;
+
+            document.querySelectorAll('#room-list > div').forEach(el => {
+                el.classList.toggle('bg-surface-container-low', Number(el.dataset.roomId) === Number(roomId));
+            });
+
+            const room = currentRooms.find(r => Number(r.id) === Number(roomId));
+            document.getElementById('chat-header-name').textContent = room ? room.name : '';
+            document.getElementById('chat-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-10 h-10');
+            document.getElementById('group-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-20 h-20');
+            document.getElementById('group-header-name').textContent = room ? room.name : '';
+
+            await fetchMembers(roomId);
+            await fetchPosts(roomId);
+        }
+
+        // Fetch room members from backend and render name + avatar
+        async function fetchMembers(roomId) {
+            try {
+                const res = await fetch(`/api/character?room=${roomId}`);
+                const data = await res.json();
+
+                if (data.err) {
+                    alert('Error: ' + data.err);
+                    return;
+                }
+
+                const characters = data.characters || [];
+                charactersById = {};
+                characters.forEach(c => charactersById[c.id] = c);
+
+                renderMemberList(characters);
+
+                const memberNames = characters.map(c => c.name).join(', ');
+                document.getElementById('chat-header-members').textContent = memberNames;
+
+                // Default the main character to the first member of the room
+                if (characters.length > 0 && (mainCharacterId === null || !charactersById[mainCharacterId])) {
+                    selectMainCharacter(characters[0].id);
+                }
+            } catch (err) {
+                alert('Failed to fetch members: ' + err);
+            }
+        }
+
+        function renderMemberList(characters) {
+            const list = document.getElementById('member-list');
+            list.innerHTML = '';
+
+            characters.forEach(character => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer';
+                item.dataset.characterId = character.id;
+                item.addEventListener('click', () => selectMainCharacter(character.id));
+
+                item.innerHTML = `
+                    <img alt="${escapeHtml(character.name)}" class="w-9 h-9 rounded-full object-cover" src="${getAvatarUrl(character)}"/>
+                    <span class="text-body-md font-semibold">${escapeHtml(character.name)}</span>
+                `;
+
+                list.appendChild(item);
+            });
+
+            highlightMainCharacter();
+        }
+
+        function highlightMainCharacter() {
+            document.querySelectorAll('#member-list > div').forEach(el => {
+                el.classList.toggle('bg-surface-container-low', Number(el.dataset.characterId) === Number(mainCharacterId));
+            });
+        }
+
+        function selectMainCharacter(characterId) {
+            mainCharacterId = characterId;
+            highlightMainCharacter();
+            renderMessages(currentPosts);
+            renderRoomList(currentRooms);
+            document.querySelectorAll('#room-list > div').forEach(el => {
+                el.classList.toggle('bg-surface-container-low', Number(el.dataset.roomId) === Number(selectedRoomId));
+            });
+
+            const room = currentRooms.find(r => Number(r.id) === Number(selectedRoomId));
+            document.getElementById('chat-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-10 h-10');
+            document.getElementById('group-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-20 h-20');
+        }
+
+        // Fetch posts (chat messages) and their media for the selected room
+        async function fetchPosts(roomId) {
             try {
                 const res = await fetch(`/api/post?room=${roomId}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                currentPosts = await res.json();
-                renderMessages();
-            } catch (error) {
-                console.error('Failed to load messages:', error);
-                document.getElementById('chatMessages').innerHTML = 
-                    '<div class="no-chat-selected">Failed to load messages</div>';
+                const data = await res.json();
+
+                if (data.err) {
+                    alert('Error: ' + data.err);
+                    return;
+                }
+
+                const posts = (data.posts || []).slice().sort((a, b) => parseTimestamp(a.created_at) - parseTimestamp(b.created_at));
+
+                await Promise.all(posts.map(async post => {
+                    try {
+                        const mediaRes = await fetch(`/api/media?post=${post.id}`);
+                        const mediaData = await mediaRes.json();
+                        post.media = mediaData.media || [];
+                    } catch (err) {
+                        post.media = [];
+                    }
+                }));
+
+                currentPosts = posts;
+                renderMessages(currentPosts);
+            } catch (err) {
+                alert('Failed to fetch posts: ' + err);
             }
         }
 
-        // Render messages with main character logic
-        function renderMessages() {
-            const container = document.getElementById('chatMessages');
-            const mainCharId = document.getElementById('mainCharacterSelect').value;
-            
-            if (!currentPosts.length) {
-                container.innerHTML = '<div class="no-chat-selected">No messages yet. Be the first to chat!</div>';
-                return;
-            }
-            
-            container.innerHTML = currentPosts.map(post => {
-                const isMainChar = String(post.character_id) === String(mainCharId);
-                const character = characters.find(c => c.id == post.character_id);
-                const charName = character ? character.name : 'Unknown';
-                
-                const directionClass = isMainChar ? 'right' : 'left';
-                const bubbleClass = isMainChar ? 'bg-[#0084ff] text-white' : 'bg-white shadow-sm';
-                
-                let html = `
-                    <div class="message ${directionClass}">
-                        <div class="message-bubble ${bubbleClass} px-4 py-3 rounded-2xl max-w-[70%]">
-                `;
-                
-                if (!isMainChar) {
-                    html += `<div class="message-author mb-2">${escapeHtml(charName)}</div>`;
+        function renderMediaHtml(media) {
+            return (media || []).map(m => {
+                const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                if (m.file_type === 2) {
+                    return `<video class="w-64 rounded-xl border border-outline-variant shadow-sm" src="${mediaUrl}" controls></video>`;
                 }
-                
-                html += `<div>${renderContentWithMentions(post.content)}</div>`;
-                
-                if (post.image) {
-                    html += `<img src="${post.image}" class="mt-2 rounded-lg max-w-full">`;
+                if (m.file_type === 3) {
+                    return `<audio src="${mediaUrl}" controls></audio>`;
                 }
-                
-                html += `
+                return `<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity"><img class="chat-image w-full h-full object-cover" src="${mediaUrl}"/></div>`;
+            }).join('');
+        }
+
+        function renderMessages(posts) {
+            const chatHistory = document.getElementById('chat-history');
+            chatHistory.innerHTML = '';
+
+            posts.forEach(post => {
+                const author = charactersById[post.author];
+                const isOutgoing = Number(post.author) === Number(mainCharacterId);
+                const mediaHtml = renderMediaHtml(post.media);
+                const contentHtml = post.content ? escapeHtml(post.content).replace(/\r?\n/g, '<br>') : '';
+
+                const wrapper = document.createElement('div');
+
+                if (isOutgoing) {
+                    wrapper.className = 'flex flex-col items-end gap-1';
+                    wrapper.innerHTML = `
+                        ${contentHtml ? `<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">${contentHtml}</div>` : ''}
+                        ${mediaHtml}
+                    `;
+                } else {
+                    wrapper.className = 'flex gap-2 max-w-[80%] items-end';
+                    wrapper.innerHTML = `
+                        <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
+                            <img alt="${escapeHtml(author ? author.name : '')}" src="${author ? getAvatarUrl(author) : ''}"/>
                         </div>
-                    </div>
-                `;
-                return html;
-            }).join('');
-            
-            container.scrollTop = container.scrollHeight;
+                        <div class="space-y-1">
+                            <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : 'Unknown')}</span>
+                            ${contentHtml ? `<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">${contentHtml}</div>` : ''}
+                            ${mediaHtml}
+                        </div>
+                    `;
+                }
+
+                chatHistory.appendChild(wrapper);
+            });
+
+            chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
-        // Render members panel
-        function renderMembersPanel() {
-            const room = rooms.find(r => r.id === currentRoomId);
-            const container = document.getElementById('membersList');
-            
-            if (!room?.members?.length) {
-                container.innerHTML = '<div class="p-8 text-center text-fb-gray-text">No members</div>';
+        // Enlarge chat images in an overlay on click
+        const imageOverlay = document.getElementById('image-overlay');
+        const imageOverlayImg = document.getElementById('image-overlay-img');
+
+        document.getElementById('chat-history').addEventListener('click', (e) => {
+            const img = e.target.closest('.chat-image');
+            if (!img) return;
+            imageOverlayImg.src = img.src;
+            imageOverlay.classList.remove('hidden');
+            imageOverlay.classList.add('flex');
+        });
+
+        imageOverlay.addEventListener('click', () => {
+            imageOverlay.classList.add('hidden');
+            imageOverlay.classList.remove('flex');
+            imageOverlayImg.src = '';
+        });
+
+        // Composer: attach media files and submit a new post to the selected room
+        const composerForm = document.getElementById('composer-form');
+        const composerContent = document.getElementById('composer-content');
+        const composerMedia = document.getElementById('composer-media');
+        const composerPreview = document.getElementById('composer-preview');
+
+        document.getElementById('composer-attach-btn').addEventListener('click', () => composerMedia.click());
+
+        composerMedia.addEventListener('change', () => {
+            const files = Array.from(composerMedia.files || []);
+            composerPreview.classList.toggle('hidden', files.length === 0);
+            composerPreview.classList.toggle('flex', files.length > 0);
+            composerPreview.innerHTML = files.map(f => `<span class="bg-surface-container text-[12px] text-text-secondary px-2 py-1 rounded-full">${escapeHtml(f.name)}</span>`).join('');
+        });
+
+        composerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedRoomId || !mainCharacterId) {
+                alert('Select a room and a character first');
                 return;
             }
-            
-            container.innerHTML = room.members.map(member => {
-                const char = characters.find(c => c.id == member.character_id);
-                const name = char ? char.name : member.username || 'Unknown';
-                const avatar = getAvatarUrl({username: member.username}) || `/data/avatar/default.png`;
-                
-                return `
-                    <div class="member-item">
-                        <img class="member-avatar" src="${avatar}" alt="${escapeHtml(name)}" 
-                             onerror="this.src='/data/avatar/default.png'">
-                        <div class="member-name">${escapeHtml(name)}</div>
-                    </div>
-                `;
-            }).join('');
-        }
 
-        // Send message
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const authorId = document.getElementById('messageAuthorSelect').value;
-            const content = input.value.trim();
-            
-            if (!content || !currentRoomId || !authorId) return;
-            
-            const formData = {
-                room_id: currentRoomId,
-                character_id: authorId,
-                content: content
-            };
+            const content = composerContent.value.trim();
+            const files = Array.from(composerMedia.files || []);
+            if (!content && files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append('id', '0');
+            formData.append('content', content);
+            formData.append('author', String(mainCharacterId));
+            formData.append('parent', '0');
+            formData.append('liked', '0');
+            formData.append('haha', '0');
+            formData.append('loved', '0');
+            formData.append('surprised', '0');
+            formData.append('sad', '0');
+            formData.append('feeling', '');
+            formData.append('is_with', '');
+            formData.append('liked_by', '');
+            formData.append('group', '0');
+            formData.append('room', String(selectedRoomId));
+            files.forEach(file => formData.append('media', file));
 
             try {
-                const res = await fetch('/api/post', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(formData)
-                });
-                
-                if (res.ok) {
-                    input.value = '';
-                    resizeInput();
-                    selectedImageFile = null;
-                    document.getElementById('imageInput').value = '';
-                    await loadRoomMessages(currentRoomId);
+                const res = await fetch('/api/post', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.err) {
+                    alert('Error: ' + data.err);
+                    return;
                 }
-            } catch (error) {
-                console.error('Send failed:', error);
+
+                composerContent.value = '';
+                composerMedia.value = '';
+                composerPreview.classList.add('hidden');
+                composerPreview.innerHTML = '';
+
+                await fetchPosts(selectedRoomId);
+            } catch (err) {
+                alert('Failed to send message: ' + err);
             }
-        }
+        });
 
-        // Toggle message input enabled/disabled
-        function toggleMessageInput(enabled) {
-            const input = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendButton');
-            input.disabled = !enabled;
-            sendBtn.disabled = !enabled;
-        }
-
-        // Setup event listeners
-        function setupMessengerEvents() {
-            // Main character change
-            document.getElementById('mainCharacterSelect').addEventListener('change', (e) => {
-                mainCharacterId = e.target.value;
-                if (currentPosts.length) renderMessages();
-            });
-
-            // Message input
-            const input = document.getElementById('messageInput');
-            input.addEventListener('input', function() {
-                resizeInput();
-                const hasContent = this.value.trim();
-                const hasAuthor = document.getElementById('messageAuthorSelect').value;
-                document.getElementById('sendButton').disabled = !(hasContent && hasAuthor && currentRoomId);
-            });
-
-            // Enter to send
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            // Image upload (basic handling - real app would upload)
-            document.getElementById('imageInput').addEventListener('change', function(e) {
-                selectedImageFile = e.target.files[0];
-                if (selectedImageFile) {
-                    console.log('Image selected:', selectedImageFile.name);
-                    // In real app: upload file and get URL
-                }
-            });
-
-            // Auto-resize textarea
-            function resizeInput() {
-                input.style.height = 'auto';
-                input.style.height = Math.min(input.scrollHeight, 100) + 'px';
-            }
-        }
-
-        // Create new room (placeholder)
-        function createNewRoom() {
-            const name = prompt('Room name:');
-            if (name) {
-                // POST /api/room/{name}
-                alert(`Creating "${name}" (TODO: implement)`);
-            }
-        }
-
-        // Mobile sidebar toggle (if needed)
-        function toggleSidebar() {
-            document.getElementById('chatSidebar').classList.toggle('open');
-        }
-
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', initMessenger);
+        fetchRooms();
     </script>
-</body>
-</html>
+</body></html>

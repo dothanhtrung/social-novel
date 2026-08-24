@@ -52,3 +52,8 @@ pub async fn kick(db_pool: &DBPool, info: &RoomMember) -> Result<(), sqlx::Error
     #[cfg(feature = "postgres")]
     postgres::pg_room::kick(&db_pool.pg_pool, info).await
 }
+
+pub async fn touch(db_pool: &DBPool, room_id: i64) -> Result<u64, sqlx::Error> {
+    #[cfg(feature = "postgres")]
+    postgres::pg_room::touch(&db_pool.pg_pool, room_id).await
+}

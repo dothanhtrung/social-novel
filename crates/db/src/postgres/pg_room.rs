@@ -1,10 +1,10 @@
-use crate::db_room::{ChatRoom, RoomQuery, RoomMember};
+use crate::db_room::{ChatRoom, RoomMember, RoomQuery};
 use sqlx::PgPool;
 
 pub(crate) async fn search(pool: &PgPool, query: &RoomQuery) -> Result<Vec<ChatRoom>, sqlx::Error> {
     let ids = query.id.as_deref();
     let members = query.member.as_deref();
-    let limit = query.count.unwrap_or_default();
+    let limit = query.count.unwrap_or(20);
     let page = query.page.unwrap_or(1);
     let offset = (page - 1) * limit;
 
@@ -15,7 +15,7 @@ pub(crate) async fn search(pool: &PgPool, query: &RoomQuery) -> Result<Vec<ChatR
         WHERE
             (CASE WHEN $1::INT8[] IS NOT NULL THEN chat_room.id = ANY($1) ELSE TRUE END)
             AND (CASE WHEN $2::INT8[] IS NOT NULL THEN chat_room_member.character = ANY($2) ELSE TRUE END)
-        ORDER BY updated_at DESC LIMIT $3 OFFSET $4
+        GROUP BY chat_room.id ORDER BY updated_at DESC LIMIT $3 OFFSET $4
         "#,
         ids,
         members,
@@ -77,4 +77,15 @@ pub(crate) async fn kick(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx::E
     .execute(pool)
     .await?;
     Ok(())
+}
+
+pub(crate) async fn touch(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(
+        r#"UPDATE chat_room SET updated_at = NOW() WHERE id = $1"#,
+        room_id
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(count)
 }

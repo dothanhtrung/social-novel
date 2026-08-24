@@ -33,10 +33,11 @@ struct CharacterForm {
 }
 
 #[derive(Deserialize, Serialize)]
-struct CharacterQuery {
+pub struct CharacterQuery {
     #[serde(default)]
     search: String,
     username: Option<String>,
+    room: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -55,7 +56,15 @@ async fn search(db_pool: web::Data<DBPool>, queries: web::Query<CharacterQuery>)
             Err(e) => err = e.to_string(),
         }
     } else {
-        match db_character::search(&db_pool, queries.search.as_str()).await {
+        let cond = db_character::CharacterCond {
+            room: queries.room,
+            search: if queries.search.is_empty() {
+                None
+            } else {
+                Some(queries.search.clone())
+            },
+        };
+        match db_character::search(&db_pool, &cond).await {
             Ok(c) => characters = c,
             Err(e) => err = e.to_string(),
         }

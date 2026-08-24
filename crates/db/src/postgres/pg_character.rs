@@ -1,17 +1,19 @@
-use crate::db_character::Character;
-use sqlx::types::Json;
-use sqlx::PgPool;
 use super::super::db_character::Bio;
+use crate::db_character::{Character, CharacterCond};
+use sqlx::PgPool;
+use sqlx::types::Json;
 
-pub(crate) async fn search(pool: &PgPool, search: &str) -> Result<Vec<Character>, sqlx::Error> {
+pub(crate) async fn search(pool: &PgPool, search: &CharacterCond) -> Result<Vec<Character>, sqlx::Error> {
     sqlx::query_as!(
         Character,
-        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
-            FROM character
-            WHERE name ILIKE '%' || $1 || '%' OR username ILIKE '%' || $2 || '%'
+        r#"SELECT character.id, character.name, character.username, character.description, character.bio AS "bio: Json<Bio>"
+            FROM character LEFT JOIN chat_room_member ON character.id = chat_room_member.character
+            WHERE 
+            (CASE WHEN $1::TEXT IS NOT NULL THEN name ILIKE '%' || $1 || '%' OR username ILIKE '%' || $1 || '%' ELSE TRUE END)
+            AND (CASE WHEN $2::INT8 IS NOT NULL THEN chat_room_member.room = $2 ELSE TRUE END)
             ORDER BY name"#,
-        search,
-        search
+        search.search,
+        search.room,
     )
     .fetch_all(pool)
     .await
@@ -57,15 +59,23 @@ pub(crate) async fn delete(pool: &PgPool, id: i64) -> Result<u64, sqlx::Error> {
 }
 
 pub(crate) async fn get(pool: &PgPool, id: i64) -> Result<Character, sqlx::Error> {
-    sqlx::query_as!(Character, r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
-                                    FROM character WHERE id = $1"#, id)
-        .fetch_one(pool)
-        .await
+    sqlx::query_as!(
+        Character,
+        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
+                                    FROM character WHERE id = $1"#,
+        id
+    )
+    .fetch_one(pool)
+    .await
 }
 
 pub(crate) async fn get_by_username(pool: &PgPool, username: &str) -> Result<Character, sqlx::Error> {
-    sqlx::query_as!(Character, r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
-                                    FROM character WHERE username = $1"#, username)
-        .fetch_one(pool)
-        .await
+    sqlx::query_as!(
+        Character,
+        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
+                                    FROM character WHERE username = $1"#,
+        username
+    )
+    .fetch_one(pool)
+    .await
 }

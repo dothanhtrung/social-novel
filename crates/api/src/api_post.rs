@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::time::OffsetDateTime;
 use std::cmp::max;
 use std::path::{Path, PathBuf};
-use tracing::debug;
+use tracing::{debug, error};
 use web_misc::db::DBPool;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
@@ -163,6 +163,12 @@ async fn update(
                 return web::Json(CommonMessage::new(msg, err));
             }
         }
+    }
+
+    if let Some(room) = room
+        && let Err(e) = my_db::db_room::touch(&dbpool, room).await
+    {
+        error!("Failed to touch room {}: {}", room, e);
     }
 
     let data_dir = PathBuf::from(&config.data_dir);

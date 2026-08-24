@@ -21,7 +21,12 @@ pub struct Bio {
     pub love: Option<String>,
 }
 
-pub async fn search(db_pool: &DBPool, search: &str) -> Result<Vec<Character>, sqlx::Error> {
+pub struct CharacterCond {
+    pub room: Option<i64>,
+    pub search: Option<String>,
+}
+
+pub async fn search(db_pool: &DBPool, search: &CharacterCond) -> Result<Vec<Character>, sqlx::Error> {
     #[cfg(feature = "postgres")]
     postgres::pg_character::search(&db_pool.pg_pool, search).await
 }
