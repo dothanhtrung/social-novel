@@ -58,10 +58,15 @@ pub(crate) async fn update(pool: &PgPool, room_info: &ChatRoom) -> Result<u64, s
 }
 
 pub(crate) async fn invite(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx::Error> {
+    if info.members.is_empty() {
+        return Ok(());
+    }
+
     sqlx::query!(
-        r#"INSERT INTO chat_room_member (room, character)  VALUES ($1, $2)"#,
+        r#"INSERT INTO chat_room_member (room, character)
+           SELECT $1, character.id FROM character WHERE username = ANY($2::TEXT[])"#,
         info.room,
-        info.member
+        &info.members
     )
     .execute(pool)
     .await?;
@@ -69,10 +74,18 @@ pub(crate) async fn invite(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx:
 }
 
 pub(crate) async fn kick(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx::Error> {
+    if info.members.is_empty() {
+        return Ok(());
+    }
+
     sqlx::query!(
-        r#"DELETE FROM chat_room_member WHERE room = $1 AND character = $2"#,
+        r#"DELETE FROM chat_room_member
+           USING character
+           WHERE chat_room_member.room = $1
+             AND chat_room_member.character = character.id
+             AND character.username = ANY($2::TEXT[])"#,
         info.room,
-        info.member
+        &info.members
     )
     .execute(pool)
     .await?;
@@ -80,12 +93,9 @@ pub(crate) async fn kick(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx::E
 }
 
 pub(crate) async fn touch(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Error> {
-    let count = sqlx::query!(
-        r#"UPDATE chat_room SET updated_at = NOW() WHERE id = $1"#,
-        room_id
-    )
-    .execute(pool)
-    .await?
-    .rows_affected();
+    let count = sqlx::query!(r#"UPDATE chat_room SET updated_at = NOW() WHERE id = $1"#, room_id)
+        .execute(pool)
+        .await?
+        .rows_affected();
     Ok(count)
 }

@@ -18,7 +18,7 @@ Fake Facebook Messenger like page.
     * Bottom is where to enter new chat (post). Which allow to select the author character from the character list, text content and attach image
 
 * Right side bar: Room members with name and avatar. Avatar is "/data/avatar/{username}.png"
-    * Hover on member will show "Delete" icon allow to kick the member out of room by send GET "/api/room/kick?room={room_id}&member={character_id}".
+    * Hover on member will show "Delete" icon allow to kick the member out of room by send GET "/api/room/kick?room={room_id}&member={username}".
 
 
 API call:
@@ -47,416 +47,828 @@ struct PostForm {
     room: Text<i64>,
 }
 -->
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Messenger - Product Design Team</title>
-<link href="/css/tailwind_output.min.css" rel="stylesheet">
-<script src="/js/utils.js"></script>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Tailwind Configuration -->
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "surface-tint": "#005db7",
-                    "tertiary": "#9a4100",
-                    "inverse-on-surface": "#f1f1f1",
-                    "on-secondary-fixed": "#001848",
-                    "text-secondary": "#65676B",
-                    "tertiary-fixed-dim": "#ffb691",
-                    "on-tertiary-fixed-variant": "#783100",
-                    "error": "#ba1a1a",
-                    "primary-fixed-dim": "#a9c7ff",
-                    "outline": "#717786",
-                    "background": "#f9f9f9",
-                    "surface-container-lowest": "#ffffff",
-                    "primary-container": "#0073df",
-                    "on-secondary": "#ffffff",
-                    "surface-variant": "#e2e2e2",
-                    "secondary-container": "#086aff",
-                    "surface": "#f9f9f9",
-                    "primary-fixed": "#d6e3ff",
-                    "on-secondary-container": "#fefcff",
-                    "tertiary-container": "#c15300",
-                    "surface-background": "#FFFFFF",
-                    "bubble-recipient": "#E4E6EB",
-                    "on-primary-container": "#fefcff",
-                    "surface-container-low": "#f3f3f3",
-                    "secondary": "#0053ce",
-                    "on-background": "#1a1c1c",
-                    "on-tertiary-fixed": "#341100",
-                    "on-surface-variant": "#414754",
-                    "surface-container": "#eeeeee",
-                    "surface-dim": "#dadada",
-                    "on-primary": "#ffffff",
-                    "online-indicator": "#31A24C",
-                    "on-error": "#ffffff",
-                    "primary": "#005bb3",
-                    "on-secondary-fixed-variant": "#0040a1",
-                    "surface-container-highest": "#e2e2e2",
-                    "on-tertiary": "#ffffff",
-                    "on-primary-fixed": "#001b3d",
-                    "on-surface": "#1a1c1c",
-                    "error-container": "#ffdad6",
-                    "on-tertiary-container": "#fffbff",
-                    "surface-bright": "#f9f9f9",
-                    "on-error-container": "#93000a",
-                    "inverse-primary": "#a9c7ff",
-                    "surface-container-high": "#e8e8e8",
-                    "inverse-surface": "#2f3131",
-                    "on-primary-fixed-variant": "#00468c",
-                    "secondary-fixed-dim": "#b2c5ff",
-                    "outline-variant": "#c0c6d6",
-                    "text-primary": "#050505",
-                    "secondary-fixed": "#dae2ff",
-                    "tertiary-fixed": "#ffdbcb"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-            },
-            "spacing": {
-                    "space-sm": "8px",
-                    "space-xl": "20px",
-                    "margin-desktop": "24px",
-                    "space-md": "12px",
-                    "space-lg": "16px",
-                    "gutter": "12px",
-                    "space-xs": "4px",
-                    "margin-mobile": "16px"
-            },
-            "fontFamily": {
-                    "label-lg": ["Be Vietnam Pro"],
-                    "body-sm": ["Be Vietnam Pro"],
-                    "body-md": ["Be Vietnam Pro"],
-                    "headline-lg-mobile": ["Be Vietnam Pro"],
-                    "headline-lg": ["Be Vietnam Pro"],
-                    "headline-md": ["Be Vietnam Pro"],
-                    "body-lg": ["Be Vietnam Pro"]
-            },
-            "fontSize": {
-                    "label-lg": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
-                    "body-sm": ["13px", {"lineHeight": "16px", "fontWeight": "400"}],
-                    "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
-                    "headline-lg-mobile": ["22px", {"lineHeight": "26px", "fontWeight": "700"}],
-                    "headline-lg": ["24px", {"lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                    "headline-md": ["20px", {"lineHeight": "24px", "fontWeight": "600"}],
-                    "body-lg": ["17px", {"lineHeight": "22px", "fontWeight": "400"}]
+<html class="light" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Messenger - Product Design Team</title>
+        <link href="/css/tailwind_output.min.css" rel="stylesheet" />
+        <script src="/js/utils.js"></script>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <!-- Tailwind Configuration -->
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "surface-tint": "#005db7",
+                            tertiary: "#9a4100",
+                            "inverse-on-surface": "#f1f1f1",
+                            "on-secondary-fixed": "#001848",
+                            "text-secondary": "#65676B",
+                            "tertiary-fixed-dim": "#ffb691",
+                            "on-tertiary-fixed-variant": "#783100",
+                            error: "#ba1a1a",
+                            "primary-fixed-dim": "#a9c7ff",
+                            outline: "#717786",
+                            background: "#f9f9f9",
+                            "surface-container-lowest": "#ffffff",
+                            "primary-container": "#0073df",
+                            "on-secondary": "#ffffff",
+                            "surface-variant": "#e2e2e2",
+                            "secondary-container": "#086aff",
+                            surface: "#f9f9f9",
+                            "primary-fixed": "#d6e3ff",
+                            "on-secondary-container": "#fefcff",
+                            "tertiary-container": "#c15300",
+                            "surface-background": "#FFFFFF",
+                            "bubble-recipient": "#E4E6EB",
+                            "on-primary-container": "#fefcff",
+                            "surface-container-low": "#f3f3f3",
+                            secondary: "#0053ce",
+                            "on-background": "#1a1c1c",
+                            "on-tertiary-fixed": "#341100",
+                            "on-surface-variant": "#414754",
+                            "surface-container": "#eeeeee",
+                            "surface-dim": "#dadada",
+                            "on-primary": "#ffffff",
+                            "online-indicator": "#31A24C",
+                            "on-error": "#ffffff",
+                            primary: "#005bb3",
+                            "on-secondary-fixed-variant": "#0040a1",
+                            "surface-container-highest": "#e2e2e2",
+                            "on-tertiary": "#ffffff",
+                            "on-primary-fixed": "#001b3d",
+                            "on-surface": "#1a1c1c",
+                            "error-container": "#ffdad6",
+                            "on-tertiary-container": "#fffbff",
+                            "surface-bright": "#f9f9f9",
+                            "on-error-container": "#93000a",
+                            "inverse-primary": "#a9c7ff",
+                            "surface-container-high": "#e8e8e8",
+                            "inverse-surface": "#2f3131",
+                            "on-primary-fixed-variant": "#00468c",
+                            "secondary-fixed-dim": "#b2c5ff",
+                            "outline-variant": "#c0c6d6",
+                            "text-primary": "#050505",
+                            "secondary-fixed": "#dae2ff",
+                            "tertiary-fixed": "#ffdbcb",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "space-sm": "8px",
+                            "space-xl": "20px",
+                            "margin-desktop": "24px",
+                            "space-md": "12px",
+                            "space-lg": "16px",
+                            gutter: "12px",
+                            "space-xs": "4px",
+                            "margin-mobile": "16px",
+                        },
+                        fontFamily: {
+                            "label-lg": ["Be Vietnam Pro"],
+                            "body-sm": ["Be Vietnam Pro"],
+                            "body-md": ["Be Vietnam Pro"],
+                            "headline-lg-mobile": ["Be Vietnam Pro"],
+                            "headline-lg": ["Be Vietnam Pro"],
+                            "headline-md": ["Be Vietnam Pro"],
+                            "body-lg": ["Be Vietnam Pro"],
+                        },
+                        fontSize: {
+                            "label-lg": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "body-sm": [
+                                "13px",
+                                { lineHeight: "16px", fontWeight: "400" },
+                            ],
+                            "body-md": [
+                                "15px",
+                                { lineHeight: "20px", fontWeight: "400" },
+                            ],
+                            "headline-lg-mobile": [
+                                "22px",
+                                { lineHeight: "26px", fontWeight: "700" },
+                            ],
+                            "headline-lg": [
+                                "24px",
+                                {
+                                    lineHeight: "28px",
+                                    letterSpacing: "-0.02em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "headline-md": [
+                                "20px",
+                                { lineHeight: "24px", fontWeight: "600" },
+                            ],
+                            "body-lg": [
+                                "17px",
+                                { lineHeight: "22px", fontWeight: "400" },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                font-family: "Be Vietnam Pro", sans-serif;
+                background-color: #ffffff;
+                overflow: hidden;
             }
-          },
-        },
-      }
-    </script>
-<style>
-        body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background-color: #FFFFFF;
-            overflow: hidden;
-        }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            line-height: 1;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #e2e2e2;
-            border-radius: 10px;
-        }
-        .message-bubble-in {
-            border-radius: 4px 18px 18px 18px;
-        }
-        .message-bubble-out {
-            border-radius: 18px 4px 18px 18px;
-        }
-    </style>
-</head>
-<body class="bg-surface-background text-on-surface">
-<!-- Top Navigation Bar (Global Anchor) -->
-<header class="fixed top-0 w-full z-50 bg-surface-background border-b border-outline-variant flex justify-between items-center px-4 h-14">
-<div class="flex items-center gap-3">
-<span class="font-headline-md text-headline-md text-primary font-extrabold tracking-tight">Messenger</span>
-<div class="relative ml-4 hidden md:block">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" style="font-size: 18px;">search</span>
-<input class="bg-surface-container border-none rounded-full py-2 pl-10 pr-4 text-body-sm w-64 focus:ring-2 focus:ring-primary-container outline-none transition-all" placeholder="Search Messenger" type="text"/>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">groups</span></button>
-<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">videocam</span></button>
-<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">edit</span></button>
-<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
-<img alt="User profile" data-alt="Close-up portrait of a professional male user with a friendly expression, soft studio lighting, clean minimalist corporate background, high resolution photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVRSmZUApYQRTXPglNhW98VzNneBoe3VoLKE_-mes477Fv48963oxjhm6i9ZKXC1ctdYqfEYpT5pU-wi-AXBnE6_Xi5leJSYHZLroOd6vdKKN0josaJcNB70EvEJBiDI6EXAdMc2sQfIPNO9VSz61K3yYTwwaDGukCRLQ5z9WywYrbGhKDbvLrwf_N0nzJlmCSi22f5oZw9kUUYNjyGW38yKPIgVw51V2Fs_pmRxudT4fk7XfM8rhe1g"/>
-</div>
-</div>
-</header>
-<div class="pt-14 h-screen flex overflow-hidden">
-<!-- Left Sidebar: Chat List -->
-<aside class="w-90 border-r border-outline-variant flex flex-col bg-surface-background">
-<div class="p-4 flex items-center justify-between">
-<h1 class="font-headline-lg text-headline-lg">Chats</h1>
-<div class="flex gap-1">
-<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined">settings</span></button>
-</div>
-</div>
-<div id="room-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-<!-- Room items are rendered by renderRoomList() -->
-</div>
-<div class="p-4">
-<button class="w-full bg-primary py-2 px-4 rounded-lg text-on-primary font-semibold text-body-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95">
-<span class="material-symbols-outlined">add_comment</span>
-                    New Message
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+                display: inline-block;
+                line-height: 1;
+            }
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #e2e2e2;
+                border-radius: 10px;
+            }
+            .message-bubble-in {
+                border-radius: 4px 18px 18px 18px;
+            }
+            .message-bubble-out {
+                border-radius: 18px 4px 18px 18px;
+            }
+        </style>
+    </head>
+    <body class="bg-surface-background text-on-surface">
+        <!-- Top Navigation Bar (Global Anchor) -->
+        <header
+            class="fixed top-0 w-full z-50 bg-surface-background border-b border-outline-variant flex justify-between items-center px-4 h-14"
+        >
+            <div class="flex items-center gap-3">
+                <span
+                    class="font-headline-md text-headline-md text-primary font-extrabold tracking-tight"
+                    >Messenger</span
+                >
+                <div class="relative ml-4 hidden md:block">
+                    <span
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                        style="font-size: 18px"
+                        >search</span
+                    >
+                    <input
+                        class="bg-surface-container border-none rounded-full py-2 pl-10 pr-4 text-body-sm w-64 focus:ring-2 focus:ring-primary-container outline-none transition-all"
+                        placeholder="Search Messenger"
+                        type="text"
+                    />
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                >
+                    <span class="material-symbols-outlined">groups</span>
                 </button>
-</div>
-</aside>
-<!-- Center Pane: Chat Conversation -->
-<main class="flex-1 flex flex-col bg-surface-background relative">
-<!-- Chat Header -->
-<header class="h-14 flex items-center justify-between px-4 border-b border-outline-variant">
-<div class="flex items-center gap-3 cursor-pointer p-1 hover:bg-surface-container rounded-lg transition-colors">
-<div id="chat-header-avatar" class="w-10 h-10 relative flex-shrink-0">
-</div>
-<div>
-<h2 class="font-headline-md text-headline-md leading-tight" id="chat-header-name">Product Design Team</h2>
-<p class="text-body-sm text-text-secondary" id="chat-header-members">Marcus, Alex, Sarah, and 2 others</p>
-</div>
-</div>
-<div class="flex items-center gap-1">
-<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">call</span></button>
-<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">videocam</span></button>
-<button class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">info</span></button>
-</div>
-</header>
-<!-- Chat History -->
-<div id="chat-history" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-<!-- Time divider -->
-<div class="flex justify-center">
-<span class="text-[12px] font-semibold text-text-secondary uppercase tracking-wider">Today, 2:45 PM</span>
-</div>
-<!-- Recipient Message -->
-<div class="flex gap-2 max-w-[80%] items-end">
-<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
-<img alt="Alex Rivera" data-alt="A portrait of Alex Rivera." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwOUL-yoC7pWJBaymJsAfO96xsHGHdF1iBldvwVlp1DtE1Db5nFKEeKOuznU7_Pl0Fn2NqIOtH-rfsQKvnm3O9zH8zpB4GDi-HOX9KzVW6VBfUZ1JrGMJo_IPHtzRGR1IM2zhZm58gXsDbAqcSLkKbajMMUPi5tSDu19crn1ZcSAgPOtwqgVgaAB4AXUP5IjrZ1zSP50BuUpLqGPjdn4zWXjM__cmZyHXRds36j9HHtqoFSMAf-2r_jA"/>
-</div>
-<div class="space-y-1">
-<span class="text-[12px] text-text-secondary ml-1">Alex Rivera</span>
-<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
-                            Hey team, did everyone see the updated brand guidelines for the mobile app?
-                        </div>
-</div>
-</div>
-<!-- Recipient Message 2 -->
-<div class="flex gap-2 max-w-[80%] items-end">
-<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
-<img alt="Sarah Jenkins" data-alt="A portrait of Sarah Jenkins." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbgxndzVminAypKaieYihYw8ceBKvX3tF3m-FiOld-y33kHphTjv8vkoK1t4-sS5Ap7wWPb4gQiL1dbDEIugs9EdOPBPHskCiN0NQ51lVhGdHjbrERN7wdecrJUN_JWaiZIgE6f-MFO-Kz4UW0nY4Wr92JXA9QPdlQAqZOuovtAvN_txCSD0_BC3tVG4e4aNshGJaIQSdoBHic06ShAn6ddH5Wjy-RtU4csMJtoVes_ERlcCtuPpCIMQ"/>
-</div>
-<div class="space-y-1">
-<span class="text-[12px] text-text-secondary ml-1">Sarah Jenkins</span>
-<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
-                            Checking them now! The blue seems much more vibrant than the previous version.
-                        </div>
-</div>
-</div>
-<!-- Outgoing Message -->
-<div class="flex flex-col items-end gap-1">
-<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">
-                        Yeah, it's a great improvement. I've already started mapping the new tokens in our design system.
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                >
+                    <span class="material-symbols-outlined">videocam</span>
+                </button>
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                >
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
+                <div
+                    class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant"
+                >
+                    <img
+                        alt="User profile"
+                        data-alt="Close-up portrait of a professional male user with a friendly expression, soft studio lighting, clean minimalist corporate background, high resolution photography style."
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVRSmZUApYQRTXPglNhW98VzNneBoe3VoLKE_-mes477Fv48963oxjhm6i9ZKXC1ctdYqfEYpT5pU-wi-AXBnE6_Xi5leJSYHZLroOd6vdKKN0josaJcNB70EvEJBiDI6EXAdMc2sQfIPNO9VSz61K3yYTwwaDGukCRLQ5z9WywYrbGhKDbvLrwf_N0nzJlmCSi22f5oZw9kUUYNjyGW38yKPIgVw51V2Fs_pmRxudT4fk7XfM8rhe1g"
+                    />
+                </div>
+            </div>
+        </header>
+        <div class="pt-14 h-screen flex overflow-hidden">
+            <!-- Left Sidebar: Chat List -->
+            <aside
+                class="w-90 border-r border-outline-variant flex flex-col bg-surface-background"
+            >
+                <div class="p-4 flex items-center justify-between">
+                    <h1 class="font-headline-lg text-headline-lg">Chats</h1>
+                    <div class="flex gap-1">
+                        <button
+                            class="p-2 rounded-full hover:bg-surface-container-low transition-colors"
+                        >
+                            <span class="material-symbols-outlined"
+                                >settings</span
+                            >
+                        </button>
                     </div>
-<span class="text-[11px] text-text-secondary mr-1 flex items-center gap-1">Delivered <span class="material-symbols-outlined text-[12px]">check_circle</span></span>
-</div>
-<!-- Recipient Message 3 -->
-<div class="flex gap-2 max-w-[80%] items-end">
-<div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
-<img alt="Marcus Chen" data-alt="A portrait of Marcus Chen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIz77t37-KPK50q0QsgLAN7YejmNecLsfA3k8yAai8r1Ivd3v4h5tO8bjCZXy_XvvTMASaU2IZtctlXq9BgVmW3zSpC4zsTzCz9sTqJiMAEoNhWTY9K3F4Yx7IVxHBAyrFKcL2WJ3IwzTFkReMUylV_6ps9NrVRr_sXT3k5N8m9oPfr5jn4_sVH4bbWf0sfcLV4pu6ZLMdtILfAwBKXCv2JxD_2c1nYdBYLigte9MUV1Sy7AXqe0weQ"/>
-</div>
-<div class="space-y-1">
-<span class="text-[12px] text-text-secondary ml-1">Marcus Chen</span>
-<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">
-                            I've updated the Figma components with the new palette. Let me know if the contrast ratios look okay on your end. 🎨
+                </div>
+                <div
+                    id="room-list"
+                    class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1"
+                >
+                    <!-- Room items are rendered by renderRoomList() -->
+                </div>
+                <div class="p-4">
+                    <button
+                        id="new-message-btn"
+                        type="button"
+                        class="w-full bg-primary py-2 px-4 rounded-lg text-on-primary font-semibold text-body-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95"
+                    >
+                        <span class="material-symbols-outlined"
+                            >add_comment</span
+                        >
+                        New Message
+                    </button>
+                </div>
+            </aside>
+            <!-- Center Pane: Chat Conversation -->
+            <main class="flex-1 flex flex-col bg-surface-background relative">
+                <!-- Chat Header -->
+                <header
+                    class="h-14 flex items-center justify-between px-4 border-b border-outline-variant"
+                >
+                    <!-- Chat room header -->
+                    <div
+                        id="chat-header-info"
+                        class="flex items-center gap-3 cursor-pointer p-1 hover:bg-surface-container rounded-lg transition-colors"
+                    >
+                        <div
+                            id="chat-header-avatar"
+                            class="w-10 h-10 relative flex-shrink-0"
+                        ></div>
+                        <div>
+                            <h2
+                                class="font-headline-md text-headline-md leading-tight"
+                                id="chat-header-name"
+                            >
+                                Product Design Team
+                            </h2>
+                            <p
+                                class="text-body-sm text-text-secondary"
+                                id="chat-header-members"
+                            >
+                                Marcus, Alex, Sarah, and 2 others
+                            </p>
                         </div>
-</div>
-</div>
-<!-- Image Attachment from Marcus -->
-<div class="flex gap-2 max-w-[80%] items-end">
-<div class="w-7 h-7 rounded-full opacity-0 flex-shrink-0"></div> <!-- Placeholder for avatar consistency -->
-<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity">
-<img class="w-full h-full object-cover" data-alt="A high-end UI design layout showing a minimalist dashboard with clean typography and vibrant blue accents, professional interface presentation style, soft shadows, pristine light mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqB0p50MWF8BKbleoqyfgQ7QyQpZuc4iOwUKdrMdrfM1BNhyketKdJDmE6qTuXs4Azq43TJlEbvv-vnOUwX1_nnbeHdxHstpKWpEJDcU0GYRUQbmiXgM2GthnjttAvDQz2RQ5PPTEnf9ICSqsoF7dT7jv1A3QTfF8WTO_ahwnP51QsABeOXgZ8u2qls3zu01J6rKclYCbnNWL00DmauhhwfMXvOm7VJj04xAFKcQNgrBv6TkBn46TLkA"/>
-</div>
-</div>
-</div>
-<!-- Bottom Composer Bar -->
-<footer class="p-4 bg-surface-background">
-<form id="composer-form" class="flex flex-col gap-2">
-<div id="composer-preview" class="hidden flex-wrap gap-2 px-2"></div>
-<div class="flex items-center gap-2">
-<div class="flex gap-1 text-primary">
-<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">add_circle</span></button>
-<button id="composer-attach-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">image</span></button>
-<input id="composer-media" accept="image/*,video/*" hidden multiple type="file"/>
-<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">sticky_note_2</span></button>
-<button class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined">gif_box</span></button>
-</div>
-<div class="flex-1 bg-surface-container rounded-full px-4 py-2 flex items-center">
-<input id="composer-content" class="bg-transparent border-none w-full text-body-md focus:ring-0 focus:outline-none" placeholder="Aa" type="text"/>
-<button class="text-primary hover:bg-surface-container-highest p-1 rounded-full" type="button"><span class="material-symbols-outlined">sentiment_satisfied</span></button>
-</div>
-<button class="text-primary hover:scale-110 active:scale-95 transition-transform" type="submit"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span></button>
-</div>
-</form>
-</footer>
-</main>
-<!-- Right Sidebar: Group Details -->
-<aside class="w-80 border-l border-outline-variant flex flex-col bg-surface-background">
-<div class="overflow-y-auto custom-scrollbar flex-1">
-<!-- Group Info Header -->
-<div class="p-6 flex flex-col items-center text-center space-y-3">
-<div id="group-header-avatar" class="relative w-20 h-20">
-</div>
-<div>
-<h2 class="font-headline-md text-headline-md" id="group-header-name">Product Design Team</h2>
-<p class="text-body-sm text-text-secondary">Active now</p>
-</div>
-<div class="flex gap-6 pt-2">
-<div class="flex flex-col items-center gap-1 group cursor-pointer">
-<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">person</span></button>
-<span class="text-label-lg font-normal text-text-secondary">Profile</span>
-</div>
-<div class="flex flex-col items-center gap-1 group cursor-pointer">
-<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">notifications</span></button>
-<span class="text-label-lg font-normal text-text-secondary">Mute</span>
-</div>
-<div class="flex flex-col items-center gap-1 group cursor-pointer">
-<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">search</span></button>
-<span class="text-label-lg font-normal text-text-secondary">Search</span>
-</div>
-</div>
-</div>
-<!-- Chat Members Section -->
-<div class="px-4 py-2">
-<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
-                        Chat Members
-                        <span class="material-symbols-outlined">expand_more</span>
-</button>
-<div id="member-list" class="mt-1 space-y-1">
-<!-- Member items are rendered by renderMemberList() -->
-</div>
-</div>
-<!-- Media, Files & Links -->
-<div class="px-4 py-2">
-<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
-                        Media, Files &amp; Links
-                        <span class="material-symbols-outlined">chevron_right</span>
-</button>
-</div>
-<!-- Privacy & Support Section -->
-<div class="px-4 py-2">
-<button class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors">
-                        Privacy &amp; Support
-                        <span class="material-symbols-outlined">expand_more</span>
-</button>
-<div class="mt-1 space-y-1">
-<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors">
-<span class="material-symbols-outlined text-[20px]">notifications_off</span>
-                            Mute Notifications
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button
+                            class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"
+                        >
+                            <span class="material-symbols-outlined">call</span>
                         </button>
-<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-error transition-colors">
-<span class="material-symbols-outlined text-[20px]">logout</span>
-                            Leave Group
+                        <button
+                            class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"
+                        >
+                            <span class="material-symbols-outlined"
+                                >videocam</span
+                            >
                         </button>
-<button class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors">
-<span class="material-symbols-outlined text-[20px]">report</span>
-                            Report
+                        <button
+                            class="w-9 h-9 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors"
+                        >
+                            <span class="material-symbols-outlined">info</span>
                         </button>
-</div>
-</div>
-</div>
-</aside>
-</div>
-<!-- Image lightbox overlay -->
-<div id="image-overlay" class="hidden fixed inset-0 bg-black/80 z-[100] items-center justify-center cursor-zoom-out">
-<img id="image-overlay-img" class="max-w-[90vw] max-h-[90vh] rounded-lg object-contain" src=""/>
-</div>
-<!-- Micro-interaction JS -->
-<script>
-        document.querySelectorAll('button, .cursor-pointer').forEach(el => {
-            el.addEventListener('click', function(e) {
-                // Generic ripple effect or simple feedback can be added here
+                    </div>
+                </header>
+                <!-- Chat History -->
+                <div
+                    id="chat-history"
+                    class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6"
+                >
+                    <!-- Time divider -->
+                    <div class="flex justify-center">
+                        <span
+                            class="text-[12px] font-semibold text-text-secondary uppercase tracking-wider"
+                            >Today, 2:45 PM</span
+                        >
+                    </div>
+                    <!-- Recipient Message -->
+                    <div class="flex gap-2 max-w-[80%] items-end">
+                        <div
+                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                        >
+                            <img
+                                alt="Alex Rivera"
+                                data-alt="A portrait of Alex Rivera."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwOUL-yoC7pWJBaymJsAfO96xsHGHdF1iBldvwVlp1DtE1Db5nFKEeKOuznU7_Pl0Fn2NqIOtH-rfsQKvnm3O9zH8zpB4GDi-HOX9KzVW6VBfUZ1JrGMJo_IPHtzRGR1IM2zhZm58gXsDbAqcSLkKbajMMUPi5tSDu19crn1ZcSAgPOtwqgVgaAB4AXUP5IjrZ1zSP50BuUpLqGPjdn4zWXjM__cmZyHXRds36j9HHtqoFSMAf-2r_jA"
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[12px] text-text-secondary ml-1"
+                                >Alex Rivera</span
+                            >
+                            <div
+                                class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm"
+                            >
+                                Hey team, did everyone see the updated brand
+                                guidelines for the mobile app?
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Recipient Message 2 -->
+                    <div class="flex gap-2 max-w-[80%] items-end">
+                        <div
+                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                        >
+                            <img
+                                alt="Sarah Jenkins"
+                                data-alt="A portrait of Sarah Jenkins."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbgxndzVminAypKaieYihYw8ceBKvX3tF3m-FiOld-y33kHphTjv8vkoK1t4-sS5Ap7wWPb4gQiL1dbDEIugs9EdOPBPHskCiN0NQ51lVhGdHjbrERN7wdecrJUN_JWaiZIgE6f-MFO-Kz4UW0nY4Wr92JXA9QPdlQAqZOuovtAvN_txCSD0_BC3tVG4e4aNshGJaIQSdoBHic06ShAn6ddH5Wjy-RtU4csMJtoVes_ERlcCtuPpCIMQ"
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[12px] text-text-secondary ml-1"
+                                >Sarah Jenkins</span
+                            >
+                            <div
+                                class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm"
+                            >
+                                Checking them now! The blue seems much more
+                                vibrant than the previous version.
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Outgoing Message -->
+                    <div class="flex flex-col items-end gap-1">
+                        <div
+                            class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm"
+                        >
+                            Yeah, it's a great improvement. I've already started
+                            mapping the new tokens in our design system.
+                        </div>
+                        <span
+                            class="text-[11px] text-text-secondary mr-1 flex items-center gap-1"
+                            >Delivered
+                            <span class="material-symbols-outlined text-[12px]"
+                                >check_circle</span
+                            ></span
+                        >
+                    </div>
+                    <!-- Recipient Message 3 -->
+                    <div class="flex gap-2 max-w-[80%] items-end">
+                        <div
+                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                        >
+                            <img
+                                alt="Marcus Chen"
+                                data-alt="A portrait of Marcus Chen."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIz77t37-KPK50q0QsgLAN7YejmNecLsfA3k8yAai8r1Ivd3v4h5tO8bjCZXy_XvvTMASaU2IZtctlXq9BgVmW3zSpC4zsTzCz9sTqJiMAEoNhWTY9K3F4Yx7IVxHBAyrFKcL2WJ3IwzTFkReMUylV_6ps9NrVRr_sXT3k5N8m9oPfr5jn4_sVH4bbWf0sfcLV4pu6ZLMdtILfAwBKXCv2JxD_2c1nYdBYLigte9MUV1Sy7AXqe0weQ"
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[12px] text-text-secondary ml-1"
+                                >Marcus Chen</span
+                            >
+                            <div
+                                class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm"
+                            >
+                                I've updated the Figma components with the new
+                                palette. Let me know if the contrast ratios look
+                                okay on your end. 🎨
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Image Attachment from Marcus -->
+                    <div class="flex gap-2 max-w-[80%] items-end">
+                        <div
+                            class="w-7 h-7 rounded-full opacity-0 flex-shrink-0"
+                        ></div>
+                        <!-- Placeholder for avatar consistency -->
+                        <div
+                            class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity"
+                        >
+                            <img
+                                class="w-full h-full object-cover"
+                                data-alt="A high-end UI design layout showing a minimalist dashboard with clean typography and vibrant blue accents, professional interface presentation style, soft shadows, pristine light mode aesthetic."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqB0p50MWF8BKbleoqyfgQ7QyQpZuc4iOwUKdrMdrfM1BNhyketKdJDmE6qTuXs4Azq43TJlEbvv-vnOUwX1_nnbeHdxHstpKWpEJDcU0GYRUQbmiXgM2GthnjttAvDQz2RQ5PPTEnf9ICSqsoF7dT7jv1A3QTfF8WTO_ahwnP51QsABeOXgZ8u2qls3zu01J6rKclYCbnNWL00DmauhhwfMXvOm7VJj04xAFKcQNgrBv6TkBn46TLkA"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <!-- Bottom Composer Bar -->
+                <footer class="p-4 bg-surface-background">
+                    <form id="composer-form" class="flex flex-col gap-2">
+                        <div
+                            id="composer-preview"
+                            class="hidden flex-wrap gap-2 px-2"
+                        ></div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1 text-primary">
+                                <button
+                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                                    type="button"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >add_circle</span
+                                    >
+                                </button>
+                                <button
+                                    id="composer-attach-btn"
+                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                                    type="button"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >image</span
+                                    >
+                                </button>
+                                <input
+                                    id="composer-media"
+                                    accept="image/*,video/*"
+                                    hidden
+                                    multiple
+                                    type="file"
+                                />
+                                <button
+                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                                    type="button"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >sticky_note_2</span
+                                    >
+                                </button>
+                                <button
+                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
+                                    type="button"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >gif_box</span
+                                    >
+                                </button>
+                            </div>
+                            <div
+                                class="flex-1 bg-surface-container rounded-full px-4 py-2 flex items-center"
+                            >
+                                <input
+                                    id="composer-content"
+                                    class="bg-transparent border-none w-full text-body-md focus:ring-0 focus:outline-none"
+                                    placeholder="Aa"
+                                    type="text"
+                                />
+                                <button
+                                    class="text-primary hover:bg-surface-container-highest p-1 rounded-full"
+                                    type="button"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >sentiment_satisfied</span
+                                    >
+                                </button>
+                            </div>
+                            <button
+                                class="text-primary hover:scale-110 active:scale-95 transition-transform"
+                                type="submit"
+                            >
+                                <span
+                                    class="material-symbols-outlined"
+                                    style="
+                                        font-variation-settings: &quot;FILL&quot;
+                                            1;
+                                    "
+                                    >send</span
+                                >
+                            </button>
+                        </div>
+                    </form>
+                </footer>
+            </main>
+            <!-- Right Sidebar: Group Details -->
+            <aside
+                class="w-80 border-l border-outline-variant flex flex-col bg-surface-background"
+            >
+                <div class="overflow-y-auto custom-scrollbar flex-1">
+                    <!-- Group Info Header -->
+                    <div
+                        class="p-6 flex flex-col items-center text-center space-y-3"
+                    >
+                        <div
+                            id="group-header-avatar"
+                            class="relative w-20 h-20"
+                        ></div>
+                        <div>
+                            <h2
+                                class="font-headline-md text-headline-md"
+                                id="group-header-name"
+                            >
+                                Product Design Team
+                            </h2>
+                            <p class="text-body-sm text-text-secondary">
+                                Active now
+                            </p>
+                        </div>
+                        <div class="flex gap-6 pt-2">
+                            <div
+                                class="flex flex-col items-center gap-1 group cursor-pointer"
+                            >
+                                <button
+                                    class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >person</span
+                                    >
+                                </button>
+                                <span
+                                    class="text-label-lg font-normal text-text-secondary"
+                                    >Profile</span
+                                >
+                            </div>
+                            <div
+                                class="flex flex-col items-center gap-1 group cursor-pointer"
+                            >
+                                <button
+                                    class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >notifications</span
+                                    >
+                                </button>
+                                <span
+                                    class="text-label-lg font-normal text-text-secondary"
+                                    >Mute</span
+                                >
+                            </div>
+                            <div
+                                class="flex flex-col items-center gap-1 group cursor-pointer"
+                            >
+                                <button
+                                    class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-surface-container-high transition-colors"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >search</span
+                                    >
+                                </button>
+                                <span
+                                    class="text-label-lg font-normal text-text-secondary"
+                                    >Search</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Chat Members Section -->
+                    <div class="px-4 py-2">
+                        <button
+                            class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors"
+                        >
+                            Chat Members
+                            <span class="material-symbols-outlined"
+                                >expand_more</span
+                            >
+                        </button>
+                        <div id="member-list" class="mt-1 space-y-1">
+                            <!-- Member items are rendered by renderMemberList() -->
+                        </div>
+                    </div>
+                    <!-- Media, Files & Links -->
+                    <div class="px-4 py-2">
+                        <button
+                            class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors"
+                        >
+                            Media, Files &amp; Links
+                            <span class="material-symbols-outlined"
+                                >chevron_right</span
+                            >
+                        </button>
+                    </div>
+                    <!-- Privacy & Support Section -->
+                    <div class="px-4 py-2">
+                        <button
+                            class="w-full flex items-center justify-between py-2 text-on-surface font-semibold text-body-lg hover:bg-surface-container-low rounded-lg px-2 transition-colors"
+                        >
+                            Privacy &amp; Support
+                            <span class="material-symbols-outlined"
+                                >expand_more</span
+                            >
+                        </button>
+                        <div class="mt-1 space-y-1">
+                            <button
+                                class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[20px]"
+                                    >notifications_off</span
+                                >
+                                Mute Notifications
+                            </button>
+                            <button
+                                class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-error transition-colors"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[20px]"
+                                    >logout</span
+                                >
+                                Leave Group
+                            </button>
+                            <button
+                                class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-on-surface transition-colors"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[20px]"
+                                    >report</span
+                                >
+                                Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+        <!-- Image lightbox overlay -->
+        <div
+            id="image-overlay"
+            class="hidden fixed inset-0 bg-black/80 z-[100] items-center justify-center cursor-zoom-out"
+        >
+            <img
+                id="image-overlay-img"
+                class="max-w-[90vw] max-h-[90vh] rounded-lg object-contain"
+                src=""
+            />
+        </div>
+        <!-- New chat room popup -->
+        <div
+            id="new-room-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[90] items-center justify-center"
+        >
+            <div
+                class="bg-surface-background rounded-xl shadow-2xl w-full max-w-md mx-4 p-6"
+            >
+                <h2
+                    id="room-modal-title"
+                    class="font-headline-md text-headline-md mb-6"
+                >
+                    New Chat Room
+                </h2>
+                <form id="new-room-form" class="space-y-4">
+                    <div>
+                        <label
+                            for="new-room-name"
+                            class="block text-body-md font-semibold mb-2"
+                            >Chat Room name</label
+                        >
+                        <input
+                            id="new-room-name"
+                            name="name"
+                            type="text"
+                            required
+                            class="w-full px-4 py-3 bg-surface-container-low rounded-lg text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant"
+                            placeholder="Room name"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="new-room-members"
+                            class="block text-body-md font-semibold mb-2"
+                            >Members</label
+                        >
+                        <input
+                            id="new-room-members"
+                            name="members"
+                            type="text"
+                            required
+                            class="w-full px-4 py-3 bg-surface-container-low rounded-lg text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant"
+                            placeholder="username1, username2, username3"
+                        />
+                        <p class="text-body-sm text-text-secondary mt-1">
+                            Usernames separated by comma
+                        </p>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button
+                            type="button"
+                            id="new-room-cancel"
+                            class="flex-1 px-4 py-3 bg-surface-container text-on-surface rounded-lg hover:bg-surface-container-high font-semibold text-body-md"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            id="room-modal-submit"
+                            class="flex-1 px-4 py-3 bg-primary text-on-primary rounded-lg hover:opacity-90 font-semibold text-body-md"
+                        >
+                            Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Micro-interaction JS -->
+        <script>
+            document
+                .querySelectorAll("button, .cursor-pointer")
+                .forEach((el) => {
+                    el.addEventListener("click", function (e) {
+                        // Generic ripple effect or simple feedback can be added here
+                    });
+                });
+
+            // Chat scroll to bottom on load
+            const chatHistory = document.getElementById("chat-history");
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Simple input focus behavior
+            const chatInput = document.querySelector('input[placeholder="Aa"]');
+            chatInput.addEventListener("focus", () => {
+                chatInput.parentElement.classList.add(
+                    "ring-2",
+                    "ring-primary-container",
+                );
             });
-        });
+            chatInput.addEventListener("blur", () => {
+                chatInput.parentElement.classList.remove(
+                    "ring-2",
+                    "ring-primary-container",
+                );
+            });
 
-        // Chat scroll to bottom on load
-        const chatHistory = document.getElementById('chat-history');
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+            // Fetch room list from backend and render room names
+            async function fetchRooms(selectId) {
+                try {
+                    const res = await fetch("/api/room");
+                    const data = await res.json();
 
-        // Simple input focus behavior
-        const chatInput = document.querySelector('input[placeholder="Aa"]');
-        chatInput.addEventListener('focus', () => {
-            chatInput.parentElement.classList.add('ring-2', 'ring-primary-container');
-        });
-        chatInput.addEventListener('blur', () => {
-            chatInput.parentElement.classList.remove('ring-2', 'ring-primary-container');
-        });
-
-        // Fetch room list from backend and render room names
-        async function fetchRooms() {
-            try {
-                const res = await fetch('/api/room');
-                const data = await res.json();
-
-                if (data.err) {
-                    alert('Error: ' + data.err);
-                    return;
-                }
-
-                currentRooms = data.rooms || [];
-
-                await Promise.all(currentRooms.map(async room => {
-                    try {
-                        const cRes = await fetch(`/api/character?room=${room.id}`);
-                        const cData = await cRes.json();
-                        room.members = cData.characters || [];
-                    } catch (err) {
-                        room.members = [];
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
                     }
-                }));
 
-                renderRoomList(currentRooms);
+                    currentRooms = data.rooms || [];
 
-                if (currentRooms.length > 0) {
-                    selectRoom(currentRooms[0].id);
+                    await Promise.all(
+                        currentRooms.map(async (room) => {
+                            try {
+                                const cRes = await fetch(
+                                    `/api/character?room=${room.id}`,
+                                );
+                                const cData = await cRes.json();
+                                room.members = cData.characters || [];
+                            } catch (err) {
+                                room.members = [];
+                            }
+                        }),
+                    );
+
+                    renderRoomList(currentRooms);
+
+                    if (currentRooms.length > 0) {
+                        const keepId =
+                            selectId != null &&
+                            currentRooms.some(
+                                (r) => Number(r.id) === Number(selectId),
+                            )
+                                ? selectId
+                                : currentRooms[0].id;
+                        await selectRoom(keepId);
+                    }
+                } catch (err) {
+                    alert("Failed to fetch rooms: " + err);
                 }
-            } catch (err) {
-                alert('Failed to fetch rooms: ' + err);
             }
-        }
 
-        function renderRoomList(rooms) {
-            const list = document.getElementById('room-list');
-            list.innerHTML = '';
+            function renderRoomList(rooms) {
+                const list = document.getElementById("room-list");
+                list.innerHTML = "";
 
-            rooms.forEach(room => {
-                const item = document.createElement('div');
-                item.className = 'hover:bg-surface-container-low rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-all';
-                item.dataset.roomId = room.id;
-                item.addEventListener('click', () => selectRoom(room.id));
+                rooms.forEach((room) => {
+                    const item = document.createElement("div");
+                    item.className =
+                        "hover:bg-surface-container-low rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-all";
+                    item.dataset.roomId = room.id;
+                    item.addEventListener("click", () => selectRoom(room.id));
 
-                item.innerHTML = `
-                    ${buildRoomAvatarHtml(room.members, 'w-12 h-12')}
+                    item.innerHTML = `
+                    ${buildRoomAvatarHtml(room.members, "w-12 h-12")}
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-baseline">
                             <h3 class="font-body-lg text-body-lg truncate text-on-surface">${escapeHtml(room.name)}</h3>
@@ -464,283 +876,500 @@ struct PostForm {
                     </div>
                 `;
 
-                list.appendChild(item);
-            });
-        }
-
-        // Room avatar: the other member's avatar for a 2-person room, otherwise a mosaic of the first four members
-        function buildRoomAvatarHtml(members, sizeClass) {
-            sizeClass = sizeClass || 'w-12 h-12';
-            if (!members || members.length === 0) {
-                return `<div class="${sizeClass} flex-shrink-0 rounded-full bg-surface-container-high"></div>`;
+                    list.appendChild(item);
+                });
             }
 
-            if (members.length <= 2) {
-                const other = members.find(m => Number(m.id) !== Number(mainCharacterId)) || members[0];
-                return `<img class="${sizeClass} flex-shrink-0 rounded-full object-cover" alt="${escapeHtml(other.name)}" src="${getAvatarUrl(other)}"/>`;
-            }
-
-            const cells = members.slice(0, 4).map(m => `<img class="w-full h-full object-cover" alt="${escapeHtml(m.name)}" src="${getAvatarUrl(m)}"/>`).join('');
-            return `<div class="${sizeClass} flex-shrink-0 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 bg-surface-container-high">${cells}</div>`;
-        }
-
-        let selectedRoomId = null;
-        // Character shown on the right side of the conversation, chosen from the members panel
-        let mainCharacterId = null;
-        let charactersById = {};
-        let currentPosts = [];
-        let currentRooms = [];
-
-        async function selectRoom(roomId) {
-            selectedRoomId = roomId;
-
-            document.querySelectorAll('#room-list > div').forEach(el => {
-                el.classList.toggle('bg-surface-container-low', Number(el.dataset.roomId) === Number(roomId));
-            });
-
-            const room = currentRooms.find(r => Number(r.id) === Number(roomId));
-            document.getElementById('chat-header-name').textContent = room ? room.name : '';
-            document.getElementById('chat-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-10 h-10');
-            document.getElementById('group-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-20 h-20');
-            document.getElementById('group-header-name').textContent = room ? room.name : '';
-
-            await fetchMembers(roomId);
-            await fetchPosts(roomId);
-        }
-
-        // Fetch room members from backend and render name + avatar
-        async function fetchMembers(roomId) {
-            try {
-                const res = await fetch(`/api/character?room=${roomId}`);
-                const data = await res.json();
-
-                if (data.err) {
-                    alert('Error: ' + data.err);
-                    return;
+            // Room avatar: the other member's avatar for a 2-person room, otherwise a mosaic of the first four members
+            function buildRoomAvatarHtml(members, sizeClass) {
+                sizeClass = sizeClass || "w-12 h-12";
+                if (!members || members.length === 0) {
+                    return `<div class="${sizeClass} flex-shrink-0 rounded-full bg-surface-container-high"></div>`;
                 }
 
-                const characters = data.characters || [];
-                charactersById = {};
-                characters.forEach(c => charactersById[c.id] = c);
-
-                renderMemberList(characters);
-
-                const memberNames = characters.map(c => c.name).join(', ');
-                document.getElementById('chat-header-members').textContent = memberNames;
-
-                // Default the main character to the first member of the room
-                if (characters.length > 0 && (mainCharacterId === null || !charactersById[mainCharacterId])) {
-                    selectMainCharacter(characters[0].id);
+                if (members.length <= 2) {
+                    const other =
+                        members.find(
+                            (m) => Number(m.id) !== Number(mainCharacterId),
+                        ) || members[0];
+                    return `<img class="${sizeClass} flex-shrink-0 rounded-full object-cover" alt="${escapeHtml(other.name)}" src="${getAvatarUrl(other)}"/>`;
                 }
-            } catch (err) {
-                alert('Failed to fetch members: ' + err);
+
+                const cells = members
+                    .slice(0, 4)
+                    .map(
+                        (m) =>
+                            `<img class="w-full h-full object-cover" alt="${escapeHtml(m.name)}" src="${getAvatarUrl(m)}"/>`,
+                    )
+                    .join("");
+                return `<div class="${sizeClass} flex-shrink-0 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 bg-surface-container-high">${cells}</div>`;
             }
-        }
 
-        function renderMemberList(characters) {
-            const list = document.getElementById('member-list');
-            list.innerHTML = '';
+            let selectedRoomId = null;
+            // Character shown on the right side of the conversation, chosen from the members panel
+            let mainCharacterId = null;
+            let charactersById = {};
+            let currentPosts = [];
+            let currentRooms = [];
 
-            characters.forEach(character => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer';
-                item.dataset.characterId = character.id;
-                item.addEventListener('click', () => selectMainCharacter(character.id));
+            async function selectRoom(roomId) {
+                selectedRoomId = roomId;
 
-                item.innerHTML = `
+                document.querySelectorAll("#room-list > div").forEach((el) => {
+                    el.classList.toggle(
+                        "bg-surface-container-low",
+                        Number(el.dataset.roomId) === Number(roomId),
+                    );
+                });
+
+                const room = currentRooms.find(
+                    (r) => Number(r.id) === Number(roomId),
+                );
+                document.getElementById("chat-header-name").textContent = room
+                    ? room.name
+                    : "";
+                document.getElementById("chat-header-avatar").innerHTML =
+                    buildRoomAvatarHtml(room ? room.members : [], "w-10 h-10");
+                document.getElementById("group-header-avatar").innerHTML =
+                    buildRoomAvatarHtml(room ? room.members : [], "w-20 h-20");
+                document.getElementById("group-header-name").textContent = room
+                    ? room.name
+                    : "";
+
+                await fetchMembers(roomId);
+                await fetchPosts(roomId);
+            }
+
+            // Fetch room members from backend and render name + avatar
+            async function fetchMembers(roomId) {
+                try {
+                    const res = await fetch(`/api/character?room=${roomId}`);
+                    const data = await res.json();
+
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+
+                    const characters = data.characters || [];
+                    charactersById = {};
+                    characters.forEach((c) => (charactersById[c.id] = c));
+
+                    const room = currentRooms.find(
+                        (r) => Number(r.id) === Number(roomId),
+                    );
+                    if (room) room.members = characters;
+
+                    renderMemberList(characters);
+
+                    const memberNames = characters
+                        .map((c) => c.name)
+                        .join(", ");
+                    document.getElementById("chat-header-members").textContent =
+                        memberNames;
+
+                    // Default the main character to the first member of the room
+                    if (
+                        characters.length > 0 &&
+                        (mainCharacterId === null ||
+                            !charactersById[mainCharacterId])
+                    ) {
+                        selectMainCharacter(characters[0].id);
+                    }
+                } catch (err) {
+                    alert("Failed to fetch members: " + err);
+                }
+            }
+
+            function renderMemberList(characters) {
+                const list = document.getElementById("member-list");
+                list.innerHTML = "";
+
+                characters.forEach((character) => {
+                    const item = document.createElement("div");
+                    item.className =
+                        "flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer";
+                    item.dataset.characterId = character.id;
+                    item.addEventListener("click", () =>
+                        selectMainCharacter(character.id),
+                    );
+
+                    item.innerHTML = `
                     <img alt="${escapeHtml(character.name)}" class="w-9 h-9 rounded-full object-cover" src="${getAvatarUrl(character)}"/>
                     <span class="text-body-md font-semibold">${escapeHtml(character.name)}</span>
                 `;
 
-                list.appendChild(item);
-            });
+                    list.appendChild(item);
+                });
 
-            highlightMainCharacter();
-        }
-
-        function highlightMainCharacter() {
-            document.querySelectorAll('#member-list > div').forEach(el => {
-                el.classList.toggle('bg-surface-container-low', Number(el.dataset.characterId) === Number(mainCharacterId));
-            });
-        }
-
-        function selectMainCharacter(characterId) {
-            mainCharacterId = characterId;
-            highlightMainCharacter();
-            renderMessages(currentPosts);
-            renderRoomList(currentRooms);
-            document.querySelectorAll('#room-list > div').forEach(el => {
-                el.classList.toggle('bg-surface-container-low', Number(el.dataset.roomId) === Number(selectedRoomId));
-            });
-
-            const room = currentRooms.find(r => Number(r.id) === Number(selectedRoomId));
-            document.getElementById('chat-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-10 h-10');
-            document.getElementById('group-header-avatar').innerHTML = buildRoomAvatarHtml(room ? room.members : [], 'w-20 h-20');
-        }
-
-        // Fetch posts (chat messages) and their media for the selected room
-        async function fetchPosts(roomId) {
-            try {
-                const res = await fetch(`/api/post?room=${roomId}`);
-                const data = await res.json();
-
-                if (data.err) {
-                    alert('Error: ' + data.err);
-                    return;
-                }
-
-                const posts = (data.posts || []).slice().sort((a, b) => parseTimestamp(a.created_at) - parseTimestamp(b.created_at));
-
-                await Promise.all(posts.map(async post => {
-                    try {
-                        const mediaRes = await fetch(`/api/media?post=${post.id}`);
-                        const mediaData = await mediaRes.json();
-                        post.media = mediaData.media || [];
-                    } catch (err) {
-                        post.media = [];
-                    }
-                }));
-
-                currentPosts = posts;
-                renderMessages(currentPosts);
-            } catch (err) {
-                alert('Failed to fetch posts: ' + err);
+                highlightMainCharacter();
             }
-        }
 
-        function renderMediaHtml(media) {
-            return (media || []).map(m => {
-                const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                if (m.file_type === 2) {
-                    return `<video class="w-64 rounded-xl border border-outline-variant shadow-sm" src="${mediaUrl}" controls></video>`;
+            function highlightMainCharacter() {
+                document
+                    .querySelectorAll("#member-list > div")
+                    .forEach((el) => {
+                        el.classList.toggle(
+                            "bg-surface-container-low",
+                            Number(el.dataset.characterId) ===
+                                Number(mainCharacterId),
+                        );
+                    });
+            }
+
+            function selectMainCharacter(characterId) {
+                mainCharacterId = characterId;
+                highlightMainCharacter();
+                renderMessages(currentPosts);
+                renderRoomList(currentRooms);
+                document.querySelectorAll("#room-list > div").forEach((el) => {
+                    el.classList.toggle(
+                        "bg-surface-container-low",
+                        Number(el.dataset.roomId) === Number(selectedRoomId),
+                    );
+                });
+
+                const room = currentRooms.find(
+                    (r) => Number(r.id) === Number(selectedRoomId),
+                );
+                document.getElementById("chat-header-avatar").innerHTML =
+                    buildRoomAvatarHtml(room ? room.members : [], "w-10 h-10");
+                document.getElementById("group-header-avatar").innerHTML =
+                    buildRoomAvatarHtml(room ? room.members : [], "w-20 h-20");
+            }
+
+            // Fetch posts (chat messages) and their media for the selected room
+            async function fetchPosts(roomId) {
+                try {
+                    const res = await fetch(`/api/post?room=${roomId}`);
+                    const data = await res.json();
+
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+
+                    const posts = (data.posts || [])
+                        .slice()
+                        .sort(
+                            (a, b) =>
+                                parseTimestamp(a.created_at) -
+                                parseTimestamp(b.created_at),
+                        );
+
+                    await Promise.all(
+                        posts.map(async (post) => {
+                            try {
+                                const mediaRes = await fetch(
+                                    `/api/media?post=${post.id}`,
+                                );
+                                const mediaData = await mediaRes.json();
+                                post.media = mediaData.media || [];
+                            } catch (err) {
+                                post.media = [];
+                            }
+                        }),
+                    );
+
+                    currentPosts = posts;
+                    renderMessages(currentPosts);
+                } catch (err) {
+                    alert("Failed to fetch posts: " + err);
                 }
-                if (m.file_type === 3) {
-                    return `<audio src="${mediaUrl}" controls></audio>`;
-                }
-                return `<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity"><img class="chat-image w-full h-full object-cover" src="${mediaUrl}"/></div>`;
-            }).join('');
-        }
+            }
 
-        function renderMessages(posts) {
-            const chatHistory = document.getElementById('chat-history');
-            chatHistory.innerHTML = '';
+            function renderMediaHtml(media) {
+                return (media || [])
+                    .map((m) => {
+                        const mediaUrl =
+                            m.url &&
+                            (m.url.startsWith("/") || m.url.startsWith("http"))
+                                ? m.url
+                                : "/data/" + m.url;
+                        if (m.file_type === 2) {
+                            return `<video class="w-64 rounded-xl border border-outline-variant shadow-sm" src="${mediaUrl}" controls></video>`;
+                        }
+                        if (m.file_type === 3) {
+                            return `<audio src="${mediaUrl}" controls></audio>`;
+                        }
+                        return `<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity"><img class="chat-image w-full h-full object-cover" src="${mediaUrl}"/></div>`;
+                    })
+                    .join("");
+            }
 
-            posts.forEach(post => {
-                const author = charactersById[post.author];
-                const isOutgoing = Number(post.author) === Number(mainCharacterId);
-                const mediaHtml = renderMediaHtml(post.media);
-                const contentHtml = post.content ? escapeHtml(post.content).replace(/\r?\n/g, '<br>') : '';
+            function renderMessages(posts) {
+                const chatHistory = document.getElementById("chat-history");
+                chatHistory.innerHTML = "";
 
-                const wrapper = document.createElement('div');
+                posts.forEach((post) => {
+                    const author = charactersById[post.author];
+                    const isOutgoing =
+                        Number(post.author) === Number(mainCharacterId);
+                    const mediaHtml = renderMediaHtml(post.media);
+                    const contentHtml = post.content
+                        ? escapeHtml(post.content).replace(/\r?\n/g, "<br>")
+                        : "";
 
-                if (isOutgoing) {
-                    wrapper.className = 'flex flex-col items-end gap-1';
-                    wrapper.innerHTML = `
-                        ${contentHtml ? `<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">${contentHtml}</div>` : ''}
+                    const wrapper = document.createElement("div");
+
+                    if (isOutgoing) {
+                        wrapper.className = "flex flex-col items-end gap-1";
+                        wrapper.innerHTML = `
+                        ${contentHtml ? `<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">${contentHtml}</div>` : ""}
                         ${mediaHtml}
                     `;
-                } else {
-                    wrapper.className = 'flex gap-2 max-w-[80%] items-end';
-                    wrapper.innerHTML = `
+                    } else {
+                        wrapper.className = "flex gap-2 max-w-[80%] items-end";
+                        wrapper.innerHTML = `
                         <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
-                            <img alt="${escapeHtml(author ? author.name : '')}" src="${author ? getAvatarUrl(author) : ''}"/>
+                            <img alt="${escapeHtml(author ? author.name : "")}" src="${author ? getAvatarUrl(author) : ""}"/>
                         </div>
                         <div class="space-y-1">
-                            <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : 'Unknown')}</span>
-                            ${contentHtml ? `<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">${contentHtml}</div>` : ''}
+                            <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : "Unknown")}</span>
+                            ${contentHtml ? `<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">${contentHtml}</div>` : ""}
                             ${mediaHtml}
                         </div>
                     `;
-                }
+                    }
 
-                chatHistory.appendChild(wrapper);
-            });
+                    chatHistory.appendChild(wrapper);
+                });
 
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        }
-
-        // Enlarge chat images in an overlay on click
-        const imageOverlay = document.getElementById('image-overlay');
-        const imageOverlayImg = document.getElementById('image-overlay-img');
-
-        document.getElementById('chat-history').addEventListener('click', (e) => {
-            const img = e.target.closest('.chat-image');
-            if (!img) return;
-            imageOverlayImg.src = img.src;
-            imageOverlay.classList.remove('hidden');
-            imageOverlay.classList.add('flex');
-        });
-
-        imageOverlay.addEventListener('click', () => {
-            imageOverlay.classList.add('hidden');
-            imageOverlay.classList.remove('flex');
-            imageOverlayImg.src = '';
-        });
-
-        // Composer: attach media files and submit a new post to the selected room
-        const composerForm = document.getElementById('composer-form');
-        const composerContent = document.getElementById('composer-content');
-        const composerMedia = document.getElementById('composer-media');
-        const composerPreview = document.getElementById('composer-preview');
-
-        document.getElementById('composer-attach-btn').addEventListener('click', () => composerMedia.click());
-
-        composerMedia.addEventListener('change', () => {
-            const files = Array.from(composerMedia.files || []);
-            composerPreview.classList.toggle('hidden', files.length === 0);
-            composerPreview.classList.toggle('flex', files.length > 0);
-            composerPreview.innerHTML = files.map(f => `<span class="bg-surface-container text-[12px] text-text-secondary px-2 py-1 rounded-full">${escapeHtml(f.name)}</span>`).join('');
-        });
-
-        composerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            if (!selectedRoomId || !mainCharacterId) {
-                alert('Select a room and a character first');
-                return;
+                chatHistory.scrollTop = chatHistory.scrollHeight;
             }
 
-            const content = composerContent.value.trim();
-            const files = Array.from(composerMedia.files || []);
-            if (!content && files.length === 0) return;
+            // Enlarge chat images in an overlay on click
+            const imageOverlay = document.getElementById("image-overlay");
+            const imageOverlayImg =
+                document.getElementById("image-overlay-img");
 
-            const formData = new FormData();
-            formData.append('id', '0');
-            formData.append('content', content);
-            formData.append('author', String(mainCharacterId));
-            formData.append('parent', '0');
-            formData.append('liked', '0');
-            formData.append('haha', '0');
-            formData.append('loved', '0');
-            formData.append('surprised', '0');
-            formData.append('sad', '0');
-            formData.append('feeling', '');
-            formData.append('is_with', '');
-            formData.append('liked_by', '');
-            formData.append('group', '0');
-            formData.append('room', String(selectedRoomId));
-            files.forEach(file => formData.append('media', file));
+            document
+                .getElementById("chat-history")
+                .addEventListener("click", (e) => {
+                    const img = e.target.closest(".chat-image");
+                    if (!img) return;
+                    imageOverlayImg.src = img.src;
+                    imageOverlay.classList.remove("hidden");
+                    imageOverlay.classList.add("flex");
+                });
 
-            try {
-                const res = await fetch('/api/post', { method: 'POST', body: formData });
-                const data = await res.json();
+            imageOverlay.addEventListener("click", () => {
+                imageOverlay.classList.add("hidden");
+                imageOverlay.classList.remove("flex");
+                imageOverlayImg.src = "";
+            });
 
-                if (data.err) {
-                    alert('Error: ' + data.err);
+            // Composer: attach media files and submit a new post to the selected room
+            const composerForm = document.getElementById("composer-form");
+            const composerContent = document.getElementById("composer-content");
+            const composerMedia = document.getElementById("composer-media");
+            const composerPreview = document.getElementById("composer-preview");
+
+            document
+                .getElementById("composer-attach-btn")
+                .addEventListener("click", () => composerMedia.click());
+
+            composerMedia.addEventListener("change", () => {
+                const files = Array.from(composerMedia.files || []);
+                composerPreview.classList.toggle("hidden", files.length === 0);
+                composerPreview.classList.toggle("flex", files.length > 0);
+                composerPreview.innerHTML = files
+                    .map(
+                        (f) =>
+                            `<span class="bg-surface-container text-[12px] text-text-secondary px-2 py-1 rounded-full">${escapeHtml(f.name)}</span>`,
+                    )
+                    .join("");
+            });
+
+            composerForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                if (!selectedRoomId || !mainCharacterId) {
+                    alert("Select a room and a character first");
                     return;
                 }
 
-                composerContent.value = '';
-                composerMedia.value = '';
-                composerPreview.classList.add('hidden');
-                composerPreview.innerHTML = '';
+                const content = composerContent.value.trim();
+                const files = Array.from(composerMedia.files || []);
+                if (!content && files.length === 0) return;
 
-                await fetchPosts(selectedRoomId);
-            } catch (err) {
-                alert('Failed to send message: ' + err);
+                const formData = new FormData();
+                formData.append("id", "0");
+                formData.append("content", content);
+                formData.append("author", String(mainCharacterId));
+                formData.append("parent", "0");
+                formData.append("liked", "0");
+                formData.append("haha", "0");
+                formData.append("loved", "0");
+                formData.append("surprised", "0");
+                formData.append("sad", "0");
+                formData.append("feeling", "");
+                formData.append("is_with", "");
+                formData.append("liked_by", "");
+                formData.append("group", "0");
+                formData.append("room", String(selectedRoomId));
+                files.forEach((file) => formData.append("media", file));
+
+                try {
+                    const res = await fetch("/api/post", {
+                        method: "POST",
+                        body: formData,
+                    });
+                    const data = await res.json();
+
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+
+                    composerContent.value = "";
+                    composerMedia.value = "";
+                    composerPreview.classList.add("hidden");
+                    composerPreview.innerHTML = "";
+
+                    await fetchPosts(selectedRoomId);
+                } catch (err) {
+                    alert("Failed to send message: " + err);
+                }
+            });
+
+            // New Message / Edit room: create or update a chat room
+            const newMessageBtn = document.getElementById("new-message-btn");
+            const chatHeaderInfo = document.getElementById("chat-header-info");
+            const newRoomModal = document.getElementById("new-room-modal");
+            const newRoomForm = document.getElementById("new-room-form");
+            const newRoomCancel = document.getElementById("new-room-cancel");
+            const roomModalTitle = document.getElementById("room-modal-title");
+            const roomModalSubmit =
+                document.getElementById("room-modal-submit");
+            let editingRoomId = null;
+
+            function parseUsernames(value) {
+                return String(value || "")
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
             }
-        });
 
-        fetchRooms();
-    </script>
-</body></html>
+            function currentRoomUsernames() {
+                const room = currentRooms.find(
+                    (r) => Number(r.id) === Number(selectedRoomId),
+                );
+                const members = room && room.members ? room.members : [];
+                return members.map((m) => m.username).filter(Boolean);
+            }
+
+            async function updateRoomMembers(roomId, usernames, action) {
+                if (!usernames.length) return;
+                const params = new URLSearchParams();
+                params.set("room", String(roomId));
+                usernames.forEach((u) => params.append("members", u));
+                const res = await fetch(`/api/room/${action}?${params}`);
+                const data = await res.json();
+                if (data.err) throw new Error(data.err);
+            }
+
+            function showRoomModal() {
+                newRoomModal.classList.remove("hidden");
+                newRoomModal.classList.add("flex");
+                document.getElementById("new-room-name").focus();
+            }
+
+            function openNewRoomModal() {
+                editingRoomId = null;
+                newRoomForm.reset();
+                roomModalTitle.textContent = "New Chat Room";
+                roomModalSubmit.textContent = "Create";
+                showRoomModal();
+            }
+
+            function openEditRoomModal() {
+                if (!selectedRoomId) return;
+
+                const room = currentRooms.find(
+                    (r) => Number(r.id) === Number(selectedRoomId),
+                );
+                if (!room) return;
+
+                editingRoomId = selectedRoomId;
+                roomModalTitle.textContent = "Edit Chat Room";
+                roomModalSubmit.textContent = "Save";
+                document.getElementById("new-room-name").value = room.name || "";
+                document.getElementById("new-room-members").value =
+                    currentRoomUsernames().join(", ");
+                showRoomModal();
+            }
+
+            function closeNewRoomModal() {
+                newRoomModal.classList.add("hidden");
+                newRoomModal.classList.remove("flex");
+                newRoomForm.reset();
+                editingRoomId = null;
+                roomModalTitle.textContent = "New Chat Room";
+                roomModalSubmit.textContent = "Create";
+            }
+
+            newMessageBtn.addEventListener("click", openNewRoomModal);
+            chatHeaderInfo.addEventListener("click", openEditRoomModal);
+            newRoomCancel.addEventListener("click", closeNewRoomModal);
+            newRoomModal.addEventListener("click", (e) => {
+                if (e.target === newRoomModal) closeNewRoomModal();
+            });
+
+            newRoomForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                const name = document
+                    .getElementById("new-room-name")
+                    .value.trim();
+                const members = document
+                    .getElementById("new-room-members")
+                    .value.trim();
+                if (!name || !members) return;
+
+                const isEdit = editingRoomId != null;
+                const roomId = isEdit ? editingRoomId : -1;
+                const formData = new FormData();
+                formData.append("name", name);
+                formData.append("id", String(roomId));
+                formData.append("members", members);
+
+                try {
+                    const res = await fetch("/api/room", {
+                        method: "POST",
+                        body: formData,
+                    });
+                    const data = await res.json();
+
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+
+                    if (isEdit) {
+                        const oldNames = currentRoomUsernames();
+                        const newNames = parseUsernames(members);
+                        const oldSet = new Set(oldNames);
+                        const newSet = new Set(newNames);
+                        const toInvite = newNames.filter((u) => !oldSet.has(u));
+                        const toKick = oldNames.filter((u) => !newSet.has(u));
+                        await updateRoomMembers(roomId, toInvite, "invite");
+                        await updateRoomMembers(roomId, toKick, "kick");
+                    }
+
+                    const keepId = isEdit ? roomId : undefined;
+                    closeNewRoomModal();
+                    await fetchRooms(keepId);
+                } catch (err) {
+                    alert(
+                        (isEdit
+                            ? "Failed to update room: "
+                            : "Failed to create room: ") + err,
+                    );
+                }
+            });
+
+            fetchRooms();
+        </script>
+    </body>
+</html>

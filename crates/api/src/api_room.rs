@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use crate::{save_file, CommonMessage};
+use crate::{CommonMessage, save_file};
+use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
 use actix_web::web::Query;
-use actix_web::{get, post, web, Responder};
+use actix_web::{Responder, get, post, web};
 use my_config::ConfigData;
 use my_db::db_room::{self, RoomMember};
 use my_db::db_room::{ChatRoom, RoomQuery};
@@ -33,6 +33,7 @@ struct RoomResponse {
 struct RoomForm {
     id: Text<i64>,
     name: Text<String>,
+    members: Text<String>,
     background: Option<TempFile>,
 }
 
@@ -77,7 +78,18 @@ async fn update(
         }
     } else {
         match db_room::insert(&dbpool, &room).await {
-            Ok(_) => ret.msg = "Success".to_string(),
+            Ok(id) => {
+                ret.msg = "Success".to_string();
+                let members: Vec<String> = data
+                    .members
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if let Err(e) = db_room::invite(&dbpool, &RoomMember { room: id, members }).await {
+                    ret.err = e.to_string();
+                }
+            }
             Err(e) => ret.err = e.to_string(),
         }
     }

@@ -20,7 +20,7 @@ pub struct RoomQuery {
 #[derive(Deserialize)]
 pub struct RoomMember {
     pub room: i64,
-    pub member: i64,
+    pub members: Vec<String>,
 }
 
 pub async fn search(db_pool: &DBPool, query: &RoomQuery) -> Result<Vec<ChatRoom>, sqlx::Error> {
