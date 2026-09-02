@@ -10,7 +10,7 @@ use my_config::ConfigData;
 use my_db::db_room::{self, RoomMember};
 use my_db::db_room::{ChatRoom, RoomQuery};
 use serde::Serialize;
-use web_misc::db::DBPool;
+use web_misc::db::{self, DBPool};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -71,21 +71,28 @@ async fn update(
         id: data.id.0,
         name: data.name.0,
     };
+    let members: Vec<String> = data
+        .members
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
     if room.id > 0 {
         match db_room::update(&dbpool, &room).await {
-            Ok(_) => ret.msg = "Success".to_string(),
+            Ok(_) => {
+                ret.msg = "Success".to_string();
+                let _ = db_room::kick_all(&dbpool, room.id).await;
+                if let Err(e) = db_room::invite(&dbpool, &RoomMember { room: room.id, members }).await {
+                    ret.err = e.to_string();
+                }
+            }
             Err(e) => ret.err = e.to_string(),
         }
     } else {
         match db_room::insert(&dbpool, &room).await {
             Ok(id) => {
                 ret.msg = "Success".to_string();
-                let members: Vec<String> = data
-                    .members
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect();
+
                 if let Err(e) = db_room::invite(&dbpool, &RoomMember { room: id, members }).await {
                     ret.err = e.to_string();
                 }
@@ -99,8 +106,13 @@ async fn update(
 
 #[get("delete/{id}")]
 async fn delete(dbpool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
-    let ret = match db_room::delete_by_id(&dbpool, id.into_inner()).await {
-        Ok(_) => CommonMessage::from_msg("Success".to_string()),
+    let room_id = id.into_inner();
+    let ret = match db_room::delete_by_id(&dbpool, room_id).await {
+        Ok(_) => {
+            let _ = db_room::kick_all(&dbpool, room_id).await;
+            CommonMessage::from_msg("Success".to_string())
+        
+        },
         Err(e) => CommonMessage::from_err(e.to_string()),
     };
 

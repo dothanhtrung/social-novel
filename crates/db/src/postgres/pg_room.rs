@@ -92,6 +92,14 @@ pub(crate) async fn kick(pool: &PgPool, info: &RoomMember) -> Result<(), sqlx::E
     Ok(())
 }
 
+pub(crate) async fn kick_all(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(r#"DELETE FROM chat_room_member WHERE room = $1"#, room_id)
+        .execute(pool)
+        .await?
+        .rows_affected();
+    Ok(count)
+}
+
 pub(crate) async fn touch(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Error> {
     let count = sqlx::query!(r#"UPDATE chat_room SET updated_at = NOW() WHERE id = $1"#, room_id)
         .execute(pool)

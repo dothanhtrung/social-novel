@@ -335,13 +335,13 @@ struct PostForm {
                                 class="font-headline-md text-headline-md leading-tight"
                                 id="chat-header-name"
                             >
-                                Product Design Team
+                                
                             </h2>
                             <p
                                 class="text-body-sm text-text-secondary"
                                 id="chat-header-members"
                             >
-                                Marcus, Alex, Sarah, and 2 others
+                                
                             </p>
                         </div>
                     </div>
@@ -683,6 +683,7 @@ struct PostForm {
                                 Mute Notifications
                             </button>
                             <button
+                                id="leave-group-btn"
                                 class="w-full flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg text-body-md text-error transition-colors"
                             >
                                 <span
@@ -783,6 +784,38 @@ struct PostForm {
                 </form>
             </div>
         </div>
+        <!-- Delete group confirmation popup -->
+        <div
+            id="delete-room-modal"
+            class="hidden fixed inset-0 bg-black/50 z-[90] items-center justify-center"
+        >
+            <div
+                class="bg-surface-background rounded-xl shadow-2xl w-full max-w-md mx-4 p-6"
+            >
+                <h2 class="font-headline-md text-headline-md mb-3">
+                    Delete group?
+                </h2>
+                <p class="text-body-md text-text-secondary mb-6">
+                    This will permanently delete the group and its messages.
+                </p>
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        id="delete-room-cancel"
+                        class="flex-1 px-4 py-3 bg-surface-container text-on-surface rounded-lg hover:bg-surface-container-high font-semibold text-body-md"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        id="delete-room-confirm"
+                        class="flex-1 px-4 py-3 bg-error text-on-error rounded-lg hover:opacity-90 font-semibold text-body-md"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
         <!-- Micro-interaction JS -->
         <script>
             document
@@ -871,13 +904,26 @@ struct PostForm {
                     ${buildRoomAvatarHtml(room.members, "w-12 h-12")}
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-baseline">
-                            <h3 class="font-body-lg text-body-lg truncate text-on-surface">${escapeHtml(room.name)}</h3>
+                            <h3 class="font-body-lg text-body-lg truncate text-on-surface">${escapeHtml(getRoomDisplayName(room))}</h3>
                         </div>
                     </div>
                 `;
 
                     list.appendChild(item);
                 });
+            }
+
+            function getRoomDisplayName(room) {
+                const members = room && room.members ? room.members : [];
+                if (members.length === 2) {
+                    const other =
+                        members.find(
+                            (member) =>
+                                Number(member.id) !== Number(mainCharacterId),
+                        ) || members[0];
+                    return other.name || room.name || "";
+                }
+                return room ? room.name || "" : "";
             }
 
             // Room avatar: the other member's avatar for a 2-person room, otherwise a mosaic of the first four members
@@ -925,9 +971,14 @@ struct PostForm {
                 const room = currentRooms.find(
                     (r) => Number(r.id) === Number(roomId),
                 );
-                document.getElementById("chat-header-name").textContent = room
-                    ? room.name
-                    : "";
+                document.getElementById("chat-header-name").textContent =
+                    getRoomDisplayName(room);
+                document
+                    .getElementById("chat-header-members")
+                    .classList.toggle(
+                        "hidden",
+                        Boolean(room && room.members && room.members.length === 2),
+                    );
                 document.getElementById("chat-header-avatar").innerHTML =
                     buildRoomAvatarHtml(room ? room.members : [], "w-10 h-10");
                 document.getElementById("group-header-avatar").innerHTML =
@@ -967,6 +1018,11 @@ struct PostForm {
                         .join(", ");
                     document.getElementById("chat-header-members").textContent =
                         memberNames;
+                    document
+                        .getElementById("chat-header-members")
+                        .classList.toggle("hidden", characters.length === 2);
+                    document.getElementById("chat-header-name").textContent =
+                        getRoomDisplayName(room);
 
                     // Default the main character to the first member of the room
                     if (
@@ -1032,6 +1088,14 @@ struct PostForm {
                 const room = currentRooms.find(
                     (r) => Number(r.id) === Number(selectedRoomId),
                 );
+                document.getElementById("chat-header-name").textContent =
+                    getRoomDisplayName(room);
+                document
+                    .getElementById("chat-header-members")
+                    .classList.toggle(
+                        "hidden",
+                        Boolean(room && room.members && room.members.length === 2),
+                    );
                 document.getElementById("chat-header-avatar").innerHTML =
                     buildRoomAvatarHtml(room ? room.members : [], "w-10 h-10");
                 document.getElementById("group-header-avatar").innerHTML =
@@ -1242,6 +1306,10 @@ struct PostForm {
             const roomModalTitle = document.getElementById("room-modal-title");
             const roomModalSubmit =
                 document.getElementById("room-modal-submit");
+            const leaveGroupBtn = document.getElementById("leave-group-btn");
+            const deleteRoomModal = document.getElementById("delete-room-modal");
+            const deleteRoomCancel = document.getElementById("delete-room-cancel");
+            const deleteRoomConfirm = document.getElementById("delete-room-confirm");
             let editingRoomId = null;
 
             function parseUsernames(value) {
@@ -1259,15 +1327,15 @@ struct PostForm {
                 return members.map((m) => m.username).filter(Boolean);
             }
 
-            async function updateRoomMembers(roomId, usernames, action) {
-                if (!usernames.length) return;
-                const params = new URLSearchParams();
-                params.set("room", String(roomId));
-                usernames.forEach((u) => params.append("members", u));
-                const res = await fetch(`/api/room/${action}?${params}`);
-                const data = await res.json();
-                if (data.err) throw new Error(data.err);
-            }
+            // async function updateRoomMembers(roomId, usernames, action) {
+            //     if (!usernames.length) return;
+            //     const params = new URLSearchParams();
+            //     params.set("room", String(roomId));
+            //     usernames.forEach((u) => params.append("members", u));
+            //     const res = await fetch(`/api/room/${action}?${params}`);
+            //     const data = await res.json();
+            //     if (data.err) throw new Error(data.err);
+            // }
 
             function showRoomModal() {
                 newRoomModal.classList.remove("hidden");
@@ -1316,6 +1384,48 @@ struct PostForm {
                 if (e.target === newRoomModal) closeNewRoomModal();
             });
 
+            function closeDeleteRoomModal() {
+                deleteRoomModal.classList.add("hidden");
+                deleteRoomModal.classList.remove("flex");
+            }
+
+            function openDeleteRoomModal() {
+                if (!selectedRoomId) return;
+                deleteRoomModal.classList.remove("hidden");
+                deleteRoomModal.classList.add("flex");
+                deleteRoomConfirm.focus();
+            }
+
+            leaveGroupBtn.addEventListener("click", openDeleteRoomModal);
+            deleteRoomCancel.addEventListener("click", closeDeleteRoomModal);
+            deleteRoomModal.addEventListener("click", (e) => {
+                if (e.target === deleteRoomModal) closeDeleteRoomModal();
+            });
+
+            deleteRoomConfirm.addEventListener("click", async () => {
+                if (!selectedRoomId) return;
+
+                deleteRoomConfirm.disabled = true;
+                try {
+                    const res = await fetch(`/api/room/delete/${selectedRoomId}`);
+                    const data = await res.json();
+
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+
+                    closeDeleteRoomModal();
+                    selectedRoomId = null;
+                    currentPosts = [];
+                    await fetchRooms();
+                } catch (err) {
+                    alert("Failed to delete group: " + err);
+                } finally {
+                    deleteRoomConfirm.disabled = false;
+                }
+            });
+
             newRoomForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
 
@@ -1346,16 +1456,16 @@ struct PostForm {
                         return;
                     }
 
-                    if (isEdit) {
-                        const oldNames = currentRoomUsernames();
-                        const newNames = parseUsernames(members);
-                        const oldSet = new Set(oldNames);
-                        const newSet = new Set(newNames);
-                        const toInvite = newNames.filter((u) => !oldSet.has(u));
-                        const toKick = oldNames.filter((u) => !newSet.has(u));
-                        await updateRoomMembers(roomId, toInvite, "invite");
-                        await updateRoomMembers(roomId, toKick, "kick");
-                    }
+                    // if (isEdit) {
+                    //     const oldNames = currentRoomUsernames();
+                    //     const newNames = parseUsernames(members);
+                    //     const oldSet = new Set(oldNames);
+                    //     const newSet = new Set(newNames);
+                    //     const toInvite = newNames.filter((u) => !oldSet.has(u));
+                    //     const toKick = oldNames.filter((u) => !newSet.has(u));
+                    //     await updateRoomMembers(roomId, toInvite, "invite");
+                    //     await updateRoomMembers(roomId, toKick, "kick");
+                    // }
 
                     const keepId = isEdit ? roomId : undefined;
                     closeNewRoomModal();
