@@ -263,7 +263,8 @@
                                 <input type="hidden" name="id" value="0" />
                                 <input type="hidden" name="is_with" value="" />
                                 <input type="hidden" name="feeling" value="" />
-                                <select name="author" class="w-28 px-2 py-1 border rounded">${userList.map(u => `<option value="${u.id}">${u.name || u.username}</option>`).join('')}</select>
+                                <input type="hidden" name="author" class="main-character-author" value="${getMainCharacterId()}" />
+                                <div class="main-character-avatar size-8 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${getMainCharacter() ? getAvatarUrl(getMainCharacter().username) : ''}')"></div>
                                 <div class="flex-1">
                                     <textarea name="content" placeholder="Write a comment..." class="w-full px-3 py-2 border rounded resize-none" rows="2"></textarea>
                                     <div class="mt-2 flex items-center justify-between">
@@ -424,43 +425,6 @@
             }
         }
 
-        function renderAuthorSelect() {
-            const select = document.getElementById('author-select');
-            if (!select) return;
-            select.innerHTML = userList.map(user => `<option value="${user.id}">${user.name || user.username}</option>`).join("");
-            // Set avatar for first user
-            if (userList.length > 0) {
-                setAuthorAvatar(userList[0]);
-            }
-            // Refresh username lower-case map in case userList changed
-            usernameMapLower = {};
-            for (const user of userList) if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
-        }
-
-        function setAuthorAvatar(user) {
-            const avatarDiv = document.getElementById('author-avatar');
-            if (avatarDiv) {
-                avatarDiv.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
-            }
-        }
-
-        function handleAuthorChange() {
-            const select = document.getElementById('author-select');
-            select.addEventListener('change', function () {
-                const user = userMap[select.value];
-                setAuthorAvatar(user);
-            });
-            // Optionally, make the select searchable (simple filter)
-            select.addEventListener('input', function () {
-                const val = select.value.toLowerCase();
-                for (let i = 0; i < select.options.length; i++) {
-                    const option = select.options[i];
-                    const user = userMap[option.value];
-                    // option.style.display = (user.name && user.name.toLowerCase().includes(val)) || (user.username && user.username.toLowerCase().includes(val)) ? '' : 'none';
-                }
-            });
-        }
-
         function handlePhotoVideo() {
             const btn = document.getElementById('photo-video-btn');
             const input = document.getElementById('media-input');
@@ -500,10 +464,12 @@
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();
                 const formData = new FormData(form);
-                // Add default values for required fields if missing
-                if (!formData.get('author')) {
-                    formData.set('author', userList[0]?.id || '');
+                const authorId = getMainCharacterId();
+                if (!authorId) {
+                    alert('Please select a character from the header first.');
+                    return;
                 }
+                formData.set('author', authorId);
                 if (!formData.get('content')) {
                     alert('Content cannot be empty.');
                     return;
@@ -540,6 +506,7 @@
                         alert('Failed to post: ' + data.err);
                     } else {
                         form.reset();
+                        applyMainCharacter(getMainCharacter());
                         document.getElementById('media-preview').innerHTML = '';
                         document.getElementById('feeling-input').classList.add('hidden');
                         renderPosts();
@@ -653,7 +620,11 @@
                 e.preventDefault();
                 const parentId = form.dataset.parentId || '0';
                 const fd = new FormData();
-                const author = form.querySelector('select[name="author"]')?.value || '';
+                const author = getMainCharacterId() || form.querySelector('.main-character-author')?.value || '';
+                if (!author) {
+                    alert('Please select a character from the header first.');
+                    return;
+                }
                 const is_with = form.querySelector('select[name="is_with"]')?.value || '';
                 const feeling = form.querySelector('select[name="feeling"]')?.value || '';
                 const content = form.querySelector('textarea[name="content"]')?.value || '';
@@ -766,8 +737,6 @@
             renderGroups();
             renderContacts();
             renderPosts();
-            renderAuthorSelect();
-            handleAuthorChange();
             handlePhotoVideo();
             handleFeeling();
             handleAddFeedForm();
@@ -841,14 +810,13 @@
             </div>
             <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200"
                   enctype="multipart/form-data">
-                <div class="flex gap-2 items-center mb-3">
-                    <div id="author-avatar" class="author-post size-10 rounded-full bg-cover bg-center shrink-0"></div>
-                    <select id="author-select" name="author"
-                            class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-full text-fb-gray-text text-[17px] focus:outline-none"></select>
+                <div class="flex gap-2 items-start mb-3">
+                    <div id="author-avatar" class="main-character-avatar author-post size-10 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]"></div>
+                    <input type="hidden" name="author" id="author-id" class="main-character-author" />
+                    <textarea name="content" id="post-content" rows="2"
+                              class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-[20px] text-[17px] text-[#050505] focus:outline-none resize-none"
+                              placeholder="What's on your mind?"></textarea>
                 </div>
-                <textarea name="content" id="post-content" rows="2"
-                          class="w-full px-4 py-2 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none resize-none mb-2"
-                          placeholder="What's on your mind?"></textarea>
                 <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
                 <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden"/>
                 <input type="text" id="feeling-input" name="feeling"

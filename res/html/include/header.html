@@ -1,4 +1,4 @@
-    <header class="top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
+    <header class="relative top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
         <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
             <div class="flex items-center gap-2 min-w-[300px]">
                 <div class="text-fb-blue">
@@ -60,8 +60,27 @@
                                 class="absolute -top-1 -right-1 size-5 bg-[#E41E3F] text-white text-[11px] font-bold rounded-full flex items-center justify-center">3</span>
                     </button>
 
-                    <div class="size-10 rounded-full bg-cover bg-center cursor-pointer ml-1"
-                         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-Xm9lgA5v0jrawnFlL5-BnVIf9cGcnqMgb74GP5AvQUaxNOC2VlSIBePe7SnrZmobPfc9dQyb9ZjasZmvGvR9Ae0i3fmBQTiKUKY4BXloOipwi684ATsjDTyKxKlK79pLLcCUQv_EFNK7D4OwDh0JBJYCdZvVkfSnq6vPT17XedYad9SbE6tct5dt2BANas7S2HZMCfPcNUpJ_dpTH_3QdlbWGF8bhnr60d33l_ix-ENAl1o2Ixut3a8rD8lN88Z_SGEcFH7RBSRD');">
+                    <div class="relative ml-1" id="character-picker">
+                        <div class="size-10 rounded-full bg-cover bg-center cursor-pointer bg-[#E4E6EB]"
+                             id="user-selection"
+                             role="button"
+                             tabindex="0"
+                             aria-haspopup="listbox"
+                             aria-expanded="false"
+                             title="Select character">
+                        </div>
+                        <div id="character-dropdown"
+                             class="hidden absolute right-0 top-12 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-[100] overflow-hidden">
+                            <div class="p-2 border-b border-gray-100">
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[18px]">search</span>
+                                    <input id="character-search" type="text" placeholder="Search by username"
+                                           class="w-full bg-[#F0F2F5] border-none rounded-full pl-10 pr-3 py-2 text-[15px] focus:ring-0"
+                                           autocomplete="off"/>
+                                </div>
+                            </div>
+                            <div id="character-dropdown-list" class="max-h-80 overflow-y-auto py-1"></div>
+                        </div>
                     </div>
                 </div>
             </div>

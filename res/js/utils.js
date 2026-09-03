@@ -1,9 +1,197 @@
 
 function getAvatarUrl(user) {
-    if (user && user.username) {
-        return `/data/avatar/${user.username}.png`;
+    const username = typeof user === 'string' ? user : (user && user.username);
+    if (username) {
+        return `/data/avatar/${username}.png`;
+    }
+    return '';
+}
+
+const MAIN_CHARACTER_KEY = 'mainCharacterId';
+let mainCharacter = null;
+let characterListCache = [];
+
+function getMainCharacter() {
+    return mainCharacter;
+}
+
+function getMainCharacterId() {
+    return mainCharacter ? mainCharacter.id : '';
+}
+
+function applyMainCharacter(user) {
+    mainCharacter = user || null;
+    if (user && user.id != null) {
+        try {
+            localStorage.setItem(MAIN_CHARACTER_KEY, String(user.id));
+        } catch (e) {
+            // ignore storage failures (private mode, etc.)
+        }
+    }
+
+    const avatarUrl = user ? getAvatarUrl(user.username) : '';
+    const headerAvatar = document.getElementById('user-selection');
+    if (headerAvatar) {
+        headerAvatar.style.backgroundImage = avatarUrl ? `url('${avatarUrl}')` : '';
+        headerAvatar.title = user ? (user.name || user.username || '') : 'Select character';
+        headerAvatar.setAttribute('aria-label', user ? (user.name || user.username) : 'Select character');
+    }
+
+    document.querySelectorAll('.main-character-avatar').forEach((el) => {
+        el.style.backgroundImage = avatarUrl ? `url('${avatarUrl}')` : '';
+    });
+    document.querySelectorAll('.main-character-author').forEach((el) => {
+        el.value = user ? user.id : '';
+    });
+    document.querySelectorAll('.main-character-name').forEach((el) => {
+        el.textContent = user ? (user.name || user.username || '') : '';
+    });
+
+    document.dispatchEvent(new CustomEvent('main-character-change', { detail: user }));
+}
+
+async function fetchCharacterList(search) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    const qs = params.toString();
+    const res = await fetch('/api/character' + (qs ? '?' + qs : ''));
+    const data = await res.json();
+    return data.characters || [];
+}
+
+function renderCharacterDropdownList(characters, query) {
+    const list = document.getElementById('character-dropdown-list');
+    if (!list) return;
+    const q = (query || '').trim().toLowerCase();
+    const filtered = q
+        ? characters.filter((c) => (c.username || '').toLowerCase().includes(q))
+        : characters;
+    if (filtered.length === 0) {
+        list.innerHTML = '<div class="px-3 py-4 text-sm text-[#65676B]">No characters found</div>';
+        return;
+    }
+    const selectedId = mainCharacter ? Number(mainCharacter.id) : null;
+    list.innerHTML = filtered.map((c) => {
+        const selected = Number(c.id) === selectedId;
+        const name = escapeHtml(c.name || c.username || '');
+        const username = escapeHtml(c.username || '');
+        return `<button type="button" class="character-option w-full flex items-center gap-3 px-3 py-2 hover:bg-[#E4E6EB] text-left ${selected ? 'bg-[#E7F3FF]' : ''}" data-character-id="${c.id}">
+            <div class="size-9 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${getAvatarUrl(c.username)}')"></div>
+            <div class="min-w-0 flex-1">
+                <div class="font-semibold text-[15px] truncate">${name}</div>
+                <div class="text-[13px] text-[#65676B] truncate">@${username}</div>
+            </div>
+        </button>`;
+    }).join('');
+}
+
+function setCharacterDropdownOpen(open) {
+    const dropdown = document.getElementById('character-dropdown');
+    const trigger = document.getElementById('user-selection');
+    if (!dropdown) return;
+    dropdown.classList.toggle('hidden', !open);
+    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function initMainCharacterPicker() {
+    const picker = document.getElementById('character-picker');
+    const trigger = document.getElementById('user-selection');
+    const dropdown = document.getElementById('character-dropdown');
+    const search = document.getElementById('character-search');
+    const list = document.getElementById('character-dropdown-list');
+    if (!picker || !trigger || !dropdown) return;
+
+    trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            trigger.click();
+        }
+    });
+
+    trigger.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const willOpen = dropdown.classList.contains('hidden');
+        if (willOpen) {
+            setCharacterDropdownOpen(true);
+            try {
+                characterListCache = await fetchCharacterList();
+            } catch (err) {
+                characterListCache = characterListCache || [];
+            }
+            if (search) search.value = '';
+            renderCharacterDropdownList(characterListCache, '');
+            if (search) search.focus();
+        } else {
+            setCharacterDropdownOpen(false);
+        }
+    });
+
+    if (search) {
+        search.addEventListener('input', () => {
+            renderCharacterDropdownList(characterListCache || [], search.value);
+        });
+        search.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                setCharacterDropdownOpen(false);
+                trigger.focus();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const first = list && list.querySelector('.character-option');
+                if (first) first.click();
+            }
+        });
+    }
+
+    if (list) {
+        list.addEventListener('click', (e) => {
+            const opt = e.target.closest('.character-option');
+            if (!opt) return;
+            const id = Number(opt.dataset.characterId);
+            const user = (characterListCache || []).find((c) => Number(c.id) === id);
+            if (user) applyMainCharacter(user);
+            setCharacterDropdownOpen(false);
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.classList.contains('hidden') && !picker.contains(e.target)) {
+            setCharacterDropdownOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+            setCharacterDropdownOpen(false);
+        }
+    });
+}
+
+async function initMainCharacter() {
+    const trigger = document.getElementById('user-selection');
+    if (!trigger) return;
+    initMainCharacterPicker();
+    try {
+        characterListCache = await fetchCharacterList();
+        let savedId = null;
+        try {
+            savedId = localStorage.getItem(MAIN_CHARACTER_KEY);
+        } catch (e) {
+            savedId = null;
+        }
+        let user = null;
+        if (savedId) {
+            user = characterListCache.find((c) => String(c.id) === String(savedId));
+        }
+        if (!user && characterListCache.length > 0) {
+            user = characterListCache[0];
+        }
+        if (user) applyMainCharacter(user);
+    } catch (e) {
+        console.error('Failed to load characters', e);
     }
 }
+
+document.addEventListener('DOMContentLoaded', initMainCharacter);
 
 // Escape HTML special chars to prevent XSS when rendering user content
 function escapeHtml(str) {
