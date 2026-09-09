@@ -43,7 +43,7 @@
 
             <!-- Posts Section -->
             <div class="px-4">
-                <div id="posts-list"></div>
+                <div id="posts-list" data-posts-list></div>
             </div>
         </section>
     </main>
@@ -107,188 +107,18 @@
         username.textContent = `@${user.username}`;
     }
 
-    // Render user's posts
     async function renderPosts() {
         const postsContainer = document.getElementById('posts-list');
         if (!postsContainer || !userData) return;
-
-        try {
-            const author = userData.id;
-            const res = await fetch(`/api/post?author=${author}`);
-            const data = await res.json();
-
-            if (!data.posts || data.posts.length === 0) {
-                postsContainer.innerHTML = '<div class="card p-8 text-center text-fb-gray-text">No posts yet</div>';
-                return;
-            }
-
-            const posts = data.posts;
-            const byId = {};
-            for (const p of posts) {
-                byId[p.id] = {...p, comments: []};
-            }
-            const roots = [];
-            for (const id in byId) {
-                const p = byId[id];
-                if (p.parent && p.parent > 0 && byId[p.parent]) {
-                    byId[p.parent].comments.push(p);
-                } else {
-                    roots.push(p);
-                }
-            }
-
-            // Sort comments for each post: oldest first
-            Object.values(byId).forEach(post => {
-                if (post.comments && post.comments.length > 0) {
-                    post.comments.sort((a, b) => {
-                        const ta = parseTimestamp(a.updated_at || a.created_at);
-                        const tb = parseTimestamp(b.updated_at || b.created_at);
-                        return ta - tb;
-                    });
-                }
-            });
-
-            // Fetch media for all posts
-            const allPostIds = [];
-
-            function collectIds(node) {
-                allPostIds.push(node.id);
-                if (node.comments && node.comments.length > 0) {
-                    node.comments.forEach(ch => collectIds(ch));
-                }
-            }
-
-            roots.forEach(r => collectIds(r));
-            const uniqIds = Array.from(new Set(allPostIds));
-            await Promise.all(uniqIds.map(async id => {
-                try {
-                    const mres = await fetch(`/api/media?post=${id}`);
-                    const mdata = await mres.json().catch(() => ({}));
-                    if (mdata && Array.isArray(mdata.media)) {
-                        if (byId[id]) byId[id].media = mdata.media.map(m => ({
-                            ...m,
-                            url: (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url)
-                        }));
-                    }
-                } catch (err) {
-                    // ignore per-item failures
-                }
-            }));
-
-            // Sort roots by updated_at (newest first)
-            roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
-
-            function renderComment(c, depth = 0) {
-                const a = userMap[c.author] || {username: 'unknown', name: 'Unknown'};
-                let commentMediaHtml = '';
-                if (c.media && c.media.length > 0) {
-                    const m = c.media[0];
-                    const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                    if (m.file_type === "Image") {
-                        commentMediaHtml = `<div class='mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                    } else if (m.file_type === "Video") {
-                        commentMediaHtml = `<div class='mt-2'><video src="${mediaUrl}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
-                    }
-                }
-
-                const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
-                const commentHtml = `
-                    <div ${indentStyle} class="pr-4 py-3 border-t border-gray-100 bg-white relative">
-                        <div class="flex items-start gap-3">
-                            <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
-                            <div class="flex-1">
-                                <div class="text-[15px] text-[#050505]"><strong>${a.name || a.username}</strong></div>
-                                <div class="text-[15px] text-fb-black-text">${renderContentWithMentions(c.content || '')}</div>
-                                ${commentMediaHtml}
-                                <div class="mt-1 flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <p class='text-[12px] text-fb-gray-text' title='${new Date(c.updated_at || c.created_at).toLocaleString()}'>${timeAgo(c.updated_at || c.created_at)}</p>
-                                    </div>
-                                    <div>
-                                        ${renderReactions(c)}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-
-                let childrenHtml = '';
-                if (c.comments && c.comments.length > 0) {
-                    childrenHtml = c.comments.map(child => renderComment(child, depth + 1)).join('');
-                }
-                return commentHtml + childrenHtml;
-            }
-
-            function renderPost(p) {
-                const a = userMap[p.author] || {username: 'unknown', name: 'Unknown'};
-                const feeling = p.feeling || '';
-                const is_with = p.is_with || '';
-                let metaHtml = '';
-                if (feeling || is_with) {
-                    const feelingHtml = feeling ? `<span class='text-fb-blue'>${feeling}</span>` : '';
-                    let isWithHtml = '';
-                    if (is_with) {
-                        const m = is_with.match(/^(with|by)\s+(.*)/i);
-                        if (m) {
-                            const prefix = `<span class='text-fb-gray-text'>${m[1]}</span>`;
-                            const rest = m[2].split(/\s+and\s+/i).map((part, i) => {
-                                return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                            }).join('');
-                            isWithHtml = `${prefix} ${rest}`;
-                        } else {
-                            isWithHtml = is_with.split(/\s+and\s+/i).map((part, i) => {
-                                return (i ? `<span class='text-fb-gray-text'> and </span>` : '') + `<span class='text-fb-blue'>${part}</span>`;
-                            }).join('');
-                        }
-                    }
-                    metaHtml = `<span class='text-[13px] ml-2 align-middle'><span class='text-fb-gray-text'>is</span> ${feelingHtml}${isWithHtml ? ' ' + isWithHtml : ''}</span>`;
-                }
-                let mediaHtml = '';
-                if (p.media && p.media.length > 0) {
-                    const m = p.media[0];
-                    const mediaUrl = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
-                    if (m.file_type === "Image") {
-                        mediaHtml = `<div class='w-full mt-2'><img src="${mediaUrl}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
-                    } else if (m.file_type === "Video") {
-                        mediaHtml = `<div class='w-full mt-2'><video src="${mediaUrl}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
-                    }
-                }
-                const commentsHtml = (p.comments && p.comments.length > 0) ? p.comments.map(c => renderComment(c, 0)).join('') : '';
-                return `
-                    <div class='card mb-4'>
-                        <div class='px-4 py-3'>
-                            <div class='flex items-center justify-between'>
-                                <div class='flex items-center gap-2'>
-                                    <div class='size-10 rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(a)}");'></div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h4 class='text-[15px] font-bold hover:underline cursor-pointer text-[#050505]'>${a.name || a.username}</h4>
-                                            ${metaHtml}
-                                        </div>
-                                        <p class='text-[13px] text-fb-gray-text flex items-center gap-1 mt-0'>
-                                            ${timeAgo(p.updated_at || p.created_at)} <span class="text-[10px] text-fb-gray-text">•</span> <span class='material-symbols-outlined !text-[14px]'>public</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <p class='text-[15px] mt-2 mb-3'>${renderContentWithMentions(p.content || "")}</p>
-                        </div>
-                        ${mediaHtml}
-                        <div class='px-4 pt-2'>
-                            <div class='flex items-center gap-2'>
-                                ${renderReactions(p)}
-                            </div>
-                        </div>
-                    </div>`;
-            }
-
-            postsContainer.innerHTML = roots.map(renderPost).join('');
-            // Initialize Plyr on any rendered videos
-            initPlyrVideos(postsContainer);
-        } catch (e) {
-            console.error("Failed to load posts:", e);
-            postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
-        }
+        const query = new URLSearchParams();
+        query.set('author', String(userData.id));
+        query.set('count', '100');
+        await loadAndRenderPosts({
+            container: postsContainer,
+            query,
+            rootsOnly: true,
+            emptyHtml: '<div class="card p-8 text-center text-fb-gray-text">No posts yet</div>',
+        });
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
