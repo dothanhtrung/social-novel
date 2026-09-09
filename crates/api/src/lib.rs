@@ -1,3 +1,4 @@
+mod api_admin;
 mod api_character;
 mod api_room;
 mod api_group;
@@ -22,6 +23,7 @@ use my_db::db_media::MediaType;
 pub fn scope_config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
+            .configure(api_admin::scope)
             .configure(api_character::scope)
             .configure(api_group::scope)
             .configure(api_media::scope)
@@ -105,16 +107,21 @@ async fn save_file(
     };
 
     let path = target_dir.join(saved_name.as_str());
-    if !path.exists() {
-        if let Err(e) = temp_file.file.persist(&path) {
-            warn!("Failed to save file to {:?}: {}", &path.to_str(), e);
-            warn!("Try copying");
+    if path.exists() {
+        if file_name.is_empty() {
+            info!("File {saved_name} exists");
+            // TODO: Allow one media for multiple posts
+            return Err(anyhow!("exist"));
+        }
+        fs::remove_file(&path).await.ok();
+    }
+    // persist() uses rename/link, which fails with EXDEV when /tmp and data_dir
+    // are on different filesystems. Copy is the reliable fallback.
+    if let Err(e) = temp_file.file.persist(&path) {
+        warn!("Failed to persist {}: {}. Copying instead.", path.display(), e);
+        if !path.exists() {
             fs::copy(e.file.path(), &path).await?;
         }
-    } else {
-        info!("File {saved_name} exists");
-        // TODO: Allow one media for multiple posts
-        return Err(anyhow!("exist"));
     }
 
     let file_type = file_type(&path).await;
@@ -131,9 +138,21 @@ async fn delete_file(root_dir: &Path, file_path: &str) {
     }
 }
 
+async fn save_file_overwrite(
+    target_dir: &PathBuf,
+    temp_file: TempFile,
+    file_name: &str,
+) -> Result<(String, String, MediaType), anyhow::Error> {
+    let path = target_dir.join(file_name);
+    if path.exists() {
+        fs::remove_file(&path).await?;
+    }
+    save_file(target_dir, temp_file, file_name).await
+}
+
 async fn save_avatar(root_dir: &Path, avatar: TempFile, file_name: &str) {
     let path = root_dir.join("avatar");
-    if save_file(&path, avatar, file_name).await.is_ok() {
+    if save_file_overwrite(&path, avatar, file_name).await.is_ok() {
         info!("Saved avatar successfully");
     }
 }

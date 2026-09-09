@@ -70,6 +70,7 @@ create table if not exists ads
             primary key,
     description text                     default ''::text not null,
     active      boolean                  default true     not null,
+    media       text                     default ''::text not null,
     created_at  timestamp with time zone default now()    not null,
     updated_at  timestamp with time zone default now()    not null
 );
@@ -147,5 +148,3 @@ create table if not exists chat_room_member
             on update cascade on delete cascade,
     role      integer default 0 not null
 );
-
-

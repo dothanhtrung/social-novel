@@ -1,0 +1,474 @@
+{% include "include/head.html" %}
+</head>
+
+<body class="min-h-screen">
+<div class="layout-container flex flex-col min-h-screen">
+    {% include "include/header.html" %}
+
+    <main class="flex-1 w-full flex justify-center px-4">
+        <section class="flex-1 flex flex-col pt-6 max-w-6xl mx-auto min-w-0 w-full">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-1 flex gap-1">
+                <button type="button" id="tab-users"
+                        class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue">
+                    Users
+                </button>
+                <button type="button" id="tab-sponsored"
+                        class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover">
+                    Sponsored
+                </button>
+            </div>
+
+            <div id="panel-users">
+                <div class="form-section">
+                    <h2 class="section-title" id="user-form-title">Add user</h2>
+                    <form id="user-form" class="space-y-4" enctype="multipart/form-data" method="POST"
+                          action="/api/admin/user">
+                        <input hidden name="id" type="number" value="0" required/>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="fb-label">Username</label>
+                                <input name="username" type="text" class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label">Name</label>
+                                <input name="name" type="text" class="fb-input" required/>
+                            </div>
+                        </div>
+
+                        <div id="user-current-avatar-wrap" class="hidden">
+                            <label class="fb-label">Current avatar</label>
+                            <img id="user-current-avatar" src="" alt="Avatar"
+                                 class="character-card-avatar w-24 h-24 mb-2"/>
+                        </div>
+
+                        <div>
+                            <label class="fb-label">Avatar</label>
+                            <input name="avatar" type="file" accept="image/*" class="fb-input-file"/>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button type="submit" class="fb-btn">Save</button>
+                            <button type="button" id="user-reset-btn" class="px-6 py-2 rounded-lg font-semibold bg-fb-hover text-[#050505]">
+                                New
+                            </button>
+                            <button type="button" id="user-delete-btn"
+                                    class="fb-btn-danger hidden">Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4 gap-4">
+                        <h2 class="text-[20px] font-bold">Users</h2>
+                        <input id="user-search" type="text" placeholder="Search users"
+                               class="fb-input max-w-xs"/>
+                    </div>
+                    <div id="user-grid"
+                         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-sponsored" class="hidden">
+                <div class="form-section">
+                    <h2 class="section-title" id="sponsored-form-title">Add sponsored</h2>
+                    <form id="sponsored-form" class="space-y-4" enctype="multipart/form-data" method="POST"
+                          action="/api/admin/sponsored">
+                        <input hidden name="id" type="number" value="0" required/>
+                        <input hidden name="active" id="sponsored-active-value" value="true"/>
+
+                        <div>
+                            <label class="fb-label">Title</label>
+                            <input name="description" type="text" class="fb-input" required
+                                   placeholder="Sponsored title"/>
+                        </div>
+
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="sponsored-active" type="checkbox" checked
+                                   class="size-4 rounded border-gray-300 text-fb-blue focus:ring-fb-blue"/>
+                            <span class="text-[15px] font-semibold">Active on front page</span>
+                        </label>
+
+                        <div id="sponsored-preview" class="hidden">
+                            <label class="fb-label">Current media</label>
+                            <img id="sponsored-image-preview" src="" alt="Sponsored"
+                                 class="hidden w-full max-h-48 object-cover rounded-lg border border-gray-200"/>
+                            <video id="sponsored-video-preview" src="" controls
+                                   class="hidden w-full max-h-48 rounded-lg border border-gray-200 bg-black"></video>
+                        </div>
+
+                        <div>
+                            <label class="fb-label">Media</label>
+                            <input name="media" type="file" accept="image/*,video/*" class="fb-input-file"/>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button type="submit" class="fb-btn">Save</button>
+                            <button type="button" id="sponsored-reset-btn"
+                                    class="px-6 py-2 rounded-lg font-semibold bg-fb-hover text-[#050505]">
+                                New
+                            </button>
+                            <button type="button" id="sponsored-delete-btn"
+                                    class="fb-btn-danger hidden">Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-[20px] font-bold mb-4">Sponsored</h2>
+                    <div id="sponsored-list" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+{% raw %}<script>
+    const userForm = document.getElementById("user-form");
+    const userDeleteBtn = document.getElementById("user-delete-btn");
+    const userResetBtn = document.getElementById("user-reset-btn");
+    const userFormTitle = document.getElementById("user-form-title");
+    const userAvatarWrap = document.getElementById("user-current-avatar-wrap");
+    const userAvatarImg = document.getElementById("user-current-avatar");
+    const userSearch = document.getElementById("user-search");
+
+    const sponsoredForm = document.getElementById("sponsored-form");
+    const sponsoredDeleteBtn = document.getElementById("sponsored-delete-btn");
+    const sponsoredResetBtn = document.getElementById("sponsored-reset-btn");
+    const sponsoredFormTitle = document.getElementById("sponsored-form-title");
+    const sponsoredActive = document.getElementById("sponsored-active");
+    const sponsoredActiveValue = document.getElementById("sponsored-active-value");
+    const sponsoredPreview = document.getElementById("sponsored-preview");
+    const sponsoredImagePreview = document.getElementById("sponsored-image-preview");
+    const sponsoredVideoPreview = document.getElementById("sponsored-video-preview");
+
+    function setTab(name) {
+        const usersOn = name === "users";
+        document.getElementById("panel-users").classList.toggle("hidden", !usersOn);
+        document.getElementById("panel-sponsored").classList.toggle("hidden", usersOn);
+        const tabUsers = document.getElementById("tab-users");
+        const tabSponsored = document.getElementById("tab-sponsored");
+        tabUsers.className = usersOn
+            ? "flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue"
+            : "flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover";
+        tabSponsored.className = !usersOn
+            ? "flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue"
+            : "flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover";
+    }
+
+    function resetUserForm() {
+        userForm.reset();
+        userForm.elements["id"].value = "0";
+        userFormTitle.textContent = "Add user";
+        userDeleteBtn.classList.add("hidden");
+        userAvatarWrap.classList.add("hidden");
+        userAvatarImg.src = "";
+    }
+
+    function fillUserForm(user) {
+        userForm.elements["id"].value = user.id;
+        userForm.elements["username"].value = user.username || "";
+        userForm.elements["name"].value = user.name || "";
+        userForm.elements["avatar"].value = "";
+        userFormTitle.textContent = "Edit user";
+        userDeleteBtn.classList.remove("hidden");
+        const avatarUrl = getAvatarUrl(user);
+        if (avatarUrl) {
+            userAvatarImg.src = avatarUrl + "?t=" + Date.now();
+            userAvatarWrap.classList.remove("hidden");
+        } else {
+            userAvatarWrap.classList.add("hidden");
+        }
+        userForm.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    async function fetchUsers() {
+        try {
+            const q = (userSearch.value || "").trim();
+            const url = q ? "/api/admin/user?search=" + encodeURIComponent(q) : "/api/admin/user";
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.err) {
+                alert("Error: " + data.err);
+                return;
+            }
+            const grid = document.getElementById("user-grid");
+            grid.innerHTML = "";
+            (data.users || []).forEach(user => {
+                const card = document.createElement("div");
+                card.className = "character-card";
+
+                const linkContainer = document.createElement("button");
+                linkContainer.type = "button";
+                linkContainer.className = "character-card-link w-full";
+                linkContainer.onclick = () => fillUserForm(user);
+
+                const img = document.createElement("img");
+                img.src = getAvatarUrl(user);
+                img.alt = user.name;
+                img.className = "character-card-avatar";
+
+                const name = document.createElement("div");
+                name.textContent = user.name;
+                name.className = "character-card-name";
+
+                const username = document.createElement("div");
+                username.textContent = "@" + user.username;
+                username.className = "character-card-username";
+
+                linkContainer.appendChild(img);
+                linkContainer.appendChild(name);
+                linkContainer.appendChild(username);
+
+                const delBtn = document.createElement("button");
+                delBtn.textContent = "Delete";
+                delBtn.className = "character-card-delete-btn";
+                delBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await deleteUser(user);
+                };
+
+                card.appendChild(linkContainer);
+                card.appendChild(delBtn);
+                grid.appendChild(card);
+            });
+        } catch (err) {
+            alert("Failed to fetch users: " + err);
+        }
+    }
+
+    async function deleteUser(user) {
+        const confirmed = confirm(`Delete user "${user.name}"?`);
+        if (!confirmed) return;
+        try {
+            const res = await fetch(`/api/admin/user/delete/${user.id}`);
+            const data = await res.json().catch(() => ({}));
+            if (data.err) {
+                alert("Delete failed: " + data.err);
+                return;
+            }
+            if (String(userForm.elements["id"].value) === String(user.id)) {
+                resetUserForm();
+            }
+            fetchUsers();
+        } catch (err) {
+            alert("Delete failed: " + err);
+        }
+    }
+
+    userForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const formData = new FormData(userForm);
+        try {
+            const res = await fetch(userForm.action, {method: "POST", body: formData});
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.err) {
+                throw new Error(data.err || await res.text());
+            }
+            resetUserForm();
+            fetchUsers();
+        } catch (err) {
+            alert("Failed to save user: " + (err.message || err));
+        }
+    });
+
+    userResetBtn.addEventListener("click", resetUserForm);
+    userDeleteBtn.addEventListener("click", async () => {
+        const id = userForm.elements["id"].value;
+        const name = userForm.elements["name"].value;
+        if (!id || id === "0") return;
+        await deleteUser({id, name});
+    });
+
+    let userSearchTimer = null;
+    userSearch.addEventListener("input", () => {
+        clearTimeout(userSearchTimer);
+        userSearchTimer = setTimeout(fetchUsers, 250);
+    });
+
+    function clearSponsoredPreview() {
+        sponsoredPreview.classList.add("hidden");
+        sponsoredImagePreview.classList.add("hidden");
+        sponsoredVideoPreview.classList.add("hidden");
+        sponsoredImagePreview.src = "";
+        sponsoredVideoPreview.removeAttribute("src");
+        sponsoredVideoPreview.load();
+    }
+
+    function showSponsoredPreview(url) {
+        if (!url) {
+            clearSponsoredPreview();
+            return;
+        }
+        const src = url + (url.includes("?") ? "&" : "?") + "t=" + Date.now();
+        sponsoredPreview.classList.remove("hidden");
+        if (isVideoMedia(url)) {
+            sponsoredImagePreview.classList.add("hidden");
+            sponsoredImagePreview.src = "";
+            sponsoredVideoPreview.src = src;
+            sponsoredVideoPreview.classList.remove("hidden");
+        } else {
+            sponsoredVideoPreview.classList.add("hidden");
+            sponsoredVideoPreview.removeAttribute("src");
+            sponsoredVideoPreview.load();
+            sponsoredImagePreview.src = src;
+            sponsoredImagePreview.classList.remove("hidden");
+        }
+    }
+
+    function resetSponsoredForm() {
+        sponsoredForm.reset();
+        sponsoredForm.elements["id"].value = "0";
+        sponsoredActive.checked = true;
+        sponsoredActiveValue.value = "true";
+        sponsoredFormTitle.textContent = "Add sponsored";
+        sponsoredDeleteBtn.classList.add("hidden");
+        clearSponsoredPreview();
+    }
+
+    function fillSponsoredForm(ad) {
+        sponsoredForm.elements["id"].value = ad.id;
+        sponsoredForm.elements["description"].value = ad.description || "";
+        sponsoredForm.elements["media"].value = "";
+        sponsoredActive.checked = !!ad.active;
+        sponsoredActiveValue.value = ad.active ? "true" : "false";
+        sponsoredFormTitle.textContent = "Edit sponsored";
+        sponsoredDeleteBtn.classList.remove("hidden");
+        showSponsoredPreview(ad.media || "");
+        sponsoredForm.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    async function fetchSponsored() {
+        try {
+            const res = await fetch("/api/admin/sponsored");
+            const data = await res.json();
+            if (data.err) {
+                alert("Error: " + data.err);
+                return;
+            }
+            const list = document.getElementById("sponsored-list");
+            list.innerHTML = "";
+            const ads = data.ads || [];
+            if (ads.length === 0) {
+                list.innerHTML = '<div class="text-fb-gray-text px-2 py-4">No sponsored items yet.</div>';
+                return;
+            }
+            ads.forEach(ad => {
+                const card = document.createElement("div");
+                card.className = "bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3";
+
+                let media;
+                if (ad.media && isVideoMedia(ad.media)) {
+                    media = document.createElement("video");
+                    media.src = ad.media;
+                    media.className = "size-28 rounded-lg object-cover shrink-0 bg-black";
+                    media.muted = true;
+                    media.playsInline = true;
+                } else if (ad.media) {
+                    media = document.createElement("div");
+                    media.className = "size-28 rounded-lg bg-cover bg-center shrink-0";
+                    media.style.backgroundImage = `url("${ad.media}")`;
+                } else {
+                    media = document.createElement("div");
+                    media.className = "size-28 rounded-lg bg-fb-hover shrink-0 flex items-center justify-center text-fb-gray-text text-sm";
+                    media.textContent = "No media";
+                }
+
+                const info = document.createElement("button");
+                info.type = "button";
+                info.className = "flex-1 min-w-0 text-left";
+                info.onclick = () => fillSponsoredForm(ad);
+                const title = document.createElement("h4");
+                title.className = "text-[15px] font-semibold text-[#050505] truncate";
+                title.textContent = ad.description || "";
+                const status = document.createElement("p");
+                status.className = "text-[13px] mt-1 " + (ad.active ? "text-[#31A24C]" : "text-fb-gray-text");
+                status.textContent = ad.active ? "Active" : "Inactive";
+                info.appendChild(title);
+                info.appendChild(status);
+
+                const actions = document.createElement("div");
+                actions.className = "flex flex-col gap-2 shrink-0";
+                const editBtn = document.createElement("button");
+                editBtn.type = "button";
+                editBtn.className = "px-3 py-1.5 rounded-lg text-sm font-semibold bg-fb-hover";
+                editBtn.textContent = "Edit";
+                editBtn.onclick = () => fillSponsoredForm(ad);
+                const delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "character-card-delete-btn";
+                delBtn.textContent = "Delete";
+                delBtn.onclick = () => deleteSponsored(ad);
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+
+                card.appendChild(media);
+                card.appendChild(info);
+                card.appendChild(actions);
+                list.appendChild(card);
+            });
+        } catch (err) {
+            alert("Failed to fetch sponsored: " + err);
+        }
+    }
+
+    async function deleteSponsored(ad) {
+        const confirmed = confirm(`Delete sponsored "${ad.description}"?`);
+        if (!confirmed) return;
+        try {
+            const res = await fetch(`/api/admin/sponsored/delete/${ad.id}`);
+            const data = await res.json().catch(() => ({}));
+            if (data.err) {
+                alert("Delete failed: " + data.err);
+                return;
+            }
+            if (String(sponsoredForm.elements["id"].value) === String(ad.id)) {
+                resetSponsoredForm();
+            }
+            fetchSponsored();
+        } catch (err) {
+            alert("Delete failed: " + err);
+        }
+    }
+
+    sponsoredForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        sponsoredActiveValue.value = sponsoredActive.checked ? "true" : "false";
+        const formData = new FormData(sponsoredForm);
+        try {
+            const res = await fetch(sponsoredForm.action, {method: "POST", body: formData});
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.err) {
+                throw new Error(data.err || await res.text());
+            }
+            resetSponsoredForm();
+            fetchSponsored();
+        } catch (err) {
+            alert("Failed to save sponsored: " + (err.message || err));
+        }
+    });
+
+    sponsoredResetBtn.addEventListener("click", resetSponsoredForm);
+    sponsoredDeleteBtn.addEventListener("click", async () => {
+        const id = sponsoredForm.elements["id"].value;
+        const description = sponsoredForm.elements["description"].value;
+        if (!id || id === "0") return;
+        await deleteSponsored({id, description});
+    });
+    sponsoredActive.addEventListener("change", () => {
+        sponsoredActiveValue.value = sponsoredActive.checked ? "true" : "false";
+    });
+
+    document.getElementById("tab-users").addEventListener("click", () => setTab("users"));
+    document.getElementById("tab-sponsored").addEventListener("click", () => setTab("sponsored"));
+
+    fetchUsers();
+    fetchSponsored();
+</script>{% endraw %}
+</body>
+
+</html>

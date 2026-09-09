@@ -9,7 +9,7 @@
     "show_command": true,
   },
   {
-    "label": "Run",
+    "label": "Run Project",
     "command": "just watch",
     //"args": [],
     // Env overrides for the command, will be appended to the terminal's environment from the settings.

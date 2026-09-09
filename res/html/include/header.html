@@ -35,9 +35,9 @@
                        href="#">
                         <span class="material-symbols-outlined">storefront</span>
                     </a>
-                    <a class="flex-1 h-full flex items-center justify-center text-fb-gray-text hover:bg-fb-hover rounded-lg transition-colors mx-1"
-                       href="/character">
-                        <span class="material-symbols-outlined">sports_esports</span>
+                    <a class="flex-1 h-full flex items-center justify-center {% if active_nav is defined and active_nav == 'admin' %}nav-icon-active{% else %}text-fb-gray-text{% endif %} hover:bg-fb-hover rounded-lg transition-colors mx-1"
+                       href="/admin">
+                        <span class="material-symbols-outlined">admin_panel_settings</span>
                     </a>
                 </div>
             </div>

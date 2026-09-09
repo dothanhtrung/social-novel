@@ -1,4 +1,9 @@
 
+function isVideoMedia(url) {
+    const path = String(url || '').split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|m4v|ogv|ogg)$/.test(path);
+}
+
 function getAvatarUrl(user) {
     const username = typeof user === 'string' ? user : (user && user.username);
     if (username) {
