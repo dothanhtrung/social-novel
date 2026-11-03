@@ -49,10 +49,12 @@ pub(crate) async fn get_all(
             (CASE WHEN $1::INT8[] IS NOT NULL THEN author = ANY($1) ELSE TRUE END)
             AND (CASE WHEN $2::INT8[] IS NOT NULL THEN "group" = ANY($2) ELSE TRUE END)
             AND (CASE WHEN $3::INT8[] IS NOT NULL THEN room = ANY($3) ELSE TRUE END)
-        ORDER BY updated_at DESC LIMIT $4 OFFSET $5"#,
+            AND (CASE WHEN $4 THEN parent IS NULL ELSE TRUE END)
+        ORDER BY updated_at DESC LIMIT $5 OFFSET $6"#,
         author_ids,
         group_ids,
         room_ids,
+        cond.roots_only,
         limit,
         offset
     )

@@ -45,16 +45,39 @@
             }
         }
 
-        async function renderPosts() {
-            const postsContainer = document.querySelector("[data-posts-list]");
-            if (!postsContainer) return;
+        function currentGroupId() {
+            const id = Number(document.body && document.body.dataset.groupId);
+            return Number.isFinite(id) && id > 0 ? id : 0;
+        }
+
+        // Feed query keeps pagination params and, on a group page, only root posts of that group.
+        function feedQuery() {
             const {page, count} = getPageParams();
             const params = new URLSearchParams(window.location.search);
             params.set('page', String(page));
             params.set('count', String(count));
+            const groupId = currentGroupId();
+            if (groupId > 0) {
+                params.set('group', String(groupId));
+                params.set('roots', 'true');
+            } else {
+                params.delete('group');
+                params.delete('roots');
+            }
+            return params;
+        }
+
+        async function renderPosts() {
+            const postsContainer = document.querySelector("[data-posts-list]");
+            if (!postsContainer) return;
+            const {page, count} = getPageParams();
+            const groupId = currentGroupId();
             const roots = await loadAndRenderPosts({
                 container: postsContainer,
-                query: params,
+                query: feedQuery(),
+                emptyHtml: groupId > 0
+                    ? '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts in this group yet</div>'
+                    : '',
             });
             if (roots) renderPager(roots.length, page, count);
         }
@@ -120,7 +143,7 @@
                 let low = 1, high = page;
                 // find a high that returns less than count (or empty)
                 while (true) {
-                    const q = new URLSearchParams(window.location.search);
+                    const q = feedQuery();
                     q.set('page', String(high));
                     q.set('count', String(count));
                     const r = await fetch('/api/post?' + q.toString());
@@ -140,7 +163,7 @@
                 let lo = low, hi = Math.max(high, low + 1);
                 while (lo + 1 < hi) {
                     const mid = Math.floor((lo + hi) / 2);
-                    const q = new URLSearchParams(window.location.search);
+                    const q = feedQuery();
                     q.set('page', String(mid));
                     q.set('count', String(count));
                     const r = await fetch('/api/post?' + q.toString());
@@ -177,20 +200,36 @@
 
             const groups = await fetchGroups();
             const container = document.getElementById('groups-container');
+            const selectedId = currentGroupId();
             container.innerHTML = '';
             for (const group of groups) {
+                const selected = Number(group.id) === selectedId;
                 const a = document.createElement('a');
-                a.href = '#'; // or link to group page
-                a.className = 'flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors';
+                a.href = `/g/${group.id}`;
+                a.dataset.groupId = String(group.id);
+                a.className = selected
+                    ? 'group-link flex items-center gap-3 px-2 py-2 rounded-lg bg-[#E7F3FF] text-fb-blue transition-colors'
+                    : 'group-link flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors';
+                if (selected) a.setAttribute('aria-current', 'page');
                 const div = document.createElement('div');
-                div.className = 'size-9 rounded-lg bg-cover bg-center';
+                div.className = 'size-9 rounded-lg bg-cover bg-center bg-[#E4E6EB]';
                 div.style.backgroundImage = `url('/data/avatar/${group.id}.png')`;
                 const span = document.createElement('span');
-                span.className = 'text-[15px] font-semibold';
+                span.className = selected ? 'text-[15px] font-bold' : 'text-[15px] font-semibold';
                 span.textContent = group.name;
                 a.appendChild(div);
                 a.appendChild(span);
                 container.appendChild(a);
+                if (selected) {
+                    const scroller = container.closest('aside');
+                    if (scroller) {
+                        const itemTop = a.getBoundingClientRect().top;
+                        const box = scroller.getBoundingClientRect();
+                        if (itemTop < box.top || itemTop > box.bottom) {
+                            scroller.scrollTop += itemTop - box.top - 8;
+                        }
+                    }
+                }
             }
         }
 
@@ -258,7 +297,7 @@
                 formData.set('surprised', '0');
                 formData.set('sad', '0');
                 formData.set('liked_by', '');
-                formData.set('group', '0');
+                formData.set('group', String(currentGroupId()));
                 formData.set('room', '0');
                 const isWithVal = document.getElementById('is-with-input') ? document.getElementById('is-with-input').value : '';
                 formData.set('is_with', isWithVal);
@@ -360,9 +399,61 @@
         }
         
 
+        async function renderGroupHeader() {
+            const header = document.getElementById('group-page-header');
+            if (!header) return;
+            const groupId = currentGroupId();
+            const postingIn = document.getElementById('posting-in');
+            const composer = document.getElementById('post-content');
+            if (groupId <= 0) {
+                header.classList.add('hidden');
+                if (postingIn) postingIn.classList.add('hidden');
+                if (composer) composer.placeholder = "What's on your mind?";
+                return;
+            }
+            header.classList.remove('hidden');
+            const nameEl = document.getElementById('group-page-name');
+            const descEl = document.getElementById('group-page-desc');
+            const avatarEl = document.getElementById('group-page-avatar');
+            const coverEl = document.getElementById('group-page-cover');
+            try {
+                const res = await fetch('/api/group');
+                const data = await res.json();
+                const group = (data.groups || []).find((g) => Number(g.id) === groupId);
+                if (!group) {
+                    if (nameEl) nameEl.textContent = 'Group not found';
+                    if (descEl) {
+                        descEl.textContent = '';
+                        descEl.classList.add('hidden');
+                    }
+                    document.title = 'Group not found - Social Novel';
+                    return;
+                }
+                const avatarUrl = `/data/avatar/${group.id}.png`;
+                if (nameEl) nameEl.textContent = group.name || 'Group';
+                if (descEl) {
+                    descEl.textContent = group.description || '';
+                    descEl.classList.toggle('hidden', !group.description);
+                }
+                if (avatarEl) avatarEl.style.backgroundImage = `url('${avatarUrl}')`;
+                if (coverEl) {
+                    coverEl.style.backgroundImage = `linear-gradient(180deg, rgba(24,119,242,0.15), rgba(24,119,242,0.55)), url('${avatarUrl}')`;
+                }
+                if (composer) composer.placeholder = `Write something to ${group.name || 'this group'}...`;
+                if (postingIn) {
+                    postingIn.textContent = group.name ? `Posting in ${group.name}` : 'Posting in this group';
+                    postingIn.classList.remove('hidden');
+                }
+                document.title = `${group.name || 'Group'} - Social Novel`;
+            } catch (e) {
+                if (nameEl) nameEl.textContent = 'Failed to load group';
+            }
+        }
+
         window.addEventListener("DOMContentLoaded", async () => {
             await fetchUsers();
             renderGroups();
+            renderGroupHeader();
             renderContacts();
             renderSponsored();
             renderPosts();
@@ -374,7 +465,7 @@
     </script>{% endraw %}
 </head>
 
-<body class="min-h-screen">
+<body class="min-h-screen" data-group-id="{{ group_id | default(value=0) }}">
 <div class="layout-container flex flex-col min-h-screen">
     {% include "include/header.html" %}
     <main class="flex-1 w-full flex justify-between px-4">
@@ -435,6 +526,22 @@
             <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
                 <!-- Dynamic stories and users will be rendered here if needed -->
             </div>
+            <div id="group-page-header" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-4 overflow-hidden">
+                <div id="group-page-cover" class="h-44 bg-cover bg-center bg-[#1877F2]"></div>
+                <div class="px-4 pb-3">
+                    <div class="flex items-end gap-4 -mt-10">
+                        <div id="group-page-avatar" class="size-24 rounded-2xl border-4 border-white bg-cover bg-center bg-[#E4E6EB] shadow-md shrink-0"></div>
+                        <div class="min-w-0 pb-1">
+                            <h1 id="group-page-name" class="text-[28px] leading-tight font-bold text-[#050505] truncate">Group</h1>
+                            <p class="text-[15px] text-fb-gray-text">Public group</p>
+                        </div>
+                    </div>
+                    <p id="group-page-desc" class="text-[15px] text-[#050505] mt-3 whitespace-pre-wrap"></p>
+                </div>
+                <div class="px-4 border-t border-gray-200">
+                    <span class="inline-block text-fb-blue font-semibold text-[15px] py-3 border-b-[3px] border-fb-blue">Discussion</span>
+                </div>
+            </div>
             <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200"
                   enctype="multipart/form-data">
                 <div class="flex gap-2 items-start mb-3">
@@ -444,6 +551,7 @@
                               class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-[20px] text-[17px] text-[#050505] focus:outline-none resize-none"
                               placeholder="What's on your mind?"></textarea>
                 </div>
+                <p id="posting-in" class="hidden -mt-1 mb-2 px-1 text-[13px] font-semibold text-fb-blue"></p>
                 <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
                 <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden"/>
                 <input type="text" id="feeling-input" name="feeling"

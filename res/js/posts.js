@@ -147,7 +147,7 @@ function renderPostHtml(p) {
                         </div>
                         ${commentsHtml}
                         <div class="px-4 py-3 border-t border-gray-100 bg-white">
-                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" enctype="multipart/form-data">
+                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" data-group-id="${p.group || 0}" enctype="multipart/form-data">
                                 <input type="hidden" name="id" value="0" />
                                 <input type="hidden" name="is_with" value="" />
                                 <input type="hidden" name="feeling" value="" />
@@ -386,7 +386,8 @@ function initCommentHandlers() {
         fd.set('surprised', '0');
         fd.set('sad', '0');
         fd.set('liked_by', '');
-        fd.set('group', '0');
+        const groupId = Number(form.dataset.groupId || 0);
+        fd.set('group', String(Number.isFinite(groupId) && groupId > 0 ? groupId : 0));
         fd.set('room', '0');
         const mediaInput = form.querySelector('.comment-media-input');
         if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {

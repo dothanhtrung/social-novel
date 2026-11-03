@@ -34,6 +34,8 @@ struct PostQuery {
     parent: Option<i64>,
     group: Option<i64>, // TODO: query by multiple groups, authors
     room: Option<i64>,
+    /// When true, only root posts (parent is null) are returned.
+    roots: Option<bool>,
 }
 
 #[derive(MultipartForm, Debug)]
@@ -84,6 +86,7 @@ async fn get(
     } else {
         None
     };
+    cond.roots_only = query_params.roots.unwrap_or(false);
 
     if let Some(id) = query_params.id {
         match db_post::get_by_id(&dbpool, id).await {
@@ -105,6 +108,23 @@ async fn get(
     web::Json(PostResponse { posts: ret, err })
 }
 
+/// Walk parents until a post that belongs to a group is found.
+async fn inherit_group(dbpool: &DBPool, mut parent: Option<i64>) -> Option<i64> {
+    for _ in 0..32 {
+        let Some(parent_id) = parent.filter(|id| *id > 0) else {
+            return None;
+        };
+        let Ok(post) = db_post::get_by_id(dbpool, parent_id).await else {
+            return None;
+        };
+        if let Some(group_id) = post.group.filter(|id| *id > 0) {
+            return Some(group_id);
+        }
+        parent = post.parent;
+    }
+    None
+}
+
 #[post("")]
 async fn update(
     dbpool: web::Data<DBPool>,
@@ -117,7 +137,12 @@ async fn update(
     debug!("Received form: {:?}", data);
     let form_parent = data.parent.into_inner();
     let parent = if form_parent > 0 { Some(form_parent) } else { None };
-    let group = if data.group.0 == 0 { None } else { Some(data.group.0) };
+    let is_new = data.id.0 == 0;
+    let mut group = if data.group.0 == 0 { None } else { Some(data.group.0) };
+    // A comment with no group inherits the group of the post (or ancestor) it replies to.
+    if is_new && group.is_none() {
+        group = inherit_group(&dbpool, parent).await;
+    }
     let room = if data.room.0 == 0 { None } else { Some(data.room.0) };
     let updated_at = if let Some(timestamp) = data.updated_at {
         string_to_offsetdatetime(timestamp.into_inner().as_str()).unwrap_or(OffsetDateTime::now_utc())
