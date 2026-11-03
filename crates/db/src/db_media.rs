@@ -30,13 +30,13 @@ pub struct Media {
     pub id: i64,
     pub url: String,
     pub file_type: MediaType,
-    pub post: i64,
     pub blake3: String,
 }
 
-pub async fn insert(dbpool: &DBPool, media: &Media) -> Result<i64, anyhow::Error> {
+/// Store the file if needed and link it to the post. An existing url is reused.
+pub async fn attach(dbpool: &DBPool, post_id: i64, media: &Media) -> Result<i64, anyhow::Error> {
     #[cfg(feature = "postgres")]
-    return postgres::pg_media::insert(&dbpool.pg_pool, media)
+    return postgres::pg_media::attach(&dbpool.pg_pool, post_id, media)
         .await
         .map_err(|e| e.into());
 }
@@ -48,9 +48,24 @@ pub async fn get_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<Media>, an
         .map_err(|e| e.into())
 }
 
-pub async fn delete_by_post(dbpool: &DBPool, post_id: i64) -> Result<Vec<String>, anyhow::Error> {
+/// Remove links for these posts. Returns urls of media no longer used by any post.
+pub async fn unlink_posts(dbpool: &DBPool, post_ids: &[i64]) -> Result<Vec<String>, anyhow::Error> {
     #[cfg(feature = "postgres")]
-    return postgres::pg_media::delete_by_post(&dbpool.pg_pool, post_id)
+    return postgres::pg_media::unlink_posts(&dbpool.pg_pool, post_ids)
+        .await
+        .map_err(|e| e.into());
+}
+
+pub async fn unlink_group(dbpool: &DBPool, group_id: i64) -> Result<Vec<String>, anyhow::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_media::unlink_group(&dbpool.pg_pool, group_id)
+        .await
+        .map_err(|e| e.into());
+}
+
+pub async fn unlink_room(dbpool: &DBPool, room_id: i64) -> Result<Vec<String>, anyhow::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_media::unlink_room(&dbpool.pg_pool, room_id)
         .await
         .map_err(|e| e.into());
 }

@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::{save_avatar, CommonMessage};
+use crate::{delete_files, save_avatar, CommonMessage};
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     get, post, web::{self, Query},
@@ -9,7 +9,7 @@ use actix_web::{
 use my_config::ConfigData;
 use my_db::{
     db_group::{self, Group},
-    db_post,
+    db_media, db_post,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -51,18 +51,32 @@ async fn search(dbpool: web::Data<DBPool>, query_params: Query<GroupQuery>) -> i
 }
 
 #[get("delete/{id}")]
-async fn delete(dbpool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
+async fn delete(
+    dbpool: web::Data<DBPool>,
+    config_data: web::Data<ConfigData>,
+    id: web::Path<i64>,
+) -> impl Responder {
     let mut msg = String::new();
     let mut err = String::new();
     let group_id = id.into_inner();
-    match db_group::delete_by_id(&dbpool, group_id).await {
-        Ok(_) => match db_post::delete_by_group(&dbpool, group_id).await {
-            Ok(count) => msg = format!("Deleted {count} posts."),
-            Err(e) => err = e.to_string(),
-        },
+    // Unlink before the group delete cascades posts, so shared media is kept.
+    match db_media::unlink_group(&dbpool, group_id).await {
+        Ok(urls) => {
+            match db_group::delete_by_id(&dbpool, group_id).await {
+                Ok(_) => match db_post::delete_by_group(&dbpool, group_id).await {
+                    Ok(count) => {
+                        msg = format!("Deleted {count} posts.");
+                        let config = config_data.config.read().await;
+                        delete_files(Path::new(&config.data_dir), &urls).await;
+                    }
+                    Err(e) => err = e.to_string(),
+                },
+                Err(e) => err = e.to_string(),
+            }
+        }
         Err(e) => err = e.to_string(),
     }
-    // TODO: Delete avatar and post
+    // TODO: Delete avatar
     web::Json(CommonMessage::new(msg, err))
 }
 

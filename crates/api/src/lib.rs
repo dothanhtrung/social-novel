@@ -8,7 +8,6 @@ mod api_post;
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::http::StatusCode;
 use actix_web::{ResponseError, web};
-use anyhow::anyhow;
 use core::fmt::Formatter;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -109,9 +108,10 @@ async fn save_file(
     let path = target_dir.join(saved_name.as_str());
     if path.exists() {
         if file_name.is_empty() {
-            info!("File {saved_name} exists");
-            // TODO: Allow one media for multiple posts
-            return Err(anyhow!("exist"));
+            // Same content is already stored. Caller links the existing row to this post.
+            info!("File {saved_name} exists, reusing");
+            let file_type = file_type(&path).await;
+            return Ok((blake3_hash, saved_name, file_type));
         }
         fs::remove_file(&path).await.ok();
     }
@@ -127,6 +127,12 @@ async fn save_file(
     let file_type = file_type(&path).await;
 
     Ok((blake3_hash, saved_name, file_type))
+}
+
+async fn delete_files(root_dir: &Path, urls: &[String]) {
+    for url in urls {
+        delete_file(root_dir, url).await;
+    }
 }
 
 async fn delete_file(root_dir: &Path, file_path: &str) {

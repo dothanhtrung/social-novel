@@ -1,4 +1,4 @@
-use crate::{CommonMessage, delete_file, save_file};
+use crate::{CommonMessage, delete_files, save_file};
 use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
@@ -202,20 +202,15 @@ async fn update(
             Ok((blake3, file_name, file_type)) => {
                 let media = Media {
                     id: 0,
-                    post: post_id,
                     url: file_name,
                     blake3,
                     file_type,
                 };
-                if let Err(e) = db_media::insert(&dbpool, &media).await {
+                if let Err(e) = db_media::attach(&dbpool, post_id, &media).await {
                     err = e.to_string();
                 }
             }
-            Err(e) => {
-                if e.to_string() != "exist" {
-                    err = e.to_string()
-                }
-            }
+            Err(e) => err = e.to_string(),
         }
     }
 
@@ -229,22 +224,16 @@ async fn delete(dbpool: web::Data<DBPool>, config_data: web::Data<ConfigData>, i
     let config = config_data.config.read().await;
     let post_id = id.into_inner();
 
-    // Clean media
-    match db_media::delete_by_post(&dbpool, post_id).await {
+    // Drop this post's links. Files still used by another post are kept.
+    match db_media::unlink_posts(&dbpool, &[post_id]).await {
         Ok(urls) => {
-            let data_dir = Path::new(&config.data_dir);
-            for url in urls {
-                delete_file(data_dir, url.as_str()).await;
+            match db_post::delete_by_id(&dbpool, post_id).await {
+                Ok(_) => {
+                    msg = "Success".to_string();
+                    delete_files(Path::new(&config.data_dir), &urls).await;
+                }
+                Err(e) => err = e.to_string(),
             }
-        }
-        Err(e) => {
-            err = e.to_string();
-        }
-    }
-
-    match db_post::delete_by_id(&dbpool, post_id).await {
-        Ok(_) => {
-            msg = "Success".to_string();
         }
         Err(e) => err = e.to_string(),
     }

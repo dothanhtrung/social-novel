@@ -1,12 +1,13 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::{CommonMessage, save_file};
+use crate::{delete_files, CommonMessage, save_file};
 use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_web::web::Query;
 use actix_web::{Responder, get, post, web};
 use my_config::ConfigData;
+use my_db::db_media;
 use my_db::db_room::{self, RoomMember};
 use my_db::db_room::{ChatRoom, RoomQuery};
 use serde::Serialize;
@@ -105,13 +106,21 @@ async fn update(
 }
 
 #[get("delete/{id}")]
-async fn delete(dbpool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
+async fn delete(
+    dbpool: web::Data<DBPool>,
+    config_data: web::Data<ConfigData>,
+    id: web::Path<i64>,
+) -> impl Responder {
     let room_id = id.into_inner();
-    let ret = match db_room::delete_by_id(&dbpool, room_id).await {
-        Ok(_) => {
-            let _ = db_room::kick_all(&dbpool, room_id).await;
-            CommonMessage::from_msg("Success".to_string())
-        
+    let ret = match db_media::unlink_room(&dbpool, room_id).await {
+        Ok(urls) => match db_room::delete_by_id(&dbpool, room_id).await {
+            Ok(_) => {
+                let _ = db_room::kick_all(&dbpool, room_id).await;
+                let config = config_data.config.read().await;
+                delete_files(Path::new(&config.data_dir), &urls).await;
+                CommonMessage::from_msg("Success".to_string())
+            }
+            Err(e) => CommonMessage::from_err(e.to_string()),
         },
         Err(e) => CommonMessage::from_err(e.to_string()),
     };

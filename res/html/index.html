@@ -4,6 +4,12 @@
         let userMap = {};
         let userList = [];
         let usernameMapLower = {}; // map lowercase username -> user
+        let currentGroup = null;
+        let groupAvatarRev = Date.now();
+
+        function groupAvatarUrl(id) {
+            return `/data/avatar/${id}.png?v=${groupAvatarRev}`;
+        }
         async function fetchUsers() {
             try {
                 const res = await fetch("/api/character");
@@ -213,7 +219,7 @@
                 if (selected) a.setAttribute('aria-current', 'page');
                 const div = document.createElement('div');
                 div.className = 'size-9 rounded-lg bg-cover bg-center bg-[#E4E6EB]';
-                div.style.backgroundImage = `url('/data/avatar/${group.id}.png')`;
+                div.style.backgroundImage = `url('${groupAvatarUrl(group.id)}')`;
                 const span = document.createElement('span');
                 span.className = selected ? 'text-[15px] font-bold' : 'text-[15px] font-semibold';
                 span.textContent = group.name;
@@ -356,44 +362,96 @@
             }
         }
 
+        function setGroupModalMode(mode) {
+            const title = document.getElementById('group-form-title');
+            const submit = document.getElementById('group-form-submit');
+            const idInput = document.getElementById('group-form-id');
+            const nameInput = document.getElementById('group-form-name');
+            const descInput = document.getElementById('group-form-description');
+            const avatarInput = document.getElementById('group-form-avatar');
+            const preview = document.getElementById('group-avatar-preview');
+            const editing = mode === 'edit' && currentGroup;
+            if (editing) {
+                if (title) title.textContent = 'Edit Group';
+                if (submit) submit.textContent = 'Save';
+                if (idInput) idInput.value = String(currentGroup.id);
+                if (nameInput) nameInput.value = currentGroup.name || '';
+                if (descInput) descInput.value = currentGroup.description || '';
+                if (avatarInput) avatarInput.value = '';
+                if (preview) preview.style.backgroundImage = `url('${groupAvatarUrl(currentGroup.id)}')`;
+            } else {
+                if (title) title.textContent = 'Create New Group';
+                if (submit) submit.textContent = 'Create Group';
+                if (idInput) idInput.value = '0';
+                if (nameInput) nameInput.value = '';
+                if (descInput) descInput.value = '';
+                if (avatarInput) avatarInput.value = '';
+                if (preview) preview.style.backgroundImage = '';
+            }
+        }
+
         function initGroupHandlers() {
             const addBtn = document.getElementById('add-group-btn');
+            const editBtn = document.getElementById('edit-group-btn');
             const modal = document.getElementById('group-create-modal');
             const cancelBtn = document.getElementById('group-cancel');
             const form = document.getElementById('group-form');
-     
+            const avatarInput = document.getElementById('group-form-avatar');
+            const preview = document.getElementById('group-avatar-preview');
+
             if (!addBtn || !modal || !cancelBtn || !form) return;
-     
-            addBtn.addEventListener('click', () => {
+
+            function openModal(mode) {
+                setGroupModalMode(mode);
                 modal.classList.remove('hidden');
-            });
-     
-            cancelBtn.addEventListener('click', () => {
+            }
+
+            function closeModal() {
                 modal.classList.add('hidden');
-                form.reset();
+                setGroupModalMode('create');
+            }
+
+            addBtn.addEventListener('click', () => openModal('create'));
+            if (editBtn) editBtn.addEventListener('click', () => openModal('edit'));
+            cancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
             });
-     
+
+            if (avatarInput && preview) {
+                avatarInput.addEventListener('change', () => {
+                    const file = avatarInput.files && avatarInput.files[0];
+                    if (!file) return;
+                    preview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+                });
+            }
+
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(form);
-     
+                const editing = Number(formData.get('id')) > 0;
+                const avatar = formData.get('avatar');
+                if (!avatar || !avatar.name) formData.delete('avatar');
+
                 try {
                     const res = await fetch('/api/group', {
                         method: 'POST',
                         body: formData
                     });
                     const data = await res.json();
-     
+
                     if (data.err) {
-                        alert('Failed to create group: ' + data.err);
+                        alert((editing ? 'Failed to save group: ' : 'Failed to create group: ') + data.err);
                     } else {
-                        alert('Group created successfully!');
+                        if (!editing) alert('Group created successfully!');
+                        groupAvatarRev = Date.now();
                         modal.classList.add('hidden');
-                        form.reset();
-                        renderGroups(); // Refresh the groups list
+                        setGroupModalMode('create');
+                        renderGroups();
+                        renderGroupHeader();
                     }
                 } catch (err) {
-                    alert('Failed to create group: ' + err);
+                    alert((editing ? 'Failed to save group: ' : 'Failed to create group: ') + err);
                 }
             });
         }
@@ -405,8 +463,11 @@
             const groupId = currentGroupId();
             const postingIn = document.getElementById('posting-in');
             const composer = document.getElementById('post-content');
+            const editBtn = document.getElementById('edit-group-btn');
             if (groupId <= 0) {
+                currentGroup = null;
                 header.classList.add('hidden');
+                if (editBtn) editBtn.classList.add('hidden');
                 if (postingIn) postingIn.classList.add('hidden');
                 if (composer) composer.placeholder = "What's on your mind?";
                 return;
@@ -421,6 +482,8 @@
                 const data = await res.json();
                 const group = (data.groups || []).find((g) => Number(g.id) === groupId);
                 if (!group) {
+                    currentGroup = null;
+                    if (editBtn) editBtn.classList.add('hidden');
                     if (nameEl) nameEl.textContent = 'Group not found';
                     if (descEl) {
                         descEl.textContent = '';
@@ -429,7 +492,9 @@
                     document.title = 'Group not found - Social Novel';
                     return;
                 }
-                const avatarUrl = `/data/avatar/${group.id}.png`;
+                currentGroup = group;
+                if (editBtn) editBtn.classList.remove('hidden');
+                const avatarUrl = groupAvatarUrl(group.id);
                 if (nameEl) nameEl.textContent = group.name || 'Group';
                 if (descEl) {
                     descEl.textContent = group.description || '';
@@ -446,6 +511,8 @@
                 }
                 document.title = `${group.name || 'Group'} - Social Novel`;
             } catch (e) {
+                currentGroup = null;
+                if (editBtn) editBtn.classList.add('hidden');
                 if (nameEl) nameEl.textContent = 'Failed to load group';
             }
         }
@@ -483,32 +550,36 @@
                     </button>
                     <div id="group-create-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
-                               <h2 class="text-xl font-bold mb-6 text-center">Create New Group</h2>
+                               <h2 id="group-form-title" class="text-xl font-bold mb-6 text-center">Create New Group</h2>
                                <form id="group-form" enctype="multipart/form-data" class="space-y-4">
-                                   <input type="hidden" name="id" value="0" />
+                                   <input id="group-form-id" type="hidden" name="id" value="0" />
                                    <div>
                                        <label class="block text-sm font-medium mb-2 text-fb-gray-text">Name</label>
-                                       <input name="name" type="text" required 
+                                       <input id="group-form-name" name="name" type="text" required 
                                               class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200" 
                                               placeholder="Group name">
                                    </div>
                                    <div>
                                        <label class="block text-sm font-medium mb-2 text-fb-gray-text">Description</label>
-                                       <textarea name="description" rows="4" 
+                                       <textarea id="group-form-description" name="description" rows="4" 
                                                  class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200 resize-vertical" 
                                                  placeholder="Describe your group..."></textarea>
                                    </div>
                                    <div>
                                        <label class="block text-sm font-medium mb-2 text-fb-gray-text">Avatar Image</label>
-                                       <input type="file" name="avatar" accept="image/*" 
-                                              class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200">
+                                       <div class="flex items-center gap-3">
+                                           <div id="group-avatar-preview" class="size-16 rounded-lg bg-cover bg-center bg-[#E4E6EB] shrink-0"></div>
+                                           <input id="group-form-avatar" type="file" name="avatar" accept="image/*" 
+                                                  class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none border border-gray-200">
+                                       </div>
+                                       <p class="text-[13px] text-fb-gray-text mt-2">Leave empty to keep the current avatar.</p>
                                    </div>
                                    <div class="flex gap-3 pt-4">
                                        <button type="button" id="group-cancel" 
                                                class="flex-1 px-4 py-3 bg-fb-gray text-fb-gray-text rounded-lg hover:bg-fb-hover font-medium">
                                            Cancel
                                        </button>
-                                       <button type="submit" 
+                                       <button id="group-form-submit" type="submit" 
                                                class="flex-1 px-4 py-3 bg-fb-blue text-white rounded-lg hover:bg-[#1877F2] font-medium">
                                            Create Group
                                        </button>
@@ -531,9 +602,16 @@
                 <div class="px-4 pb-3">
                     <div class="flex items-end gap-4 -mt-10">
                         <div id="group-page-avatar" class="size-24 rounded-2xl border-4 border-white bg-cover bg-center bg-[#E4E6EB] shadow-md shrink-0"></div>
-                        <div class="min-w-0 pb-1">
-                            <h1 id="group-page-name" class="text-[28px] leading-tight font-bold text-[#050505] truncate">Group</h1>
-                            <p class="text-[15px] text-fb-gray-text">Public group</p>
+                        <div class="min-w-0 pb-1 flex-1 flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h1 id="group-page-name" class="text-[28px] leading-tight font-bold text-[#050505] truncate">Group</h1>
+                                <p class="text-[15px] text-fb-gray-text">Public group</p>
+                            </div>
+                            <button type="button" id="edit-group-btn"
+                                    class="hidden shrink-0 mt-1 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#E4E6EB] hover:bg-[#D8DADF] text-[15px] font-semibold text-[#050505]">
+                                <span class="material-symbols-outlined !text-[18px]">edit</span>
+                                Edit
+                            </button>
                         </div>
                     </div>
                     <p id="group-page-desc" class="text-[15px] text-[#050505] mt-3 whitespace-pre-wrap"></p>
