@@ -79,6 +79,83 @@
     background: #b91c1c;
 }
 
+/* @username suggestion list, positioned against the focused field. */
+.mention-suggest {
+    position: fixed;
+    z-index: 80;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    padding: 4px 0;
+}
+
+.mention-suggest.hidden {
+    display: none;
+}
+
+.mention-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mention-option:hover,
+.mention-option.is-active {
+    background: #E7F3FF;
+}
+
+.mention-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #E4E6EB;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.mention-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.mention-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #050505;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mention-username {
+    font-size: 12px;
+    color: #65676B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+a.mention-link {
+    color: #1877F2;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+a.mention-link:hover {
+    text-decoration: underline;
+}
+
 /* Character card styles (for dynamically created cards) */
 .character-card {
     background: white;

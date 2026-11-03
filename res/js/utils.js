@@ -282,24 +282,285 @@ function updateUrlParams(page, count) {
 }
 
 
-// Render content and replace @username mentions with full Name in blue (requires usernameMapLower in global scope)
+// Characters for @mentions. Pages that already load /api/character can call
+// rememberCharacters(); otherwise the suggester loads them on first @.
+let mentionCharacters = [];
+let mentionUsernameMap = {};
+let mentionLoad = null;
+
+function rememberCharacters(characters) {
+    const byId = {};
+    const extras = [];
+    function add(c) {
+        if (!c) return;
+        if (c.id != null) byId[c.id] = c;
+        else extras.push(c);
+        if (c.username) mentionUsernameMap[c.username.toLowerCase()] = c;
+    }
+    mentionCharacters.forEach(add);
+    (characters || []).forEach(add);
+    mentionCharacters = Object.values(byId).concat(extras);
+    if (typeof usernameMapLower !== 'undefined') {
+        Object.assign(usernameMapLower, mentionUsernameMap);
+    }
+}
+
+function lookupMention(uname) {
+    const key = String(uname || '').toLowerCase();
+    if (typeof usernameMapLower !== 'undefined' && usernameMapLower[key]) return usernameMapLower[key];
+    return mentionUsernameMap[key] || null;
+}
+
+async function ensureMentionCharacters() {
+    if (typeof characterListCache !== 'undefined' && characterListCache.length > 0) {
+        rememberCharacters(characterListCache);
+    }
+    // Always fetch the full list once. A room page may have remembered only its members.
+    if (mentionLoad) return mentionLoad;
+    mentionLoad = fetchCharacterList().then((list) => {
+        rememberCharacters(list);
+        return mentionCharacters;
+    }).catch((err) => {
+        mentionLoad = null;
+        console.error('Failed to load characters for mentions', err);
+        return mentionCharacters;
+    });
+    return mentionLoad;
+}
+
+function filterMentionCharacters(query) {
+    const q = (query || '').toLowerCase();
+    const matches = mentionCharacters.filter((c) => {
+        const username = (c.username || '').toLowerCase();
+        const name = (c.name || '').toLowerCase();
+        if (!username) return false;
+        if (!q) return true;
+        return username.startsWith(q) || name.startsWith(q) || username.includes(q);
+    });
+    matches.sort((a, b) => {
+        const au = (a.username || '').toLowerCase();
+        const bu = (b.username || '').toLowerCase();
+        const aPrefix = au.startsWith(q) ? 0 : 1;
+        const bPrefix = bu.startsWith(q) ? 0 : 1;
+        if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+        return au.localeCompare(bu);
+    });
+    return matches.slice(0, 8);
+}
+
+// @ is a mention only at the start of the field or after whitespace.
+function mentionQueryAt(value, caret) {
+    const before = String(value || '').slice(0, caret);
+    const at = before.lastIndexOf('@');
+    if (at < 0) return null;
+    if (at > 0 && !/\s/.test(before.charAt(at - 1))) return null;
+    const query = before.slice(at + 1);
+    if (/\s/.test(query) || query.length > 40) return null;
+    return { start: at, query };
+}
+
+// Render content and replace @username with the character name, linked to /u/{username}.
 function renderContentWithMentions(text) {
     if (!text) return '';
     // Escape first
     let out = escapeHtml(text);
     // Replace newlines with <br>
     out = out.replace(/\r?\n/g, '<br>');
-    // Replace @username (alphanumeric and underscore, hyphen allowed) with full name when available
     out = out.replace(/@([A-Za-z0-9_\-\.]+)/g, function(_, uname) {
-      const found = usernameMapLower[uname.toLowerCase()];
-        if (found) {
+        const found = lookupMention(uname);
+        if (found && found.username) {
             const display = escapeHtml(found.name || found.username);
-            return `<span class="text-fb-blue">${display}</span>`;
+            const href = '/u/' + encodeURIComponent(found.username);
+            return `<a class="mention-link" href="${href}">${display}</a>`;
         }
         return `@${escapeHtml(uname)}`;
     });
     return out;
 }
+
+// Dropdown shown while typing @username in a post, comment, or chat field.
+function ensureMentionPopup() {
+    let popup = document.getElementById('mention-suggest');
+    if (popup) return popup;
+    popup = document.createElement('div');
+    popup.id = 'mention-suggest';
+    popup.className = 'mention-suggest hidden';
+    popup.setAttribute('role', 'listbox');
+    document.body.appendChild(popup);
+    popup.addEventListener('mousedown', (e) => {
+        // Keep focus in the field so the caret (and the insertion point) stays put.
+        e.preventDefault();
+        const opt = e.target.closest('.mention-option');
+        if (!opt || !mentionTarget) return;
+        acceptMention(mentionTarget, Number(opt.dataset.index));
+    });
+    return popup;
+}
+
+let mentionTarget = null;
+let mentionMatches = [];
+let mentionActive = 0;
+let mentionRange = null;
+
+function hideMentionPopup() {
+    const popup = document.getElementById('mention-suggest');
+    if (popup) {
+        popup.classList.add('hidden');
+        popup.innerHTML = '';
+    }
+    mentionTarget = null;
+    mentionMatches = [];
+    mentionRange = null;
+}
+
+function renderMentionPopup() {
+    const popup = ensureMentionPopup();
+    if (!mentionTarget || mentionMatches.length === 0) {
+        hideMentionPopup();
+        return;
+    }
+    popup.innerHTML = mentionMatches.map((c, i) => {
+        const name = escapeHtml(c.name || c.username || '');
+        const username = escapeHtml(c.username || '');
+        return `<button type="button" role="option" class="mention-option${i === mentionActive ? ' is-active' : ''}" data-index="${i}" aria-selected="${i === mentionActive}">
+            <span class="mention-avatar" style="background-image: url('${getAvatarUrl(c.username)}')"></span>
+            <span class="mention-text">
+                <span class="mention-name">${name}</span>
+                <span class="mention-username">@${username}</span>
+            </span>
+        </button>`;
+    }).join('');
+    const rect = mentionTarget.getBoundingClientRect();
+    const width = Math.min(320, Math.max(220, rect.width));
+    let left = rect.left;
+    if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - width - 8);
+    popup.style.width = width + 'px';
+    popup.style.left = left + 'px';
+    popup.classList.remove('hidden');
+    const height = popup.offsetHeight;
+    let top = rect.bottom + 4;
+    if (top + height > window.innerHeight - 8) top = Math.max(8, rect.top - height - 4);
+    popup.style.top = top + 'px';
+    const active = popup.querySelector('.is-active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function acceptMention(el, index) {
+    const c = mentionMatches[index];
+    const range = mentionRange;
+    if (!c || !c.username || !range || !el) {
+        hideMentionPopup();
+        return;
+    }
+    const value = el.value;
+    const insert = '@' + c.username + ' ';
+    el.value = value.slice(0, range.start) + insert + value.slice(el.selectionStart);
+    const caret = range.start + insert.length;
+    el.setSelectionRange(caret, caret);
+    el.focus();
+    hideMentionPopup();
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function mentionPopupOpen() {
+    const popup = document.getElementById('mention-suggest');
+    return !!(popup && !popup.classList.contains('hidden') && mentionMatches.length > 0);
+}
+
+async function updateMentionPopup(el) {
+    if (!el || (el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT')) {
+        hideMentionPopup();
+        return;
+    }
+    const range = mentionQueryAt(el.value, el.selectionStart);
+    if (!range) {
+        hideMentionPopup();
+        return;
+    }
+    await ensureMentionCharacters();
+    // Caret may have moved while characters were loading.
+    if (document.activeElement !== el) return;
+    const still = mentionQueryAt(el.value, el.selectionStart);
+    if (!still || still.start !== range.start) return;
+    const matches = filterMentionCharacters(still.query);
+    if (matches.length === 0) {
+        hideMentionPopup();
+        return;
+    }
+    mentionTarget = el;
+    mentionRange = still;
+    mentionMatches = matches;
+    if (mentionActive >= matches.length) mentionActive = 0;
+    renderMentionPopup();
+}
+
+// Post, comment, and chat composers. Not search boxes or group fields.
+function isMentionField(el) {
+    if (!el || !el.matches) return false;
+    if (el.id === 'composer-content' || el.id === 'post-content') return true;
+    return el.matches('textarea[name="content"]');
+}
+
+function bindMentionInput(el) {
+    if (!isMentionField(el) || el.dataset.mentionBound === '1') return;
+    el.dataset.mentionBound = '1';
+    el.addEventListener('input', () => {
+        mentionActive = 0;
+        updateMentionPopup(el);
+    });
+    el.addEventListener('click', () => updateMentionPopup(el));
+    el.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') return;
+        updateMentionPopup(el);
+    });
+    el.addEventListener('keydown', (e) => {
+        if (!mentionPopupOpen() || mentionTarget !== el) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            mentionActive = (mentionActive + 1) % mentionMatches.length;
+            renderMentionPopup();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            mentionActive = (mentionActive - 1 + mentionMatches.length) % mentionMatches.length;
+            renderMentionPopup();
+        } else if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+            e.preventDefault();
+            e.stopPropagation();
+            acceptMention(el, mentionActive);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            hideMentionPopup();
+        }
+    });
+    el.addEventListener('blur', () => {
+        // mousedown on an option prevents this blur; a real blur should close the list.
+        setTimeout(() => {
+            if (mentionTarget === el && document.activeElement !== el) hideMentionPopup();
+        }, 0);
+    });
+}
+
+function initMentionSuggestions(root) {
+    const scope = root || document;
+    scope.querySelectorAll('textarea[name="content"], #post-content, #composer-content').forEach(bindMentionInput);
+}
+
+document.addEventListener('focusin', (e) => {
+    bindMentionInput(e.target);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMentionSuggestions();
+    ensureMentionCharacters();
+});
+
+window.addEventListener('scroll', () => {
+    if (mentionTarget) renderMentionPopup();
+}, true);
+window.addEventListener('resize', () => {
+    if (mentionTarget) renderMentionPopup();
+});
 
 
 // Render reactions with overlapped icons and total count

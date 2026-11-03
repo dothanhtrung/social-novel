@@ -21,6 +21,7 @@
                         userMap[user.id] = user;
                         if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
                     }
+                    rememberCharacters(data.characters);
                 }
             } catch (e) {
                 userMap = {};

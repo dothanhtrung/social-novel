@@ -349,6 +349,7 @@ function initCommentHandlers() {
     document.addEventListener('keydown', function (e) {
         const ta = e.target && e.target.closest && e.target.closest('.comment-form') ? e.target : null;
         if (!ta || ta.tagName !== 'TEXTAREA') return;
+        if (mentionPopupOpen()) return;
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const form = ta.closest('.comment-form');

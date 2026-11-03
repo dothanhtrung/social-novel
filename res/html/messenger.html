@@ -55,6 +55,7 @@ struct PostForm {
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
         <title>Messenger - Product Design Team</title>
         <link href="/css/tailwind_output.min.css" rel="stylesheet" />
+        <link href="/css/components.css" rel="stylesheet" />
         <script src="/js/utils.js"></script>
         <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
         <link
@@ -1005,6 +1006,7 @@ struct PostForm {
                     const characters = data.characters || [];
                     charactersById = {};
                     characters.forEach((c) => (charactersById[c.id] = c));
+                    rememberCharacters(characters);
 
                     const room = currentRooms.find(
                         (r) => Number(r.id) === Number(roomId),
@@ -1136,6 +1138,7 @@ struct PostForm {
                     );
 
                     currentPosts = posts;
+                    await ensureMentionCharacters();
                     renderMessages(currentPosts);
                 } catch (err) {
                     alert("Failed to fetch posts: " + err);
@@ -1171,7 +1174,7 @@ struct PostForm {
                         Number(post.author) === Number(mainCharacterId);
                     const mediaHtml = renderMediaHtml(post.media);
                     const contentHtml = post.content
-                        ? escapeHtml(post.content).replace(/\r?\n/g, "<br>")
+                        ? renderContentWithMentions(post.content)
                         : "";
 
                     const wrapper = document.createElement("div");

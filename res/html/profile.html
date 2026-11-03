@@ -72,6 +72,7 @@
                     userMap[user.id] = user;
                     if (user.username) usernameMapLower[user.username.toLowerCase()] = user;
                 }
+                rememberCharacters(data.characters);
             }
         } catch (e) {
             console.error("Failed to fetch users:", e);
