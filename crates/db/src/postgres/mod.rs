@@ -5,3 +5,4 @@ pub mod pg_setting;
 pub mod pg_ads;
 pub mod pg_room;
 pub mod pg_group;
+pub mod pg_relation;

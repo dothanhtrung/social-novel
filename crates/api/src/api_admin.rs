@@ -6,6 +6,7 @@ use actix_web::{get, post, web, Responder};
 use my_config::ConfigData;
 use my_db::db_ads::{self, Ads, AdsCond};
 use my_db::db_character::{self, Character};
+use my_db::db_relation::{self, Relation, RelationCond};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use std::path::{Path, PathBuf};
@@ -29,6 +30,13 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
                     .service(sponsored_get)
                     .service(sponsored_delete)
                     .service(sponsored_update),
+            )
+            .service(
+                web::scope("/relation")
+                    .service(relation_search)
+                    .service(relation_get)
+                    .service(relation_delete)
+                    .service(relation_update),
             ),
     );
 }
@@ -339,6 +347,102 @@ async fn sponsored_update(
             }
             Err(e) => err = e.to_string(),
         }
+    }
+
+    web::Json(CommonMessage::new(msg, err))
+}
+
+#[derive(Deserialize)]
+struct RelationForm {
+    #[serde(default)]
+    id: i64,
+    from_character: i64,
+    to_character: i64,
+    relation: String,
+}
+
+#[derive(Deserialize)]
+struct RelationQuery {
+    character: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct RelationResponse {
+    relations: Vec<Relation>,
+    err: String,
+}
+
+#[get("")]
+async fn relation_search(db_pool: web::Data<DBPool>, queries: web::Query<RelationQuery>) -> impl Responder {
+    let mut relations = Vec::new();
+    let mut err = String::new();
+    let cond = RelationCond {
+        character: queries.character.filter(|id| *id > 0),
+    };
+    match db_relation::search(&db_pool, &cond).await {
+        Ok(rows) => relations = rows,
+        Err(e) => err = e.to_string(),
+    }
+    web::Json(RelationResponse { relations, err })
+}
+
+#[get("/{id}")]
+async fn relation_get(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
+    let mut relations = Vec::new();
+    let mut err = String::new();
+    match db_relation::get(&db_pool, id.into_inner()).await {
+        Ok(row) => relations.push(row),
+        Err(e) => err = e.to_string(),
+    }
+    web::Json(RelationResponse { relations, err })
+}
+
+#[get("/delete/{id}")]
+async fn relation_delete(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
+    let res = if let Err(e) = db_relation::delete(&db_pool, id.into_inner()).await {
+        CommonMessage::from_err(e.to_string())
+    } else {
+        CommonMessage::from_msg(String::from("Success"))
+    };
+    web::Json(res)
+}
+
+#[post("")]
+async fn relation_update(db_pool: web::Data<DBPool>, body: web::Json<RelationForm>) -> impl Responder {
+    let relation_text = body.relation.trim().to_string();
+    if relation_text.is_empty() {
+        return web::Json(CommonMessage::from_err("Relation is required".to_string()));
+    }
+    if body.from_character <= 0 || body.to_character <= 0 {
+        return web::Json(CommonMessage::from_err("Both characters are required".to_string()));
+    }
+    if body.from_character == body.to_character {
+        return web::Json(CommonMessage::from_err(
+            "A character cannot be related to themselves".to_string(),
+        ));
+    }
+
+    let relation = Relation {
+        id: body.id,
+        from_character: body.from_character,
+        to_character: body.to_character,
+        relation: relation_text,
+        ..Relation::default()
+    };
+
+    let mut err = String::new();
+    let mut msg = String::new();
+    if relation.id > 0 {
+        if let Err(e) = db_relation::update(&db_pool, &relation).await {
+            err = e.to_string();
+        } else {
+            msg = "Success".to_string();
+        }
+    } else if let Err(e) = db_relation::insert(&db_pool, &relation).await {
+        err = e.to_string();
+        error!("Failed to insert relation: {}", e);
+    } else {
+        msg = "Success".to_string();
     }
 
     web::Json(CommonMessage::new(msg, err))

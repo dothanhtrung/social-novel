@@ -16,6 +16,10 @@
                         class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover">
                     Sponsored
                 </button>
+                <button type="button" id="tab-relations"
+                        class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover">
+                    Relations
+                </button>
             </div>
 
             <div id="panel-users">
@@ -122,6 +126,65 @@
                     <div id="sponsored-list" class="flex flex-col gap-3"></div>
                 </div>
             </div>
+
+            <div id="panel-relations" class="hidden">
+                <div class="form-section">
+                    <h2 class="section-title" id="relation-form-title">Add relation</h2>
+                    <form id="relation-form" class="space-y-4">
+                        <input hidden name="id" type="number" value="0" required/>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="fb-label" for="relation-from">From</label>
+                                <input id="relation-from-search" type="text" placeholder="Search character"
+                                       class="fb-input mb-2"/>
+                                <select id="relation-from" name="from_character" class="fb-input" required>
+                                    <option value="">Select character</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="relation-text">Is</label>
+                                <input id="relation-text" name="relation" type="text" class="fb-input" required
+                                       placeholder="daughter, friend, rival..."/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="relation-to">Of</label>
+                                <input id="relation-to-search" type="text" placeholder="Search character"
+                                       class="fb-input mb-2"/>
+                                <select id="relation-to" name="to_character" class="fb-input" required>
+                                    <option value="">Select character</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-[13px] text-fb-gray-text">From is this relation of To. Example: Himawari is daughter of Hinata.</p>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button type="submit" class="fb-btn">Save</button>
+                            <button type="button" id="relation-reset-btn"
+                                    class="px-6 py-2 rounded-lg font-semibold bg-fb-hover text-[#050505]">
+                                New
+                            </button>
+                            <button type="button" id="relation-delete-btn"
+                                    class="fb-btn-danger hidden">Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4 gap-4 flex-wrap">
+                        <h2 class="text-[20px] font-bold">Relations</h2>
+                        <div class="w-full max-w-xs">
+                            <input id="relation-filter-search" type="text" placeholder="Filter by character"
+                                   class="fb-input mb-2"/>
+                            <select id="relation-filter" class="fb-input">
+                                <option value="">All characters</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="relation-list" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
         </section>
     </main>
 </div>
@@ -145,18 +208,19 @@
     const sponsoredImagePreview = document.getElementById("sponsored-image-preview");
     const sponsoredVideoPreview = document.getElementById("sponsored-video-preview");
 
+    function tabClass(on) {
+        return on
+            ? "flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue"
+            : "flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover";
+    }
+
     function setTab(name) {
-        const usersOn = name === "users";
-        document.getElementById("panel-users").classList.toggle("hidden", !usersOn);
-        document.getElementById("panel-sponsored").classList.toggle("hidden", usersOn);
-        const tabUsers = document.getElementById("tab-users");
-        const tabSponsored = document.getElementById("tab-sponsored");
-        tabUsers.className = usersOn
-            ? "flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue"
-            : "flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover";
-        tabSponsored.className = !usersOn
-            ? "flex-1 py-2.5 rounded-lg text-[15px] font-semibold bg-[#E7F3FF] text-fb-blue"
-            : "flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover";
+        document.getElementById("panel-users").classList.toggle("hidden", name !== "users");
+        document.getElementById("panel-sponsored").classList.toggle("hidden", name !== "sponsored");
+        document.getElementById("panel-relations").classList.toggle("hidden", name !== "relations");
+        document.getElementById("tab-users").className = tabClass(name === "users");
+        document.getElementById("tab-sponsored").className = tabClass(name === "sponsored");
+        document.getElementById("tab-relations").className = tabClass(name === "relations");
     }
 
     function resetUserForm() {
@@ -223,6 +287,18 @@
                 linkContainer.appendChild(name);
                 linkContainer.appendChild(username);
 
+                const actions = document.createElement("div");
+                actions.className = "flex flex-col gap-2 w-full";
+
+                const relBtn = document.createElement("button");
+                relBtn.textContent = "Relations";
+                relBtn.className = "w-full px-3 py-1.5 rounded-lg text-sm font-semibold bg-fb-hover";
+                relBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openCharacterRelations(user);
+                };
+
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "Delete";
                 delBtn.className = "character-card-delete-btn";
@@ -232,8 +308,10 @@
                     await deleteUser(user);
                 };
 
+                actions.appendChild(relBtn);
+                actions.appendChild(delBtn);
                 card.appendChild(linkContainer);
-                card.appendChild(delBtn);
+                card.appendChild(actions);
                 grid.appendChild(card);
             });
         } catch (err) {
@@ -465,9 +543,260 @@
 
     document.getElementById("tab-users").addEventListener("click", () => setTab("users"));
     document.getElementById("tab-sponsored").addEventListener("click", () => setTab("sponsored"));
+    document.getElementById("tab-relations").addEventListener("click", () => setTab("relations"));
+
+    const relationForm = document.getElementById("relation-form");
+    const relationDeleteBtn = document.getElementById("relation-delete-btn");
+    const relationResetBtn = document.getElementById("relation-reset-btn");
+    const relationFormTitle = document.getElementById("relation-form-title");
+    const relationFrom = document.getElementById("relation-from");
+    const relationTo = document.getElementById("relation-to");
+    const relationFromSearch = document.getElementById("relation-from-search");
+    const relationToSearch = document.getElementById("relation-to-search");
+    const relationFilter = document.getElementById("relation-filter");
+    const relationFilterSearch = document.getElementById("relation-filter-search");
+    let relationCharacters = [];
+
+    function characterLabel(c) {
+        const name = c.name || c.username || "";
+        return c.username ? name + " (@" + c.username + ")" : name;
+    }
+
+    function fillCharacterSelect(select, characters, selectedId, placeholder) {
+        const current = selectedId != null ? String(selectedId) : (select.value || "");
+        select.innerHTML = "";
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = placeholder;
+        select.appendChild(empty);
+        characters.forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = String(c.id);
+            opt.textContent = characterLabel(c);
+            select.appendChild(opt);
+        });
+        if (current && !characters.some((c) => String(c.id) === current)) {
+            const missing = relationCharacters.find((c) => String(c.id) === current);
+            if (missing) {
+                const opt = document.createElement("option");
+                opt.value = current;
+                opt.textContent = characterLabel(missing);
+                select.appendChild(opt);
+            }
+        }
+        select.value = current;
+    }
+
+    function filterCharacters(query) {
+        const q = (query || "").trim().toLowerCase();
+        if (!q) return relationCharacters;
+        return relationCharacters.filter((c) => {
+            return (c.name || "").toLowerCase().includes(q) || (c.username || "").toLowerCase().includes(q);
+        });
+    }
+
+    function refreshRelationSelects() {
+        fillCharacterSelect(relationFrom, filterCharacters(relationFromSearch.value), null, "Select character");
+        fillCharacterSelect(relationTo, filterCharacters(relationToSearch.value), null, "Select character");
+        fillCharacterSelect(relationFilter, filterCharacters(relationFilterSearch.value), null, "All characters");
+    }
+
+    async function loadRelationCharacters() {
+        try {
+            const res = await fetch("/api/admin/user");
+            const data = await res.json();
+            relationCharacters = data.users || [];
+            refreshRelationSelects();
+        } catch (err) {
+            alert("Failed to load characters: " + err);
+        }
+    }
+
+    function openCharacterRelations(user) {
+        setTab("relations");
+        relationFilterSearch.value = "";
+        refreshRelationSelects();
+        relationFilter.value = String(user.id);
+        resetRelationForm();
+        fetchRelations();
+        document.getElementById("relation-list").scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    function resetRelationForm() {
+        relationForm.reset();
+        relationForm.elements["id"].value = "0";
+        relationFormTitle.textContent = "Add relation";
+        relationDeleteBtn.classList.add("hidden");
+        relationFromSearch.value = "";
+        relationToSearch.value = "";
+        refreshRelationSelects();
+        relationFrom.value = relationFilter.value || "";
+        relationTo.value = "";
+    }
+
+    function fillRelationForm(rel) {
+        relationFromSearch.value = "";
+        relationToSearch.value = "";
+        refreshRelationSelects();
+        relationForm.elements["id"].value = rel.id;
+        relationFrom.value = String(rel.from_character);
+        relationTo.value = String(rel.to_character);
+        relationForm.elements["relation"].value = rel.relation || "";
+        relationFormTitle.textContent = "Edit relation";
+        relationDeleteBtn.classList.remove("hidden");
+        relationForm.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    function avatarChip(username, name) {
+        const wrap = document.createElement("div");
+        wrap.className = "flex items-center gap-2 min-w-0";
+        const img = document.createElement("div");
+        img.className = "size-10 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]";
+        if (username) img.style.backgroundImage = `url("${getAvatarUrl(username)}")`;
+        const label = document.createElement("div");
+        label.className = "min-w-0";
+        const title = document.createElement("div");
+        title.className = "font-semibold text-[15px] truncate";
+        title.textContent = name || username || "";
+        const sub = document.createElement("div");
+        sub.className = "text-[13px] text-[#65676B] truncate";
+        sub.textContent = username ? "@" + username : "";
+        label.appendChild(title);
+        label.appendChild(sub);
+        wrap.appendChild(img);
+        wrap.appendChild(label);
+        return wrap;
+    }
+
+    async function fetchRelations() {
+        try {
+            const character = relationFilter.value;
+            const url = character ? "/api/admin/relation?character=" + encodeURIComponent(character) : "/api/admin/relation";
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.err) {
+                alert("Error: " + data.err);
+                return;
+            }
+            const list = document.getElementById("relation-list");
+            list.innerHTML = "";
+            const relations = data.relations || [];
+            if (relations.length === 0) {
+                list.innerHTML = '<div class="text-fb-gray-text px-2 py-4">No relations yet.</div>';
+                return;
+            }
+            relations.forEach((rel) => {
+                const card = document.createElement("div");
+                card.className = "bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-3";
+
+                const info = document.createElement("button");
+                info.type = "button";
+                info.className = "flex-1 min-w-0 flex items-center gap-3 text-left";
+                info.onclick = () => fillRelationForm(rel);
+                info.appendChild(avatarChip(rel.from_username, rel.from_name));
+
+                const phrase = document.createElement("div");
+                phrase.className = "shrink-0 text-center px-2";
+                const word = document.createElement("div");
+                word.className = "text-[15px] font-semibold text-fb-blue";
+                word.textContent = rel.relation || "";
+                const of = document.createElement("div");
+                of.className = "text-[12px] text-fb-gray-text";
+                of.textContent = "of";
+                phrase.appendChild(word);
+                phrase.appendChild(of);
+
+                info.appendChild(phrase);
+                info.appendChild(avatarChip(rel.to_username, rel.to_name));
+
+                const actions = document.createElement("div");
+                actions.className = "flex flex-col gap-2 shrink-0";
+                const editBtn = document.createElement("button");
+                editBtn.type = "button";
+                editBtn.className = "px-3 py-1.5 rounded-lg text-sm font-semibold bg-fb-hover";
+                editBtn.textContent = "Edit";
+                editBtn.onclick = () => fillRelationForm(rel);
+                const delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "character-card-delete-btn";
+                delBtn.textContent = "Delete";
+                delBtn.onclick = () => deleteRelation(rel);
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+
+                card.appendChild(info);
+                card.appendChild(actions);
+                list.appendChild(card);
+            });
+        } catch (err) {
+            alert("Failed to fetch relations: " + err);
+        }
+    }
+
+    async function deleteRelation(rel) {
+        const label = (rel.from_name || "character") + " is " + (rel.relation || "") + " of " + (rel.to_name || "character");
+        const confirmed = confirm(`Delete relation "${label}"?`);
+        if (!confirmed) return;
+        try {
+            const res = await fetch(`/api/admin/relation/delete/${rel.id}`);
+            const data = await res.json().catch(() => ({}));
+            if (data.err) {
+                alert("Delete failed: " + data.err);
+                return;
+            }
+            if (String(relationForm.elements["id"].value) === String(rel.id)) {
+                resetRelationForm();
+            }
+            fetchRelations();
+        } catch (err) {
+            alert("Delete failed: " + err);
+        }
+    }
+
+    relationForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const payload = {
+            id: Number(relationForm.elements["id"].value) || 0,
+            from_character: Number(relationFrom.value) || 0,
+            to_character: Number(relationTo.value) || 0,
+            relation: relationForm.elements["relation"].value || "",
+        };
+        try {
+            const res = await fetch("/api/admin/relation", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.err) {
+                throw new Error(data.err || await res.text());
+            }
+            resetRelationForm();
+            fetchRelations();
+        } catch (err) {
+            alert("Failed to save relation: " + (err.message || err));
+        }
+    });
+
+    relationResetBtn.addEventListener("click", resetRelationForm);
+    relationDeleteBtn.addEventListener("click", async () => {
+        const id = relationForm.elements["id"].value;
+        if (!id || id === "0") return;
+        await deleteRelation({
+            id,
+            from_name: relationFrom.selectedOptions[0] ? relationFrom.selectedOptions[0].textContent : "",
+            to_name: relationTo.selectedOptions[0] ? relationTo.selectedOptions[0].textContent : "",
+            relation: relationForm.elements["relation"].value,
+        });
+    });
+    relationFromSearch.addEventListener("input", refreshRelationSelects);
+    relationToSearch.addEventListener("input", refreshRelationSelects);
+    relationFilterSearch.addEventListener("input", refreshRelationSelects);
+    relationFilter.addEventListener("change", fetchRelations);
 
     fetchUsers();
     fetchSponsored();
+    loadRelationCharacters().then(fetchRelations);
 </script>{% endraw %}
 </body>
 
