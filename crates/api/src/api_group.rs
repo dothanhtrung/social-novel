@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{delete_files, save_avatar, CommonMessage};
+use crate::{delete_file, delete_files, save_avatar, save_cover, CommonMessage};
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     get, post, web::{self, Query},
@@ -16,13 +16,24 @@ use tracing::debug;
 use web_misc::db::DBPool;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/group").service(search).service(delete).service(update));
+    cfg.service(
+        web::scope("/group")
+            .service(members)
+            .service(join)
+            .service(leave)
+            .service(search)
+            .service(delete)
+            .service(update),
+    );
 }
 
 #[derive(Debug, Deserialize)]
 struct GroupQuery {
     #[serde(default)]
     search: String,
+    member: Option<i64>,
+    character: Option<i64>,
+    group: Option<i64>,
 }
 
 #[derive(MultipartForm, Debug)]
@@ -31,6 +42,7 @@ struct GroupForm {
     name: Text<String>,
     description: Text<String>,
     avatar: Option<TempFile>,
+    cover: Option<TempFile>,
 }
 
 #[derive(Serialize, Default)]
@@ -42,12 +54,70 @@ struct GroupResponse {
 #[get("")]
 async fn search(dbpool: web::Data<DBPool>, query_params: Query<GroupQuery>) -> impl Responder {
     let mut res = GroupResponse::default();
-    match db_group::search(&dbpool, &query_params.search).await {
+    let member = query_params.member.filter(|id| *id > 0);
+    match db_group::search(&dbpool, &query_params.search, member).await {
         Ok(ret) => res.groups = ret,
         Err(e) => res.err = e.to_string(),
     }
 
     web::Json(res)
+}
+
+#[derive(Serialize)]
+struct MemberResponse {
+    members: Vec<my_db::db_group::GroupMember>,
+    err: String,
+}
+
+#[get("members")]
+async fn members(dbpool: web::Data<DBPool>, query: Query<GroupQuery>) -> impl Responder {
+    let Some(group_id) = query.group.filter(|id| *id > 0) else {
+        return web::Json(MemberResponse {
+            members: Vec::new(),
+            err: "Group is required".to_string(),
+        });
+    };
+    match db_group::members(&dbpool, group_id).await {
+        Ok(members) => web::Json(MemberResponse {
+            members,
+            err: String::new(),
+        }),
+        Err(e) => web::Json(MemberResponse {
+            members: Vec::new(),
+            err: e.to_string(),
+        }),
+    }
+}
+
+fn membership_ids(query: &GroupQuery) -> Result<(i64, i64), String> {
+    match (query.character.filter(|id| *id > 0), query.group.filter(|id| *id > 0)) {
+        (Some(character_id), Some(group_id)) => Ok((character_id, group_id)),
+        _ => Err("Character and group are required".to_string()),
+    }
+}
+
+#[post("join")]
+async fn join(dbpool: web::Data<DBPool>, query: Query<GroupQuery>) -> impl Responder {
+    let (character_id, group_id) = match membership_ids(&query) {
+        Ok(ids) => ids,
+        Err(e) => return web::Json(CommonMessage::from_err(e)),
+    };
+    match db_group::join(&dbpool, character_id, group_id).await {
+        Ok(_) => web::Json(CommonMessage::from_msg("Success".to_string())),
+        Err(e) => web::Json(CommonMessage::from_err(e.to_string())),
+    }
+}
+
+#[get("leave")]
+async fn leave(dbpool: web::Data<DBPool>, query: Query<GroupQuery>) -> impl Responder {
+    let (character_id, group_id) = match membership_ids(&query) {
+        Ok(ids) => ids,
+        Err(e) => return web::Json(CommonMessage::from_err(e)),
+    };
+    match db_group::leave(&dbpool, character_id, group_id).await {
+        Ok(_) => web::Json(CommonMessage::from_msg("Success".to_string())),
+        Err(e) => web::Json(CommonMessage::from_err(e.to_string())),
+    }
 }
 
 #[get("delete/{id}")]
@@ -77,6 +147,10 @@ async fn delete(
         Err(e) => err = e.to_string(),
     }
     // TODO: Delete avatar
+    if msg.starts_with("Deleted") {
+        let config = config_data.config.read().await;
+        delete_file(Path::new(&config.data_dir), &format!("cover/{group_id}.png")).await;
+    }
     web::Json(CommonMessage::new(msg, err))
 }
 
@@ -103,7 +177,10 @@ async fn update(
         }
     } else {
         match db_group::insert(&dbpool, &group).await {
-            Ok(id) => group.id = id,
+            Ok(id) => {
+                group.id = id;
+                res = CommonMessage::from_msg("Success".to_string()).with_id(id);
+            }
             Err(e) => res.err = e.to_string(),
         }
     }
@@ -111,8 +188,11 @@ async fn update(
     if group.id > 0 {
         let file_name = format!("{}.png", group.id);
         let data_dir = PathBuf::from(&config.data_dir);
-        if let Some(avatar) = data.avatar {
+        if let Some(avatar) = data.avatar.filter(|file| file.size > 0) {
             save_avatar(&data_dir, avatar, file_name.as_str()).await;
+        }
+        if let Some(cover) = data.cover.filter(|file| file.size > 0) {
+            save_cover(&data_dir, cover, file_name.as_str()).await;
         }
     }
 

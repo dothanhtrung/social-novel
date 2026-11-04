@@ -92,7 +92,7 @@ async fn update(
     } else {
         match db_room::insert(&dbpool, &room).await {
             Ok(id) => {
-                ret.msg = "Success".to_string();
+                ret = CommonMessage::from_msg("Success".to_string()).with_id(id);
 
                 if let Err(e) = db_room::invite(&dbpool, &RoomMember { room: id, members }).await {
                     ret.err = e.to_string();

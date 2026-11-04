@@ -1,5 +1,6 @@
 mod api_admin;
 mod api_character;
+mod api_friend;
 mod api_room;
 mod api_group;
 mod api_media;
@@ -27,6 +28,7 @@ pub fn scope_config(cfg: &mut web::ServiceConfig) {
             .configure(api_group::scope)
             .configure(api_media::scope)
             .configure(api_room::scope)
+            .configure(api_friend::scope)
             .configure(api_post::scope),
     );
 }
@@ -54,17 +56,29 @@ impl ResponseError for ErrorResponse {
 struct CommonMessage {
     msg: String,
     err: String,
+    /// Set when the caller needs the id of a row that was just created.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    id: i64,
+}
+
+fn is_zero(id: &i64) -> bool {
+    *id == 0
 }
 
 impl CommonMessage {
     fn new(msg: String, err: String) -> Self {
-        Self { msg, err }
+        Self {
+            msg,
+            err,
+            id: 0,
+        }
     }
 
     fn from_msg(msg: String) -> Self {
         Self {
             msg,
             err: "".to_string(),
+            id: 0,
         }
     }
 
@@ -72,7 +86,13 @@ impl CommonMessage {
         Self {
             msg: "".to_string(),
             err,
+            id: 0,
         }
+    }
+
+    fn with_id(mut self, id: i64) -> Self {
+        self.id = id;
+        self
     }
 }
 
@@ -160,6 +180,13 @@ async fn save_avatar(root_dir: &Path, avatar: TempFile, file_name: &str) {
     let path = root_dir.join("avatar");
     if save_file_overwrite(&path, avatar, file_name).await.is_ok() {
         info!("Saved avatar successfully");
+    }
+}
+
+async fn save_cover(root_dir: &Path, cover: TempFile, file_name: &str) {
+    let path = root_dir.join("cover");
+    if save_file_overwrite(&path, cover, file_name).await.is_ok() {
+        info!("Saved cover successfully");
     }
 }
 

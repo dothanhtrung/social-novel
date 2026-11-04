@@ -5,7 +5,7 @@ use actix_multipart::form::MultipartForm;
 use actix_web::{get, post, web, Responder};
 use my_config::ConfigData;
 use my_db::db_ads::{self, Ads, AdsCond};
-use my_db::db_character::{self, Character};
+use my_db::db_character::{self, Bio, Character};
 use my_db::db_relation::{self, Relation, RelationCond};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
@@ -139,6 +139,7 @@ async fn user_delete(
 
     if let Ok(user) = db_character::get(&db_pool, user_id).await {
         delete_file(&data_dir, &format!("avatar/{}.png", user.username)).await;
+        delete_file(&data_dir, &format!("cover/{}.png", user.username)).await;
     }
 
     let res = if let Err(e) = db_character::delete(&db_pool, user_id).await {
@@ -168,9 +169,11 @@ async fn user_update(
     }
 
     let mut description = String::new();
+    let mut bio = Json(Bio::default());
     if id > 0 {
         if let Ok(old) = db_character::get(&db_pool, id).await {
             description = old.description.clone();
+            bio = old.bio.clone();
             if old.username != username {
                 let old_avatar = data_dir.join("avatar").join(format!("{}.png", old.username));
                 let new_avatar = data_dir.join("avatar").join(format!("{username}.png"));
@@ -180,6 +183,15 @@ async fn user_update(
                     }
                 } else if old_avatar.exists() {
                     delete_file(&data_dir, &format!("avatar/{}.png", old.username)).await;
+                }
+                let old_cover = data_dir.join("cover").join(format!("{}.png", old.username));
+                let new_cover = data_dir.join("cover").join(format!("{username}.png"));
+                if old_cover.exists() && !new_cover.exists() {
+                    if let Err(e) = fs::rename(&old_cover, &new_cover).await {
+                        error!("Failed to rename cover {} -> {}: {}", old.username, username, e);
+                    }
+                } else if old_cover.exists() {
+                    delete_file(&data_dir, &format!("cover/{}.png", old.username)).await;
                 }
             }
         }
@@ -195,7 +207,7 @@ async fn user_update(
         name,
         id,
         description,
-        bio: Json::default(),
+        bio,
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {

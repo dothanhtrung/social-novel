@@ -36,12 +36,14 @@ pub(crate) async fn update(
     name: &str,
     username: &str,
     description: &str,
+    bio: &Json<Bio>,
 ) -> Result<u64, sqlx::Error> {
     let count = sqlx::query!(
-        "UPDATE character SET name = $1, username = $2, description = $3 WHERE id = $4",
+        "UPDATE character SET name = $1, username = $2, description = $3, bio = $4 WHERE id = $5",
         name,
         username,
         description,
+        bio as _,
         id
     )
     .execute(pool)

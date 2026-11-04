@@ -1,0 +1,148 @@
+{% include "include/head.html" %}
+</head>
+
+<body class="min-h-screen">
+<div class="layout-container flex flex-col min-h-screen">
+    {% include "include/header.html" %}
+    <main class="flex-1 w-full flex justify-between px-4">
+        <aside class="hidden xl:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
+            <a href="/group" class="flex items-center gap-3 px-2 py-2 rounded-lg bg-[#E7F3FF] text-fb-blue font-bold text-[15px]" aria-current="page">
+                <span class="material-symbols-outlined">explore</span>
+                Discover
+            </a>
+            <div class="mt-4 pt-4 border-t border-gray-300">
+                <h3 class="font-semibold text-fb-gray-text text-[17px] px-2 mb-2">Your groups</h3>
+                <div id="joined-groups" class="flex flex-col gap-0.5"></div>
+            </div>
+        </aside>
+        <section class="flex-1 flex flex-col pt-6 max-w-[720px] mx-auto min-w-0 pb-8">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <h1 class="text-[24px] font-bold text-[#050505]">Groups</h1>
+                <input id="group-search" type="text" placeholder="Search groups"
+                       class="bg-[#F0F2F5] border-none rounded-full px-4 py-2 text-[15px] w-64 focus:ring-0"
+                       autocomplete="off"/>
+            </div>
+            <div id="all-groups" class="flex flex-col gap-3"></div>
+        </section>
+        <aside class="hidden lg:block w-[360px]"></aside>
+    </main>
+</div>
+
+{% raw %}<script>
+    function groupAvatarUrl(id) {
+        return `/data/avatar/${id}.png`;
+    }
+    function groupCoverUrl(id) {
+        return `/data/cover/${id}.png`;
+    }
+
+    async function fetchGroupList(params) {
+        const res = await fetch('/api/group' + (params ? '?' + params : ''));
+        const data = await res.json();
+        if (data.err) throw new Error(data.err);
+        return data.groups || [];
+    }
+
+    async function renderJoined() {
+        const box = document.getElementById('joined-groups');
+        const me = getMainCharacter();
+        if (!me || !me.id) {
+            box.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">Select a character first</div>';
+            return [];
+        }
+        try {
+            const groups = await fetchGroupList('member=' + encodeURIComponent(me.id));
+            if (groups.length === 0) {
+                box.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">No groups yet</div>';
+                return [];
+            }
+            box.innerHTML = groups.map((g) => `
+                <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover" href="/g/${g.id}">
+                    <div class="size-9 rounded-lg bg-cover bg-center bg-[#E4E6EB] shrink-0" style="background-image: url('${groupAvatarUrl(g.id)}')"></div>
+                    <span class="text-[15px] font-semibold truncate">${escapeHtml(g.name)}</span>
+                </a>
+            `).join('');
+            return groups;
+        } catch (e) {
+            box.innerHTML = '<div class="px-2 text-red-500 text-[14px]">Failed to load groups</div>';
+            return [];
+        }
+    }
+
+    function joinButtonHtml(joined, id) {
+        const label = joined ? 'Leave' : 'Join';
+        const cls = joined
+            ? 'bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]'
+            : 'bg-fb-blue text-white hover:bg-[#166fe5]';
+        return `<button type="button" class="group-join shrink-0 px-4 py-2 rounded-lg font-semibold text-[15px] ${cls}" data-group-id="${id}" data-joined="${joined ? '1' : '0'}">${label}</button>`;
+    }
+
+    async function renderAll(joinedIds) {
+        const box = document.getElementById('all-groups');
+        const q = document.getElementById('group-search').value.trim();
+        try {
+            const groups = await fetchGroupList(q ? 'search=' + encodeURIComponent(q) : '');
+            if (groups.length === 0) {
+                box.innerHTML = '<div class="bg-white rounded-lg p-8 text-center text-fb-gray-text">No groups found</div>';
+                return;
+            }
+            const me = getMainCharacter();
+            box.innerHTML = groups.map((g) => {
+                const joined = joinedIds.has(Number(g.id));
+                const desc = escapeHtml(g.description || 'Public group');
+                const action = me && me.id ? joinButtonHtml(joined, g.id) : '';
+                return `
+                    <article class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex">
+                        <a href="/g/${g.id}" class="w-40 shrink-0 bg-cover bg-center bg-[#1877F2]" style="background-image: url('${groupCoverUrl(g.id)}')"></a>
+                        <div class="flex-1 min-w-0 p-4 flex items-start gap-3">
+                            <div class="min-w-0 flex-1">
+                                <a href="/g/${g.id}" class="text-[17px] font-bold text-[#050505] hover:underline">${escapeHtml(g.name)}</a>
+                                <p class="text-[13px] text-fb-gray-text mt-1 line-clamp-2">${desc}</p>
+                            </div>
+                            ${action}
+                        </div>
+                    </article>`;
+            }).join('');
+        } catch (e) {
+            box.innerHTML = '<div class="text-red-500">Failed to load groups</div>';
+        }
+    }
+
+    async function refresh() {
+        const joined = await renderJoined();
+        await renderAll(new Set(joined.map((g) => Number(g.id))));
+    }
+
+    document.getElementById('all-groups').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.group-join');
+        if (!btn) return;
+        const me = getMainCharacter();
+        if (!me || !me.id) {
+            alert('Select a character first');
+            return;
+        }
+        const joined = btn.dataset.joined === '1';
+        if (joined && !confirm('Leave this group?')) return;
+        const path = joined ? 'leave' : 'join';
+        const res = await fetch(`/api/group/${path}?character=${me.id}&group=${btn.dataset.groupId}`, {
+            method: joined ? 'GET' : 'POST',
+        });
+        const data = await res.json();
+        if (data.err) {
+            alert(data.err);
+            return;
+        }
+        await refresh();
+    });
+
+    let searchTimer = null;
+    document.getElementById('group-search').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(refresh, 200);
+    });
+
+    document.addEventListener('DOMContentLoaded', refresh);
+    document.addEventListener('main-character-change', refresh);
+</script>{% endraw %}
+</body>
+</html>

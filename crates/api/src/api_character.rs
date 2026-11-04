@@ -1,11 +1,11 @@
-use crate::{save_avatar, CommonMessage};
+use crate::{save_avatar, save_cover, CommonMessage};
 use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, web};
 use actix_web::{post, Responder};
 use my_config::ConfigData;
-use my_db::db_character::Character;
+use my_db::db_character::{Bio, Character};
 use my_db::db_character;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
@@ -29,7 +29,9 @@ struct CharacterForm {
     username: Text<String>,
     name: Text<String>,
     avatar: Option<TempFile>,
+    cover: Option<TempFile>,
     description: Text<String>,
+    bio: Option<Text<String>>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -106,18 +108,35 @@ async fn update(
     let mut msg = String::new();
     let config = config_data.config.read().await;
 
-    let file_name = format!("{}.png", data.username.0.clone().as_str());
+    let file_name = format!("{}.png", data.username.0.trim());
     let data_dir = PathBuf::from(&config.data_dir);
-    if let Some(avatar) = data.avatar {
+    let id = data.id.0;
+    let mut bio = Json(Bio::default());
+    let mut description = data.description.0;
+    if id > 0
+        && let Ok(old) = db_character::get(&db_pool, id).await
+    {
+        bio = old.bio;
+        if description.is_empty() {
+            description = old.description;
+        }
+    }
+    if let Some(text) = data.bio {
+        bio.0.text = Some(text.0);
+    }
+    if let Some(avatar) = data.avatar.filter(|file| file.size > 0) {
         save_avatar(&data_dir, avatar, file_name.as_str()).await;
+    }
+    if let Some(cover) = data.cover.filter(|file| file.size > 0) {
+        save_cover(&data_dir, cover, file_name.as_str()).await;
     }
 
     let character = Character {
-        username: data.username.0,
+        username: data.username.0.trim().to_string(),
         name: data.name.0,
-        id: data.id.0,
-        description: data.description.0,
-        bio: Json::default(),
+        id,
+        description,
+        bio,
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {

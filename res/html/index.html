@@ -10,6 +10,9 @@
         function groupAvatarUrl(id) {
             return `/data/avatar/${id}.png?v=${groupAvatarRev}`;
         }
+        function groupCoverUrl(id) {
+            return `/data/cover/${id}.png?v=${groupAvatarRev}`;
+        }
         async function fetchUsers() {
             try {
                 const res = await fetch("/api/character");
@@ -30,26 +33,292 @@
         }
 
 
+        let friendList = [];
+        let openFriend = null;
+
+        function friendPreview(friend, meId) {
+            if (!friend.last_at && !(friend.last_message || '').trim()) return 'No messages yet';
+            const text = (friend.last_message || '').trim() || 'Media';
+            const prefix = Number(friend.last_author) === Number(meId) ? 'You: ' : '';
+            const line = prefix + text;
+            return line.length > 42 ? line.slice(0, 41) + '\u2026' : line;
+        }
+
         async function renderContacts() {
             const contactsContainer = document.querySelector("[data-contacts-list]");
             if (!contactsContainer) return;
+            const me = getMainCharacter();
+            if (!me || !me.id) {
+                friendList = [];
+                contactsContainer.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">Select a character first</div>';
+                return;
+            }
             try {
-                const res = await fetch("/api/character");
+                const res = await fetch('/api/friend?character=' + encodeURIComponent(me.id));
                 const data = await res.json();
-                if (data.characters) {
-                    contactsContainer.innerHTML = data.characters.map(user => `
-                <a class='flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors' href='#'>
-                    <div class='relative size-9'>
-                        <div class='w-full h-full rounded-full bg-cover bg-center' style='background-image: url("${getAvatarUrl(user)}");'></div>
-                        <div class='active-dot'></div>
-                    </div>
-                    <span class='text-[16px] font-semibold'>${user.name || user.username}</span>
-                </a>
-            `).join("");
+                if (data.err) {
+                    contactsContainer.innerHTML = '<div class="text-red-500 px-2">' + escapeHtml(data.err) + '</div>';
+                    return;
+                }
+                friendList = data.friends || [];
+                if (friendList.length === 0) {
+                    contactsContainer.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">No friends yet</div>';
+                    return;
+                }
+                contactsContainer.innerHTML = friendList.map((friend) => `
+                    <button type="button" class="friend-row w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors text-left" data-friend-id="${friend.id}">
+                        <div class="size-9 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${getAvatarUrl(friend)}')"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-[15px] font-semibold truncate">${escapeHtml(friend.name || friend.username)}</div>
+                            <div class="text-[13px] text-fb-gray-text truncate">${escapeHtml(friendPreview(friend, me.id))}</div>
+                        </div>
+                    </button>
+                `).join('');
+                if (openFriend) {
+                    const still = friendList.find((f) => Number(f.id) === Number(openFriend.id));
+                    if (still) openFriend = still;
                 }
             } catch (e) {
-                contactsContainer.innerHTML = '<div class="text-red-500">Failed to load contacts</div>';
+                contactsContainer.innerHTML = '<div class="text-red-500 px-2">Failed to load contacts</div>';
             }
+        }
+
+        function closeFriendChat() {
+            openFriend = null;
+            const popup = document.getElementById('friend-chat');
+            if (popup) {
+                popup.classList.add('hidden');
+                popup.classList.remove('flex');
+            }
+        }
+
+        async function loadFriendMessages(roomId) {
+            const box = document.getElementById('friend-chat-messages');
+            if (!box) return;
+            if (!roomId) {
+                box.innerHTML = '<div class="text-center text-fb-gray-text text-[13px] mt-6">Say hi to start a chat</div>';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/post?room=${roomId}&count=50`);
+                const data = await res.json();
+                if (data.err) {
+                    box.innerHTML = '<div class="text-red-500 text-[13px] px-2">' + escapeHtml(data.err) + '</div>';
+                    return;
+                }
+                const posts = (data.posts || []).slice().reverse();
+                const meId = getMainCharacterId();
+                if (posts.length === 0) {
+                    box.innerHTML = '<div class="text-center text-fb-gray-text text-[13px] mt-6">Say hi to start a chat</div>';
+                    return;
+                }
+                box.innerHTML = posts.map((p) => {
+                    const mine = String(p.author) === String(meId);
+                    return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] break-words ${mine ? 'bg-fb-blue text-white' : 'bg-white text-[#050505]'}">${renderContentWithMentions(p.content || '')}</div>
+                    </div>`;
+                }).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch (e) {
+                box.innerHTML = '<div class="text-red-500 text-[13px] px-2">Failed to load messages</div>';
+            }
+        }
+
+        async function openFriendChat(friend) {
+            openFriend = friend;
+            const popup = document.getElementById('friend-chat');
+            if (!popup) return;
+            popup.classList.remove('hidden');
+            popup.classList.add('flex');
+            document.getElementById('friend-chat-name').textContent = friend.name || friend.username || '';
+            const avatar = document.getElementById('friend-chat-avatar');
+            const url = getAvatarUrl(friend);
+            avatar.style.backgroundImage = url ? `url('${url}')` : '';
+            await loadFriendMessages(friend.room_id);
+            const input = document.getElementById('friend-chat-input');
+            if (input) input.focus();
+        }
+
+        async function ensureFriendRoom(friend) {
+            if (friend.room_id) return friend.room_id;
+            const me = getMainCharacter();
+            if (!me || !me.username || !friend.username) {
+                throw new Error('Missing username');
+            }
+            const formData = new FormData();
+            formData.append('id', '0');
+            formData.append('name', friend.name || friend.username);
+            formData.append('members', me.username + ',' + friend.username);
+            const res = await fetch('/api/room', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.err) throw new Error(data.err);
+            if (!data.id) throw new Error('Room was not created');
+            friend.room_id = data.id;
+            return data.id;
+        }
+
+        async function sendFriendMessage(content) {
+            const me = getMainCharacter();
+            if (!me || !openFriend) {
+                alert('Select a character first');
+                return;
+            }
+            const roomId = await ensureFriendRoom(openFriend);
+            const formData = new FormData();
+            formData.append('id', '0');
+            formData.append('content', content);
+            formData.append('author', String(me.id));
+            formData.append('parent', '0');
+            formData.append('liked', '0');
+            formData.append('haha', '0');
+            formData.append('loved', '0');
+            formData.append('surprised', '0');
+            formData.append('sad', '0');
+            formData.append('feeling', '');
+            formData.append('is_with', '');
+            formData.append('liked_by', '');
+            formData.append('group', '0');
+            formData.append('room', String(roomId));
+            const res = await fetch('/api/post', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.err) throw new Error(data.err);
+            await loadFriendMessages(roomId);
+            await renderContacts();
+        }
+
+        function setAddFriendOpen(open) {
+            const dropdown = document.getElementById('add-friend-dropdown');
+            if (!dropdown) return;
+            dropdown.classList.toggle('hidden', !open);
+            if (open) {
+                const search = document.getElementById('add-friend-search');
+                if (search) {
+                    search.value = '';
+                    search.focus();
+                }
+                renderAddFriendList('');
+            }
+        }
+
+        function renderAddFriendList(query) {
+            const list = document.getElementById('add-friend-list');
+            if (!list) return;
+            const me = getMainCharacter();
+            const q = (query || '').trim().toLowerCase();
+            const taken = new Set(friendList.map((f) => Number(f.id)));
+            if (me) taken.add(Number(me.id));
+            const matches = (userList || []).filter((c) => {
+                if (taken.has(Number(c.id))) return false;
+                if (!q) return true;
+                return (c.username || '').toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q);
+            });
+            if (matches.length === 0) {
+                list.innerHTML = '<div class="px-3 py-4 text-[13px] text-fb-gray-text">No characters found</div>';
+                return;
+            }
+            list.innerHTML = matches.map((c) => `
+                <button type="button" class="add-friend-option w-full flex items-center gap-3 px-3 py-2 hover:bg-fb-hover text-left" data-character-id="${c.id}">
+                    <div class="size-8 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${getAvatarUrl(c)}')"></div>
+                    <div class="min-w-0">
+                        <div class="text-[15px] font-semibold truncate">${escapeHtml(c.name || c.username)}</div>
+                        <div class="text-[13px] text-fb-gray-text truncate">@${escapeHtml(c.username || '')}</div>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        async function addFriend(friendId) {
+            const me = getMainCharacter();
+            if (!me || !me.id) {
+                alert('Select a character first');
+                return;
+            }
+            const res = await fetch('/api/friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ character: Number(me.id), friend: Number(friendId) }),
+            });
+            const data = await res.json();
+            if (data.err) {
+                alert(data.err);
+                return;
+            }
+            setAddFriendOpen(false);
+            await renderContacts();
+        }
+
+        async function unfriendOpen() {
+            const me = getMainCharacter();
+            if (!me || !openFriend) return;
+            const name = openFriend.name || openFriend.username || 'this character';
+            if (!confirm('Remove ' + name + ' from friends?')) return;
+            const res = await fetch(`/api/friend/delete?character=${me.id}&friend=${openFriend.id}`);
+            const data = await res.json();
+            if (data.err) {
+                alert(data.err);
+                return;
+            }
+            closeFriendChat();
+            await renderContacts();
+        }
+
+        function initFriendChat() {
+            const contacts = document.querySelector('[data-contacts-list]');
+            if (contacts) {
+                contacts.addEventListener('click', (e) => {
+                    const row = e.target.closest('.friend-row');
+                    if (!row) return;
+                    const friend = friendList.find((f) => Number(f.id) === Number(row.dataset.friendId));
+                    if (friend) openFriendChat(friend);
+                });
+            }
+            const closeBtn = document.getElementById('friend-chat-close');
+            if (closeBtn) closeBtn.addEventListener('click', closeFriendChat);
+            const unfriendBtn = document.getElementById('friend-unfriend');
+            if (unfriendBtn) unfriendBtn.addEventListener('click', unfriendOpen);
+            const form = document.getElementById('friend-chat-form');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('friend-chat-input');
+                    const content = input ? input.value.trim() : '';
+                    if (!content) return;
+                    try {
+                        await sendFriendMessage(content);
+                        if (input) input.value = '';
+                    } catch (err) {
+                        alert(err.message || String(err));
+                    }
+                });
+            }
+            const addBtn = document.getElementById('add-friend-btn');
+            const dropdown = document.getElementById('add-friend-dropdown');
+            const search = document.getElementById('add-friend-search');
+            const addList = document.getElementById('add-friend-list');
+            if (addBtn) {
+                addBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const willOpen = !dropdown || dropdown.classList.contains('hidden');
+                    setAddFriendOpen(willOpen);
+                });
+            }
+            if (search) {
+                search.addEventListener('click', (e) => e.stopPropagation());
+                search.addEventListener('input', () => renderAddFriendList(search.value));
+            }
+            if (addList) {
+                addList.addEventListener('click', (e) => {
+                    const opt = e.target.closest('.add-friend-option');
+                    if (!opt) return;
+                    addFriend(opt.dataset.characterId);
+                });
+            }
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.classList.contains('hidden')) {
+                    const picker = document.getElementById('add-friend-picker');
+                    if (picker && !picker.contains(e.target)) setAddFriendOpen(false);
+                }
+            });
         }
 
         function currentGroupId() {
@@ -189,16 +458,110 @@
             });
         }
 
+        function showGroupSidebar(on) {
+            const home = document.getElementById('home-groups-panel');
+            const side = document.getElementById('group-sidebar-panel');
+            if (home) home.classList.toggle('hidden', on);
+            if (side) side.classList.toggle('hidden', !on);
+        }
+
+        function paintJoinButton(btn, joined) {
+            if (!btn) return;
+            const me = getMainCharacter();
+            if (!me || !me.id) {
+                btn.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            btn.dataset.joined = joined ? '1' : '0';
+            btn.textContent = joined ? 'Leave' : 'Join';
+            btn.className = joined
+                ? 'shrink-0 px-4 py-1.5 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]'
+                : 'shrink-0 px-4 py-1.5 rounded-lg font-semibold text-[15px] bg-fb-blue text-white hover:bg-[#166fe5]';
+            if (btn.id === 'group-side-join') btn.classList.add('mt-3', 'w-full', 'py-2');
+        }
+
+        async function characterJoined(groupId) {
+            const me = getMainCharacter();
+            if (!me || !me.id || !groupId) return false;
+            const res = await fetch('/api/group?member=' + encodeURIComponent(me.id));
+            const data = await res.json();
+            return (data.groups || []).some((g) => Number(g.id) === Number(groupId));
+        }
+
+        async function setGroupMembership(groupId, join) {
+            const me = getMainCharacter();
+            if (!me || !me.id) {
+                alert('Select a character first');
+                return;
+            }
+            const path = join ? 'join' : 'leave';
+            const res = await fetch(`/api/group/${path}?character=${me.id}&group=${groupId}`, {
+                method: join ? 'POST' : 'GET',
+            });
+            const data = await res.json();
+            if (data.err) throw new Error(data.err);
+        }
+
+        async function renderGroupMembers(groupId) {
+            const list = document.getElementById('group-member-list');
+            if (!list) return;
+            try {
+                const res = await fetch('/api/group/members?group=' + encodeURIComponent(groupId));
+                const data = await res.json();
+                const members = data.members || [];
+                if (members.length === 0) {
+                    list.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">No members yet</div>';
+                    return;
+                }
+                list.innerHTML = members.map((m) => `
+                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors" href="/u/${encodeURIComponent(m.username || '')}">
+                        <div class="size-9 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${getAvatarUrl(m)}')"></div>
+                        <span class="text-[15px] font-semibold truncate">${escapeHtml(m.name || m.username)}</span>
+                    </a>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = '<div class="px-2 text-red-500 text-[14px]">Failed to load members</div>';
+            }
+        }
+
+        async function refreshGroupMembership() {
+            const groupId = currentGroupId();
+            if (groupId <= 0) return;
+            const joined = await characterJoined(groupId);
+            paintJoinButton(document.getElementById('group-join-btn'), joined);
+            paintJoinButton(document.getElementById('group-side-join'), joined);
+            await renderGroupMembers(groupId);
+        }
+
+        async function onGroupMembershipClick(e) {
+            const groupId = currentGroupId();
+            if (groupId <= 0) return;
+            const joined = e.currentTarget.dataset.joined === '1';
+            if (joined && !confirm('Leave this group?')) return;
+            try {
+                await setGroupMembership(groupId, !joined);
+                await refreshGroupMembership();
+                renderGroups();
+            } catch (err) {
+                alert(err.message || String(err));
+            }
+        }
+
         async function renderGroups() {
+            const groupId = currentGroupId();
+            showGroupSidebar(groupId > 0);
             async function fetchGroups() {
+                const me = getMainCharacter();
+                if (!me || !me.id) return [];
                 try {
-                    const res = await fetch('/api/group');
+                    const res = await fetch('/api/group?member=' + encodeURIComponent(me.id));
                     const data = await res.json();
                     if (data.err) {
                         console.error('Failed to fetch groups:', data.err);
                         return [];
                     }
-                    return data.groups;
+                    return data.groups || [];
                 } catch (err) {
                     console.error('Error fetching groups:', err);
                     return [];
@@ -207,7 +570,15 @@
 
             const groups = await fetchGroups();
             const container = document.getElementById('groups-container');
-            const selectedId = currentGroupId();
+            if (!container) return;
+            const selectedId = groupId;
+            if (groups.length === 0) {
+                const me = getMainCharacter();
+                container.innerHTML = '<div class="px-2 py-2 text-[14px] text-fb-gray-text">'
+                    + (me && me.id ? 'No groups yet' : 'Select a character first')
+                    + '</div>';
+                return;
+            }
             container.innerHTML = '';
             for (const group of groups) {
                 const selected = Number(group.id) === selectedId;
@@ -371,6 +742,8 @@
             const descInput = document.getElementById('group-form-description');
             const avatarInput = document.getElementById('group-form-avatar');
             const preview = document.getElementById('group-avatar-preview');
+            const coverInput = document.getElementById('group-form-cover');
+            const coverPreview = document.getElementById('group-cover-preview');
             const editing = mode === 'edit' && currentGroup;
             if (editing) {
                 if (title) title.textContent = 'Edit Group';
@@ -380,6 +753,8 @@
                 if (descInput) descInput.value = currentGroup.description || '';
                 if (avatarInput) avatarInput.value = '';
                 if (preview) preview.style.backgroundImage = `url('${groupAvatarUrl(currentGroup.id)}')`;
+                if (coverInput) coverInput.value = '';
+                if (coverPreview) coverPreview.style.backgroundImage = `url('${groupCoverUrl(currentGroup.id)}')`;
             } else {
                 if (title) title.textContent = 'Create New Group';
                 if (submit) submit.textContent = 'Create Group';
@@ -388,6 +763,8 @@
                 if (descInput) descInput.value = '';
                 if (avatarInput) avatarInput.value = '';
                 if (preview) preview.style.backgroundImage = '';
+                if (coverInput) coverInput.value = '';
+                if (coverPreview) coverPreview.style.backgroundImage = '';
             }
         }
 
@@ -399,16 +776,20 @@
             const form = document.getElementById('group-form');
             const avatarInput = document.getElementById('group-form-avatar');
             const preview = document.getElementById('group-avatar-preview');
+            const coverInput = document.getElementById('group-form-cover');
+            const coverPreview = document.getElementById('group-cover-preview');
 
             if (!addBtn || !modal || !cancelBtn || !form) return;
 
             function openModal(mode) {
                 setGroupModalMode(mode);
                 modal.classList.remove('hidden');
+                modal.classList.add('flex');
             }
 
             function closeModal() {
                 modal.classList.add('hidden');
+                modal.classList.remove('flex');
                 setGroupModalMode('create');
             }
 
@@ -426,6 +807,13 @@
                     preview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
                 });
             }
+            if (coverInput && coverPreview) {
+                coverInput.addEventListener('change', () => {
+                    const file = coverInput.files && coverInput.files[0];
+                    if (!file) return;
+                    coverPreview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+                });
+            }
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -433,6 +821,8 @@
                 const editing = Number(formData.get('id')) > 0;
                 const avatar = formData.get('avatar');
                 if (!avatar || !avatar.name) formData.delete('avatar');
+                const cover = formData.get('cover');
+                if (!cover || !cover.name) formData.delete('cover');
 
                 try {
                     const res = await fetch('/api/group', {
@@ -444,10 +834,15 @@
                     if (data.err) {
                         alert((editing ? 'Failed to save group: ' : 'Failed to create group: ') + data.err);
                     } else {
+                        if (!editing && data.id) {
+                            const me = getMainCharacter();
+                            if (me && me.id) {
+                                await setGroupMembership(data.id, true).catch(() => {});
+                            }
+                        }
                         if (!editing) alert('Group created successfully!');
                         groupAvatarRev = Date.now();
-                        modal.classList.add('hidden');
-                        setGroupModalMode('create');
+                        closeModal();
                         renderGroups();
                         renderGroupHeader();
                     }
@@ -503,7 +898,7 @@
                 }
                 if (avatarEl) avatarEl.style.backgroundImage = `url('${avatarUrl}')`;
                 if (coverEl) {
-                    coverEl.style.backgroundImage = `linear-gradient(180deg, rgba(24,119,242,0.15), rgba(24,119,242,0.55)), url('${avatarUrl}')`;
+                    coverEl.style.backgroundImage = `url('${groupCoverUrl(group.id)}')`;
                 }
                 if (composer) composer.placeholder = `Write something to ${group.name || 'this group'}...`;
                 if (postingIn) {
@@ -511,6 +906,13 @@
                     postingIn.classList.remove('hidden');
                 }
                 document.title = `${group.name || 'Group'} - Social Novel`;
+                const sideName = document.getElementById('group-side-name');
+                const sideDesc = document.getElementById('group-side-desc');
+                const sideAvatar = document.getElementById('group-side-avatar');
+                if (sideName) sideName.textContent = group.name || 'Group';
+                if (sideDesc) sideDesc.textContent = group.description || '';
+                if (sideAvatar) sideAvatar.style.backgroundImage = `url('${avatarUrl}')`;
+                await refreshGroupMembership();
             } catch (e) {
                 currentGroup = null;
                 if (editBtn) editBtn.classList.add('hidden');
@@ -523,12 +925,24 @@
             renderGroups();
             renderGroupHeader();
             renderContacts();
+            initFriendChat();
             renderSponsored();
             renderPosts();
             handlePhotoVideo();
             handleFeeling();
             handleAddFeedForm();
             initGroupHandlers();
+            const joinBtn = document.getElementById('group-join-btn');
+            const sideJoin = document.getElementById('group-side-join');
+            if (joinBtn) joinBtn.addEventListener('click', onGroupMembershipClick);
+            if (sideJoin) sideJoin.addEventListener('click', onGroupMembershipClick);
+        });
+
+        document.addEventListener('main-character-change', () => {
+            closeFriendChat();
+            renderContacts();
+            renderGroups();
+            refreshGroupMembership();
         });
     </script>{% endraw %}
 </head>
@@ -539,58 +953,33 @@
     <main class="flex-1 w-full flex justify-between px-4">
         <aside
                 class="hidden xl:flex flex-col w-[360px] pt-4 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto no-scrollbar">
-            <div class="flex flex-col gap-0.5">
-                <div data-contacts-list class="flex flex-col gap-0.5"></div>
-            </div>
-            <div class="mt-4 pt-4 border-t border-gray-300">
+            <div id="home-groups-panel" class="pt-0">
                 <div class="flex items-center justify-between px-2 mb-2">
                     <h3 class="font-semibold text-fb-gray-text text-[17px]">Your groups
                     </h3>
+                    <a href="/group" class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">See all</a>
                     <button id="add-group-btn"
                             class="text-fb-blue text-sm hover:bg-fb-hover px-2 py-1 rounded">Add
                     </button>
-                    <div id="group-create-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                           <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
-                               <h2 id="group-form-title" class="text-xl font-bold mb-6 text-center">Create New Group</h2>
-                               <form id="group-form" enctype="multipart/form-data" class="space-y-4">
-                                   <input id="group-form-id" type="hidden" name="id" value="0" />
-                                   <div>
-                                       <label class="block text-sm font-medium mb-2 text-fb-gray-text">Name</label>
-                                       <input id="group-form-name" name="name" type="text" required 
-                                              class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200" 
-                                              placeholder="Group name">
-                                   </div>
-                                   <div>
-                                       <label class="block text-sm font-medium mb-2 text-fb-gray-text">Description</label>
-                                       <textarea id="group-form-description" name="description" rows="4" 
-                                                 class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200 resize-vertical" 
-                                                 placeholder="Describe your group..."></textarea>
-                                   </div>
-                                   <div>
-                                       <label class="block text-sm font-medium mb-2 text-fb-gray-text">Avatar Image</label>
-                                       <div class="flex items-center gap-3">
-                                           <div id="group-avatar-preview" class="size-16 rounded-lg bg-cover bg-center bg-[#E4E6EB] shrink-0"></div>
-                                           <input id="group-form-avatar" type="file" name="avatar" accept="image/*" 
-                                                  class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none border border-gray-200">
-                                       </div>
-                                       <p class="text-[13px] text-fb-gray-text mt-2">Leave empty to keep the current avatar.</p>
-                                   </div>
-                                   <div class="flex gap-3 pt-4">
-                                       <button type="button" id="group-cancel" 
-                                               class="flex-1 px-4 py-3 bg-fb-gray text-fb-gray-text rounded-lg hover:bg-fb-hover font-medium">
-                                           Cancel
-                                       </button>
-                                       <button id="group-form-submit" type="submit" 
-                                               class="flex-1 px-4 py-3 bg-fb-blue text-white rounded-lg hover:bg-[#1877F2] font-medium">
-                                           Create Group
-                                       </button>
-                                   </div>
-                               </form>
-                           </div>
-                       </div>
                 </div>
                 <div id="groups-container" class="flex flex-col gap-0.5">
-                    <!-- Groups will be rendered here dynamically -->
+                    <!-- Groups the selected character has joined -->
+                </div>
+            </div>
+            <div id="group-sidebar-panel" class="hidden">
+                <a href="/group" class="flex items-center gap-2 px-2 py-2 mb-3 rounded-lg hover:bg-fb-hover text-fb-blue font-semibold text-[15px]">
+                    <span class="material-symbols-outlined !text-[20px]">groups</span>
+                    All groups
+                </a>
+                <div class="px-2">
+                    <div id="group-side-avatar" class="size-16 rounded-xl bg-cover bg-center bg-[#E4E6EB] mb-3"></div>
+                    <h2 id="group-side-name" class="text-[20px] font-bold text-[#050505] leading-tight"></h2>
+                    <p id="group-side-desc" class="text-[13px] text-fb-gray-text mt-2 whitespace-pre-wrap"></p>
+                    <button type="button" id="group-side-join" class="hidden mt-3 w-full py-2 rounded-lg font-semibold text-[15px]"></button>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-300">
+                    <h3 class="font-semibold text-fb-gray-text text-[17px] px-2 mb-2">Members</h3>
+                    <div id="group-member-list" class="flex flex-col gap-0.5"></div>
                 </div>
             </div>
         </aside>
@@ -608,11 +997,14 @@
                                 <h1 id="group-page-name" class="text-[28px] leading-tight font-bold text-[#050505] truncate">Group</h1>
                                 <p class="text-[15px] text-fb-gray-text">Public group</p>
                             </div>
-                            <button type="button" id="edit-group-btn"
-                                    class="hidden shrink-0 mt-1 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#E4E6EB] hover:bg-[#D8DADF] text-[15px] font-semibold text-[#050505]">
-                                <span class="material-symbols-outlined !text-[18px]">edit</span>
-                                Edit
-                            </button>
+                            <div class="flex items-center gap-2 shrink-0 mt-1">
+                                <button type="button" id="group-join-btn" class="hidden px-4 py-1.5 rounded-lg font-semibold text-[15px]"></button>
+                                <button type="button" id="edit-group-btn"
+                                        class="hidden flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#E4E6EB] hover:bg-[#D8DADF] text-[15px] font-semibold text-[#050505]">
+                                    <span class="material-symbols-outlined !text-[18px]">edit</span>
+                                    Edit
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <p id="group-page-desc" class="text-[15px] text-[#050505] mt-3 whitespace-pre-wrap"></p>
@@ -672,68 +1064,93 @@
                         <button class="p-2 hover:bg-fb-hover rounded-full"><span
                                 class="material-symbols-outlined !text-[20px] text-fb-gray-text">video_call</span>
                         </button>
-                        <button class="p-2 hover:bg-fb-hover rounded-full"><span
-                                class="material-symbols-outlined !text-[20px] text-fb-gray-text">search</span></button>
-                        <button class="p-2 hover:bg-fb-hover rounded-full"><span
-                                class="material-symbols-outlined !text-[20px] text-fb-gray-text">more_horiz</span>
-                        </button>
+                        <div class="relative" id="add-friend-picker">
+                            <button type="button" id="add-friend-btn" class="p-2 hover:bg-fb-hover rounded-full" title="Add friend">
+                                <span class="material-symbols-outlined !text-[20px] text-fb-gray-text">person_add</span>
+                            </button>
+                            <div id="add-friend-dropdown" class="hidden absolute right-0 top-11 w-72 bg-white rounded-xl shadow-lg border border-gray-200 z-[80] overflow-hidden">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input id="add-friend-search" type="text" placeholder="Search characters"
+                                           class="w-full bg-[#F0F2F5] border-none rounded-full px-3 py-2 text-[15px] focus:ring-0"
+                                           autocomplete="off"/>
+                                </div>
+                                <div id="add-friend-list" class="max-h-72 overflow-y-auto py-1"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="relative size-9">
-                            <div class="w-full h-full rounded-full bg-cover bg-center"
-                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB2sXMAt1saY1AjKDNINmwZbXcp3kvO744XqY42-6wBzeVpHhN6frudXuf3-Zk_0Q89VJb-99Sj8UPn4NZa5Qj-B9uwH6jYsM7Rr3ICQwBsMeiUUMkDLcWBFlkrvkozdcFdpR_pzjtm-hSyWGh19OjewWoQFETW3sUePN3vGPGACpyJD-j6MHvpuOb3NV32X9HCe5Oz3JjWSm0Rp65cBNfXw9xDUMueAu-tz-4hrkr-nQnYme7GHW6e9QiHCal5crifq0YIfNXZ1dnh');">
-                            </div>
-                            <div class="active-dot"></div>
-                        </div>
-                        <!-- User name rendered dynamically by JS -->
-                    </a>
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="relative size-9">
-                            <div class="w-full h-full rounded-full bg-cover bg-center"
-                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3B7jtKYWklRvH2uLuPrLHJ6zCHfc4h5J7dp-ZuhPx3vSJQAHkuEJ02UK1e5jxX1aKiu1mpFWFFPxU9_PgOgpTwtzhy3YZQ2a5V41lAkK9H84aI4LJlqvYT_fjUEqjfeP3-qlj_OVgawTUMGiJT58v2_45jPt1Gs5QTjoKbTvtKMVtqZNL7Gi7F_AdSmB7xKeSrDSXZZj7c3Io-1tcCodYEOKaVOf4ieN5fpnp7Q28DDNe4ReoNHRzvp4-oNYOAXt_jkxxawkY73CD');">
-                            </div>
-                            <div class="active-dot"></div>
-                        </div>
-                        <!-- User name rendered dynamically by JS -->
-                    </a>
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="relative size-9">
-                            <div class="w-full h-full rounded-full bg-cover bg-center"
-                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB4c7Cgx5dPxGjZbMJvCTH55jSnc_ubm6fORI9On20WvapNc_YbYr4j9iy4F1JckudJadkS2WVIvmtwLJSJEdfXF5cudhFL4LjwgSw7CQHwIw7oQBYdRwOCY9ExDc4dOpDtHo9cVafp-68rqtNfEu6x8iYs-RfTEpuVDUZ302SIoex13-n99kHytAsUG4WXo3gE-rQzO_iRlBISrE7HMWDW2cOHpuxemyKyOeAJJDGa2i_yhwxBqHvv4NWg20-QaUsAJ4UoI5QRrToZ');">
-                            </div>
-                            <div class="active-dot"></div>
-                        </div>
-                        <!-- User name rendered dynamically by JS -->
-                    </a>
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="relative size-9">
-                            <div class="w-full h-full rounded-full bg-cover bg-center"
-                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuATUoiE4z4CU5XJpxR1Flol_aKzbcljaR90UhPYzl6NmCZUhJAwh2qDYovzpcr5mra64sFTFErswza7lWswwwUj06QZQa80qVY5Fr5qGrcsRGAFzeAeHCbj2Hp0WIVhbNfIxYuvb78VSdlhW6lbcyrCw3ENmQwjg3JddHfz7-mMZPqig0BkJpmEw6iH20BKnwXrxcMprbEeRjAHO58YbrJLPDQcYcfmnhBbI2TLyoPbn7XinLDh_UJ9civdvlJR2tXis6bYLYa8R49O');">
-                            </div>
-                            <div class="active-dot"></div>
-                        </div>
-                        <!-- User name rendered dynamically by JS -->
-                    </a>
-                    <a class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-fb-hover transition-colors"
-                       href="#">
-                        <div class="relative size-9">
-                            <div class="w-full h-full rounded-full bg-cover bg-center"
-                                 style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAZTu58yHojuRZhO5gP03EMAUSuN1EwEm35Z3wo_Gn0te8bP_8HfI3cZNhK9KmWGA0ePNuADpnqIkCcqNqDXCNiFp8TBoSakrQCrxq-3qf-TZ7xrBBqyXVmJsOLT2jIyvAD7U3dbq9_0HWC3QEpedBlUFdc5F2GMLVjXPzkzF4mVopxeDdwVWnQPp0d4Uf5QVCiB8yEnpL4Viscx-HFn_g7Rm6InylErglbzCkj6bWrQoXqkqWP6KL8pPWV7bNFKBGc8w05ebyBRUK');">
-                            </div>
-                            <div class="active-dot"></div>
-                        </div>
-                        <!-- User name rendered dynamically by JS -->
-                    </a>
-                </div>
+                <div data-contacts-list class="flex flex-col gap-0.5"></div>
             </div>
         </aside>
     </main>
+</div>
+
+<div id="group-create-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[70]">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <h2 id="group-form-title" class="text-xl font-bold mb-6 text-center">Create New Group</h2>
+        <form id="group-form" enctype="multipart/form-data" class="space-y-4">
+            <input id="group-form-id" type="hidden" name="id" value="0" />
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Name</label>
+                <input id="group-form-name" name="name" type="text" required
+                       class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200"
+                       placeholder="Group name">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Description</label>
+                <textarea id="group-form-description" name="description" rows="4"
+                          class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[17px] text-[#050505] focus:outline-none border border-gray-200 resize-vertical"
+                          placeholder="Describe your group..."></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Avatar Image</label>
+                <div class="flex items-center gap-3">
+                    <div id="group-avatar-preview" class="size-16 rounded-lg bg-cover bg-center bg-[#E4E6EB] shrink-0"></div>
+                    <input id="group-form-avatar" type="file" name="avatar" accept="image/*"
+                           class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none border border-gray-200">
+                </div>
+                <p class="text-[13px] text-fb-gray-text mt-2">Leave empty to keep the current avatar.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Cover Image</label>
+                <div id="group-cover-preview" class="h-24 rounded-lg bg-cover bg-center bg-[#E4E6EB] mb-2"></div>
+                <input id="group-form-cover" type="file" name="cover" accept="image/*"
+                       class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] text-[#050505] focus:outline-none border border-gray-200">
+                <p class="text-[13px] text-fb-gray-text mt-2">Leave empty to keep the current cover.</p>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" id="group-cancel"
+                        class="flex-1 px-4 py-3 bg-fb-gray text-fb-gray-text rounded-lg hover:bg-fb-hover font-medium">
+                    Cancel
+                </button>
+                <button id="group-form-submit" type="submit"
+                        class="flex-1 px-4 py-3 bg-fb-blue text-white rounded-lg hover:bg-[#1877F2] font-medium">
+                    Create Group
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="friend-chat" class="hidden fixed bottom-0 right-4 lg:right-[380px] z-[60] w-[328px] h-[420px] bg-white rounded-t-lg shadow-2xl border border-gray-200 flex-col">
+    <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 shrink-0">
+        <div id="friend-chat-avatar" class="size-8 rounded-full bg-cover bg-center bg-[#E4E6EB] shrink-0"></div>
+        <div id="friend-chat-name" class="flex-1 min-w-0 font-semibold text-[15px] truncate"></div>
+        <button type="button" id="friend-unfriend" class="p-1.5 rounded-full hover:bg-fb-hover text-fb-gray-text" title="Unfriend">
+            <span class="material-symbols-outlined !text-[18px]">person_remove</span>
+        </button>
+        <button type="button" id="friend-chat-close" class="p-1.5 rounded-full hover:bg-fb-hover text-fb-gray-text" title="Close">
+            <span class="material-symbols-outlined !text-[18px]">close</span>
+        </button>
+    </div>
+    <div id="friend-chat-messages" class="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2 bg-[#F0F2F5]"></div>
+    <form id="friend-chat-form" class="flex items-center gap-2 px-2 py-2 border-t border-gray-200 shrink-0">
+        <input id="friend-chat-input" type="text" autocomplete="off" placeholder="Aa"
+               class="flex-1 bg-[#F0F2F5] border-none rounded-full px-3 py-2 text-[15px] focus:ring-0"/>
+        <button type="submit" class="size-9 rounded-full bg-fb-blue text-white flex items-center justify-center shrink-0" title="Send">
+            <span class="material-symbols-outlined !text-[18px]">send</span>
+        </button>
+    </form>
 </div>
 
 </body>

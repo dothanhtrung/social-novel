@@ -22,11 +22,18 @@
                         </div>
 
                         <!-- Profile Details -->
-                        <div class="flex-1 pb-2">
-                            <h1 id="profile-name" class="text-4xl font-bold text-[#050505]">Loading...</h1>
-                            <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
+                        <div class="flex-1 pb-2 flex items-end justify-between gap-4">
+                            <div class="min-w-0">
+                                <h1 id="profile-name" class="text-4xl font-bold text-[#050505]">Loading...</h1>
+                                <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0 mb-1">
+                                <button type="button" id="edit-profile-btn" class="hidden px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]">Edit profile</button>
+                                <button type="button" id="friend-action-btn" class="hidden px-4 py-2 rounded-lg font-semibold text-[15px]"></button>
+                            </div>
                         </div>
                     </div>
+                    <p id="profile-bio" class="hidden text-[15px] text-[#050505] whitespace-pre-wrap"></p>
 
                     <!-- Profile Tabs/Actions -->
                     <div class="flex items-center gap-4 border-t border-gray-200 pt-4">
@@ -47,6 +54,43 @@
             </div>
         </section>
     </main>
+</div>
+
+<div id="profile-edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-6 text-center">Edit profile</h2>
+        <form id="profile-edit-form" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="id" id="profile-edit-id" value="0"/>
+            <input type="hidden" name="username" id="profile-edit-username"/>
+            <input type="hidden" name="name" id="profile-edit-name"/>
+            <input type="hidden" name="description" id="profile-edit-description"/>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Avatar</label>
+                <div class="flex items-center gap-3">
+                    <div id="profile-avatar-preview" class="size-16 rounded-full bg-cover bg-center bg-[#E4E6EB] shrink-0"></div>
+                    <input id="profile-edit-avatar" type="file" name="avatar" accept="image/*"
+                           class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] focus:outline-none border border-gray-200"/>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Cover</label>
+                <div id="profile-cover-preview" class="h-24 rounded-lg bg-cover bg-center bg-[#E4E6EB] mb-2"></div>
+                <input id="profile-edit-cover" type="file" name="cover" accept="image/*"
+                       class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] focus:outline-none border border-gray-200"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2 text-fb-gray-text">Bio</label>
+                <textarea id="profile-edit-bio" name="bio" rows="4"
+                          class="w-full px-4 py-3 bg-[#F0F2F5] rounded-lg text-[15px] focus:outline-none border border-gray-200 resize-vertical"
+                          placeholder="Say something about this character"></textarea>
+            </div>
+            <p class="text-[13px] text-fb-gray-text">Leave an image empty to keep the current one.</p>
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="profile-edit-cancel" class="flex-1 px-4 py-3 bg-[#E4E6EB] text-[#050505] rounded-lg hover:bg-[#D8DADF] font-medium">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-fb-blue text-white rounded-lg hover:bg-[#166fe5] font-medium">Save</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 {% raw %}<script>
@@ -102,10 +146,94 @@
         const name = document.getElementById('profile-name');
         const username = document.getElementById('profile-username');
 
-        banner.style.backgroundImage = `url('/data/banner/${user.username}.png')`;
-        avatar.style.backgroundImage = `url('${getAvatarUrl(user)}')`;
+        const rev = user.coverRev ? `?v=${user.coverRev}` : '';
+        banner.style.backgroundImage = `url('${getCoverUrl(user)}${rev}')`;
+        avatar.style.backgroundImage = `url('${getAvatarUrl(user)}${rev}')`;
         name.textContent = user.name || user.username;
         username.textContent = `@${user.username}`;
+        const bioEl = document.getElementById('profile-bio');
+        const bio = user.bio && user.bio.text ? user.bio.text : '';
+        if (bioEl) {
+            bioEl.textContent = bio;
+            bioEl.classList.toggle('hidden', !bio);
+        }
+    }
+
+    function refreshEditProfileButton() {
+        const btn = document.getElementById('edit-profile-btn');
+        if (!btn || !userData) return;
+        const me = getMainCharacter();
+        btn.classList.toggle('hidden', !me || Number(me.id) !== Number(userData.id));
+    }
+
+    function openProfileEdit() {
+        if (!userData) return;
+        document.getElementById('profile-edit-id').value = userData.id;
+        document.getElementById('profile-edit-username').value = userData.username || '';
+        document.getElementById('profile-edit-name').value = userData.name || '';
+        document.getElementById('profile-edit-description').value = userData.description || '';
+        document.getElementById('profile-edit-bio').value = (userData.bio && userData.bio.text) || '';
+        document.getElementById('profile-edit-avatar').value = '';
+        document.getElementById('profile-edit-cover').value = '';
+        const rev = userData.coverRev ? `?v=${userData.coverRev}` : '';
+        document.getElementById('profile-avatar-preview').style.backgroundImage = `url('${getAvatarUrl(userData)}${rev}')`;
+        document.getElementById('profile-cover-preview').style.backgroundImage = `url('${getCoverUrl(userData)}${rev}')`;
+        const modal = document.getElementById('profile-edit-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeProfileEdit() {
+        const modal = document.getElementById('profile-edit-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    let profileIsFriend = false;
+
+    async function refreshFriendButton() {
+        const btn = document.getElementById('friend-action-btn');
+        if (!btn || !userData) return;
+        const me = getMainCharacter();
+        if (!me || !me.id || Number(me.id) === Number(userData.id)) {
+            btn.classList.add('hidden');
+            return;
+        }
+        try {
+            const res = await fetch('/api/friend?character=' + encodeURIComponent(me.id));
+            const data = await res.json();
+            const friends = data.friends || [];
+            profileIsFriend = friends.some((f) => Number(f.id) === Number(userData.id));
+        } catch (e) {
+            profileIsFriend = false;
+        }
+        btn.classList.remove('hidden');
+        if (profileIsFriend) {
+            btn.textContent = 'Unfriend';
+            btn.className = 'shrink-0 px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]';
+        } else {
+            btn.textContent = 'Add Friend';
+            btn.className = 'shrink-0 px-4 py-2 rounded-lg font-semibold text-[15px] bg-fb-blue text-white hover:bg-[#166fe5]';
+        }
+    }
+
+    async function onFriendAction() {
+        const me = getMainCharacter();
+        if (!me || !me.id || !userData) return;
+        if (profileIsFriend && !confirm('Remove ' + (userData.name || userData.username) + ' from friends?')) return;
+        const res = profileIsFriend
+            ? await fetch(`/api/friend/delete?character=${me.id}&friend=${userData.id}`)
+            : await fetch('/api/friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ character: Number(me.id), friend: Number(userData.id) }),
+            });
+        const data = await res.json().catch(() => ({}));
+        if (data.err) {
+            alert(data.err);
+            return;
+        }
+        await refreshFriendButton();
     }
 
     async function renderPosts() {
@@ -137,7 +265,53 @@
         }
 
         renderProfileHeader(userData);
+        document.getElementById('friend-action-btn').addEventListener('click', onFriendAction);
+        document.getElementById('edit-profile-btn').addEventListener('click', openProfileEdit);
+        document.getElementById('profile-edit-cancel').addEventListener('click', closeProfileEdit);
+        document.getElementById('profile-edit-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'profile-edit-modal') closeProfileEdit();
+        });
+        document.getElementById('profile-edit-avatar').addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) document.getElementById('profile-avatar-preview').style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+        });
+        document.getElementById('profile-edit-cover').addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) document.getElementById('profile-cover-preview').style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+        });
+        document.getElementById('profile-edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const avatar = formData.get('avatar');
+            const cover = formData.get('cover');
+            if (!avatar || !avatar.name) formData.delete('avatar');
+            if (!cover || !cover.name) formData.delete('cover');
+            try {
+                const res = await fetch('/api/character', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.err) {
+                    alert(data.err);
+                    return;
+                }
+                const fresh = await fetchProfileUser(userData.username);
+                if (fresh) {
+                    fresh.coverRev = Date.now();
+                    userData = fresh;
+                    renderProfileHeader(userData);
+                }
+                closeProfileEdit();
+            } catch (err) {
+                alert('Failed to save profile');
+            }
+        });
+        refreshEditProfileButton();
+        await refreshFriendButton();
         await renderPosts();
+    });
+
+    document.addEventListener('main-character-change', () => {
+        refreshFriendButton();
+        refreshEditProfileButton();
     });
 </script>{% endraw %}
 </body>

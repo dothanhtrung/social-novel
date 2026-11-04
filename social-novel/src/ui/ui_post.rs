@@ -4,6 +4,7 @@ use tera::Tera;
 pub fn scope(cfg: &mut web::ServiceConfig) {
     cfg.service(index)
         .service(profile)
+        .service(groups)
         .service(group_page)
         .service(get)
         .service(edit);
@@ -16,6 +17,20 @@ async fn index(tmpl: web::Data<Tera>) -> impl Responder {
     ctx.insert("active_nav", "home");
 
     match tmpl.render("index.html", &ctx) {
+        Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
+        Err(e) => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(format!("Template error: {e}")),
+    }
+}
+
+#[get("/group")]
+async fn groups(tmpl: web::Data<Tera>) -> impl Responder {
+    let mut ctx = tera::Context::new();
+    ctx.insert("title", "Groups - Social Novel");
+    ctx.insert("active_nav", "groups");
+
+    match tmpl.render("groups.html", &ctx) {
         Ok(template) => HttpResponse::Ok().content_type("text/html").body(template),
         Err(e) => HttpResponse::Ok()
             .content_type("text/html")

@@ -214,7 +214,8 @@ async fn update(
         }
     }
 
-    web::Json(CommonMessage::new(msg, err))
+    // id lets the page insert the new comment without reloading.
+    web::Json(CommonMessage::new(msg, err).with_id(post_id))
 }
 
 #[get("delete/{id}")]

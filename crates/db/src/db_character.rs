@@ -19,6 +19,9 @@ pub struct Character {
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Bio {
     pub love: Option<String>,
+    /// Profile text shown under the character's name.
+    #[serde(default)]
+    pub text: Option<String>,
 }
 
 pub struct CharacterCond {
@@ -59,6 +62,7 @@ pub async fn update(dbpool: &DBPool, character: &Character) -> Result<u64, sqlx:
         character.name.as_str(),
         character.username.as_str(),
         character.description.as_str(),
+        &character.bio,
     )
     .await
 }

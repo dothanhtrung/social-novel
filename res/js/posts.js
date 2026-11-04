@@ -48,7 +48,7 @@ function renderCommentHtml(c, depth) {
     const commentMediaHtml = renderMediaHtml(c.media, 'mt-2');
     const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
     const commentHtml = `
-                    <div ${indentStyle} class="pr-4 pl-4 py-3 border-t border-gray-100 bg-white relative">
+                    <div ${indentStyle} class="pr-4 pl-4 py-3 border-t border-gray-100 bg-white relative" data-comment-id="${c.id}" data-depth="${depth}">
                         <div class="flex items-start gap-3">
                             <div class="size-12 rounded-full bg-cover bg-center" style="background-image: url('${getAvatarUrl(a)}')"></div>
                             <div class="flex-1">
@@ -147,7 +147,7 @@ function renderPostHtml(p) {
                         </div>
                         ${commentsHtml}
                         <div class="px-4 py-3 border-t border-gray-100 bg-white">
-                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" data-group-id="${p.group || 0}" enctype="multipart/form-data">
+                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" data-root-id="${p.id}" data-group-id="${p.group || 0}" enctype="multipart/form-data">
                                 <input type="hidden" name="id" value="0" />
                                 <input type="hidden" name="is_with" value="" />
                                 <input type="hidden" name="feeling" value="" />
@@ -357,7 +357,7 @@ function initCommentHandlers() {
                 if (typeof form.requestSubmit === 'function') {
                     form.requestSubmit();
                 } else {
-                    form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
                 }
             }
         }
@@ -367,7 +367,9 @@ function initCommentHandlers() {
         const form = e.target.closest && e.target.closest('.comment-form');
         if (!form) return;
         e.preventDefault();
+        if (form.dataset.submitting === '1') return;
         const parentId = form.dataset.parentId || '0';
+        const rootId = form.dataset.rootId || parentId;
         const fd = new FormData();
         const author = getMainCharacterId() || form.querySelector('.main-character-author')?.value || '';
         if (!author) {
@@ -394,19 +396,120 @@ function initCommentHandlers() {
         if (mediaInput && mediaInput.files && mediaInput.files.length > 0) {
             for (const f of mediaInput.files) fd.append('media', f);
         }
+        form.dataset.submitting = '1';
         try {
             const res = await fetch('/api/post', { method: 'POST', body: fd });
             const data = await res.json().catch(() => ({}));
             if (res.ok && !data.err) {
+                const depth = depthForNewComment(form, parentId);
+                const card = form.closest('.bg-white.rounded-lg');
+                let comment = null;
+                if (data.id) {
+                    comment = await fetchPostWithMedia(data.id);
+                }
+                if (!comment) {
+                    comment = await findNewChild(parentId, card);
+                }
                 form.reset();
-                window.location.reload();
+                form.dataset.parentId = rootId;
+                const authorEl = form.querySelector('.main-character-author');
+                const authorId = (typeof getMainCharacterId === 'function') ? getMainCharacterId() : '';
+                if (authorEl && authorId) authorEl.value = authorId;
+                if (comment) {
+                    insertCommentNode(form, parentId, comment, depth);
+                } else {
+                    alert('Comment was saved, but it could not be shown. Refresh to see it.');
+                }
+                const ta = form.querySelector('textarea[name="content"]');
+                if (ta) ta.focus({ preventScroll: true });
             } else {
                 alert('Failed to post comment: ' + (data.err || res.statusText));
             }
         } catch (err) {
             alert('Failed to post comment: ' + err);
+        } finally {
+            delete form.dataset.submitting;
         }
     });
+}
+
+function commentDepth(el) {
+    const n = Number(el && el.dataset.depth);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function depthForNewComment(form, parentId) {
+    const rootId = Number(form.dataset.rootId || form.dataset.parentId || 0);
+    const parent = Number(parentId);
+    if (!parent || parent === rootId) return 0;
+    const card = form.closest('.bg-white.rounded-lg');
+    const anchor = card && card.querySelector(`[data-comment-id="${parent}"]`);
+    return anchor ? commentDepth(anchor) + 1 : 1;
+}
+
+async function fetchPostWithMedia(id) {
+    const res = await fetch(`/api/post?id=${id}`);
+    const data = await res.json().catch(() => ({}));
+    const post = data.posts && data.posts[0];
+    if (!post) return null;
+    post.comments = [];
+    try {
+        const mres = await fetch(`/api/media?post=${id}`);
+        const mdata = await mres.json().catch(() => ({}));
+        post.media = (mdata.media || []).map((m) => ({ ...m, url: mediaUrl(m) }));
+    } catch (e) {
+        post.media = [];
+    }
+    return post;
+}
+
+async function findNewChild(parentId, card) {
+    const res = await fetch(`/api/post?parent=${parentId}`);
+    const data = await res.json().catch(() => ({}));
+    const children = data.posts || [];
+    const known = new Set();
+    if (card) {
+        card.querySelectorAll('[data-comment-id]').forEach((el) => known.add(Number(el.dataset.commentId)));
+    }
+    const fresh = children.filter((c) => !known.has(Number(c.id)));
+    fresh.sort((a, b) => {
+        const diff = parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at);
+        if (diff !== 0) return diff;
+        return Number(b.id) - Number(a.id);
+    });
+    const post = fresh[0];
+    if (!post) return null;
+    return fetchPostWithMedia(post.id);
+}
+
+function insertCommentNode(form, parentId, comment, depth) {
+    const node = document.createElement('div');
+    node.innerHTML = renderCommentHtml(comment, depth).trim();
+    const el = node.firstElementChild;
+    if (!el) return null;
+    const card = form.closest('.bg-white.rounded-lg');
+    const holder = form.parentElement;
+    const rootId = Number(form.dataset.rootId || 0);
+    const parent = Number(parentId);
+    let anchor = null;
+    if (card && parent > 0 && parent !== rootId) {
+        anchor = card.querySelector(`[data-comment-id="${parent}"]`);
+    }
+    if (!holder) return null;
+    if (!anchor) {
+        holder.before(el);
+    } else {
+        let after = anchor;
+        let next = after.nextElementSibling;
+        while (next && next.dataset.commentId && commentDepth(next) > commentDepth(anchor)) {
+            after = next;
+            next = after.nextElementSibling;
+        }
+        after.after(el);
+    }
+    if (typeof initPlyrVideos === 'function') initPlyrVideos(el);
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return el;
 }
 
 document.addEventListener('DOMContentLoaded', function () {

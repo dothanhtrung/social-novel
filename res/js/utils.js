@@ -12,6 +12,14 @@ function getAvatarUrl(user) {
     return '';
 }
 
+function getCoverUrl(user) {
+    const username = typeof user === 'string' ? user : (user && user.username);
+    if (username) {
+        return `/data/cover/${username}.png`;
+    }
+    return '';
+}
+
 const MAIN_CHARACTER_KEY = 'mainCharacterId';
 let mainCharacter = null;
 let characterListCache = [];

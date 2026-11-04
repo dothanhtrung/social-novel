@@ -2,7 +2,9 @@
 Fake Facebook Messenger like page.
 
 * The view allow to select main character, whose chat will be display at the right side while other characters's chat is on the left side.
-    * The dropdown list is searchable
+    * The main character is chosen from the open chat room's members.
+    * Top-right header avatar opens a searchable dropdown of those members (same idea as the home page character picker).
+    * Clicking a member in the right sidebar selects them too.
 
 * Left side bar: List of chat room which the main character is in. If the main character is "admin", show all.
     * At the top is button to create new room
@@ -269,14 +271,43 @@ struct PostForm {
                 >
                     <span class="material-symbols-outlined">edit</span>
                 </button>
-                <div
-                    class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant"
-                >
-                    <img
-                        alt="User profile"
-                        data-alt="Close-up portrait of a professional male user with a friendly expression, soft studio lighting, clean minimalist corporate background, high resolution photography style."
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVRSmZUApYQRTXPglNhW98VzNneBoe3VoLKE_-mes477Fv48963oxjhm6i9ZKXC1ctdYqfEYpT5pU-wi-AXBnE6_Xi5leJSYHZLroOd6vdKKN0josaJcNB70EvEJBiDI6EXAdMc2sQfIPNO9VSz61K3yYTwwaDGukCRLQ5z9WywYrbGhKDbvLrwf_N0nzJlmCSi22f5oZw9kUUYNjyGW38yKPIgVw51V2Fs_pmRxudT4fk7XfM8rhe1g"
-                    />
+                <div class="relative" id="messenger-character-picker">
+                    <div
+                        class="w-10 h-10 rounded-full bg-cover bg-center cursor-pointer bg-surface-container border border-outline-variant"
+                        id="messenger-character-trigger"
+                        role="button"
+                        tabindex="0"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="messenger-character-dropdown"
+                        title="Select character"
+                    ></div>
+                    <div
+                        id="messenger-character-dropdown"
+                        class="hidden absolute right-0 top-12 w-80 bg-surface-background rounded-xl shadow-lg border border-outline-variant z-[100] overflow-hidden"
+                    >
+                        <div class="p-2 border-b border-outline-variant">
+                            <div class="relative">
+                                <span
+                                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                                    style="font-size: 18px"
+                                    >search</span
+                                >
+                                <input
+                                    id="messenger-character-search"
+                                    type="text"
+                                    placeholder="Search members"
+                                    class="w-full bg-surface-container border-none rounded-full pl-10 pr-3 py-2 text-body-sm focus:ring-2 focus:ring-primary-container outline-none"
+                                    autocomplete="off"
+                                />
+                            </div>
+                        </div>
+                        <div
+                            id="messenger-character-list"
+                            class="max-h-80 overflow-y-auto py-1"
+                            role="listbox"
+                        ></div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -1034,6 +1065,7 @@ struct PostForm {
                     ) {
                         selectMainCharacter(characters[0].id);
                     }
+                    refreshMessengerCharacterPicker();
                 } catch (err) {
                     alert("Failed to fetch members: " + err);
                 }
@@ -1102,6 +1134,183 @@ struct PostForm {
                     buildRoomAvatarHtml(room ? room.members : [], "w-10 h-10");
                 document.getElementById("group-header-avatar").innerHTML =
                     buildRoomAvatarHtml(room ? room.members : [], "w-20 h-20");
+                refreshMessengerCharacterPicker();
+            }
+
+            function currentRoomMembers() {
+                const room = currentRooms.find(
+                    (r) => Number(r.id) === Number(selectedRoomId),
+                );
+                if (room && room.members) return room.members;
+                return Object.values(charactersById);
+            }
+
+            function updateMessengerCharacterAvatar() {
+                const trigger = document.getElementById(
+                    "messenger-character-trigger",
+                );
+                if (!trigger) return;
+                const user = charactersById[mainCharacterId];
+                const avatarUrl = user ? getAvatarUrl(user) : "";
+                trigger.style.backgroundImage = avatarUrl
+                    ? `url('${avatarUrl}')`
+                    : "";
+                const label = user
+                    ? user.name || user.username || "Select character"
+                    : "Select character";
+                trigger.title = label;
+                trigger.setAttribute("aria-label", label);
+            }
+
+            function setMessengerCharacterDropdownOpen(open) {
+                const dropdown = document.getElementById(
+                    "messenger-character-dropdown",
+                );
+                const trigger = document.getElementById(
+                    "messenger-character-trigger",
+                );
+                if (!dropdown) return;
+                dropdown.classList.toggle("hidden", !open);
+                if (trigger) {
+                    trigger.setAttribute(
+                        "aria-expanded",
+                        open ? "true" : "false",
+                    );
+                }
+            }
+
+            function renderMessengerCharacterDropdown(query) {
+                const list = document.getElementById(
+                    "messenger-character-list",
+                );
+                if (!list) return;
+                const q = (query || "").trim().toLowerCase();
+                const members = currentRoomMembers();
+                const filtered = q
+                    ? members.filter((c) => {
+                          const username = (c.username || "").toLowerCase();
+                          const name = (c.name || "").toLowerCase();
+                          return username.includes(q) || name.includes(q);
+                      })
+                    : members;
+                if (filtered.length === 0) {
+                    list.innerHTML =
+                        '<div class="px-3 py-4 text-body-sm text-text-secondary">No members in this chat</div>';
+                    return;
+                }
+                list.innerHTML = filtered
+                    .map((c) => {
+                        const selected =
+                            Number(c.id) === Number(mainCharacterId);
+                        const name = escapeHtml(c.name || c.username || "");
+                        const username = escapeHtml(c.username || "");
+                        return `<button type="button" role="option" aria-selected="${selected ? "true" : "false"}" class="messenger-character-option w-full flex items-center gap-3 px-3 py-2 hover:bg-surface-container-low text-left ${selected ? "bg-primary-fixed" : ""}" data-character-id="${c.id}">
+                            <div class="w-9 h-9 rounded-full bg-cover bg-center shrink-0 bg-surface-container" style="background-image: url('${getAvatarUrl(c)}')"></div>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-semibold text-body-md truncate">${name}</div>
+                                <div class="text-body-sm text-text-secondary truncate">@${username}</div>
+                            </div>
+                        </button>`;
+                    })
+                    .join("");
+            }
+
+            function refreshMessengerCharacterPicker() {
+                updateMessengerCharacterAvatar();
+                const dropdown = document.getElementById(
+                    "messenger-character-dropdown",
+                );
+                if (dropdown && !dropdown.classList.contains("hidden")) {
+                    const search = document.getElementById(
+                        "messenger-character-search",
+                    );
+                    renderMessengerCharacterDropdown(search ? search.value : "");
+                }
+            }
+
+            function initMessengerCharacterPicker() {
+                const picker = document.getElementById(
+                    "messenger-character-picker",
+                );
+                const trigger = document.getElementById(
+                    "messenger-character-trigger",
+                );
+                const dropdown = document.getElementById(
+                    "messenger-character-dropdown",
+                );
+                const search = document.getElementById(
+                    "messenger-character-search",
+                );
+                const list = document.getElementById("messenger-character-list");
+                if (!picker || !trigger || !dropdown) return;
+
+                trigger.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        trigger.click();
+                    }
+                });
+
+                trigger.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const willOpen = dropdown.classList.contains("hidden");
+                    if (willOpen) {
+                        setMessengerCharacterDropdownOpen(true);
+                        if (search) search.value = "";
+                        renderMessengerCharacterDropdown("");
+                        if (search) search.focus();
+                    } else {
+                        setMessengerCharacterDropdownOpen(false);
+                    }
+                });
+
+                if (search) {
+                    search.addEventListener("click", (e) => e.stopPropagation());
+                    search.addEventListener("input", () => {
+                        renderMessengerCharacterDropdown(search.value);
+                    });
+                    search.addEventListener("keydown", (e) => {
+                        if (e.key === "Escape") {
+                            setMessengerCharacterDropdownOpen(false);
+                            trigger.focus();
+                        } else if (e.key === "Enter") {
+                            e.preventDefault();
+                            const first =
+                                list &&
+                                list.querySelector(".messenger-character-option");
+                            if (first) first.click();
+                        }
+                    });
+                }
+
+                if (list) {
+                    list.addEventListener("click", (e) => {
+                        const opt = e.target.closest(
+                            ".messenger-character-option",
+                        );
+                        if (!opt) return;
+                        selectMainCharacter(Number(opt.dataset.characterId));
+                        setMessengerCharacterDropdownOpen(false);
+                    });
+                }
+
+                document.addEventListener("click", (e) => {
+                    if (
+                        !dropdown.classList.contains("hidden") &&
+                        !picker.contains(e.target)
+                    ) {
+                        setMessengerCharacterDropdownOpen(false);
+                    }
+                });
+
+                document.addEventListener("keydown", (e) => {
+                    if (
+                        e.key === "Escape" &&
+                        !dropdown.classList.contains("hidden")
+                    ) {
+                        setMessengerCharacterDropdownOpen(false);
+                    }
+                });
             }
 
             // Fetch posts (chat messages) and their media for the selected room
@@ -1482,6 +1691,7 @@ struct PostForm {
                 }
             });
 
+            initMessengerCharacterPicker();
             fetchRooms();
         </script>
     </body>

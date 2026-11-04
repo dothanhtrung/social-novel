@@ -1,16 +1,60 @@
-use crate::db_group::Group;
+use crate::db_group::{Group, GroupMember};
 use sqlx::PgPool;
 
-pub(crate) async fn search(pool: &PgPool, search: &str) -> Result<Vec<Group>, sqlx::Error> {
+pub(crate) async fn search(pool: &PgPool, search: &str, member: Option<i64>) -> Result<Vec<Group>, sqlx::Error> {
     sqlx::query_as!(
         Group,
         r#"SELECT id, name, description FROM groups
             WHERE name ILIKE '%' || $1 || '%'
+              AND (CASE WHEN $2::INT8 IS NOT NULL THEN EXISTS (
+                    SELECT 1 FROM group_member
+                    WHERE group_member."group" = groups.id AND group_member.character = $2
+                  ) ELSE TRUE END)
             ORDER BY name"#,
         search,
+        member,
     )
     .fetch_all(pool)
     .await
+}
+
+pub(crate) async fn members(pool: &PgPool, group_id: i64) -> Result<Vec<GroupMember>, sqlx::Error> {
+    sqlx::query_as!(
+        GroupMember,
+        r#"SELECT character.id AS "id!", character.username AS "username!", character.name AS "name!"
+            FROM group_member
+            INNER JOIN character ON character.id = group_member.character
+            WHERE group_member."group" = $1
+            ORDER BY character.name"#,
+        group_id,
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub(crate) async fn join(pool: &PgPool, character_id: i64, group_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(
+        r#"INSERT INTO group_member (character, "group", role) VALUES ($1, $2, 0)
+           ON CONFLICT (character, "group") DO NOTHING"#,
+        character_id,
+        group_id,
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(count)
+}
+
+pub(crate) async fn leave(pool: &PgPool, character_id: i64, group_id: i64) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(
+        r#"DELETE FROM group_member WHERE character = $1 AND "group" = $2"#,
+        character_id,
+        group_id,
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(count)
 }
 
 pub(crate) async fn insert(pool: &PgPool, group: &Group) -> Result<i64, sqlx::Error> {
