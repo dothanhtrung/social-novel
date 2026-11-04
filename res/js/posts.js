@@ -3,12 +3,13 @@ function mediaUrl(m) {
     return (m.url.startsWith('/') || m.url.startsWith('http')) ? m.url : ('/data/' + m.url);
 }
 
-function renderMediaHtml(media, wrapperClass) {
+function renderMediaHtml(media, wrapperClass, imgClass) {
     if (!media || media.length === 0) return '';
     const m = media[0];
     const url = mediaUrl(m);
+    const imageClass = imgClass || 'w-full rounded-lg object-cover';
     if (m.file_type === 'Image') {
-        return `<div class='${wrapperClass}'><img src="${url}" class='w-full rounded-lg object-cover' alt='media' /></div>`;
+        return `<div class='${wrapperClass}'><img src="${url}" class='${imageClass}' alt='media' /></div>`;
     }
     if (m.file_type === 'Video') {
         return `<div class='${wrapperClass}'><video src="${url}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
@@ -45,7 +46,7 @@ function lookupUser(authorId) {
 
 function renderCommentHtml(c, depth) {
     const a = lookupUser(c.author);
-    const commentMediaHtml = renderMediaHtml(c.media, 'mt-2');
+    const commentMediaHtml = renderMediaHtml(c.media, 'mt-2', 'comment-attach-img');
     const indentStyle = depth > 0 ? `style="margin-left:${depth * 24}px"` : '';
     const commentHtml = `
                     <div ${indentStyle} class="pr-4 pl-4 py-3 border-t border-gray-100 bg-white relative" data-comment-id="${c.id}" data-depth="${depth}">
@@ -93,9 +94,6 @@ function renderPostHtml(p) {
     const commentsHtml = (p.comments && p.comments.length > 0)
         ? p.comments.map((c) => renderCommentHtml(c, 0)).join('')
         : '';
-    const main = (typeof getMainCharacter === 'function') ? getMainCharacter() : null;
-    const mainId = (typeof getMainCharacterId === 'function') ? getMainCharacterId() : '';
-    const mainAvatar = main ? getAvatarUrl(main.username) : '';
     return `
                     <div class='bg-white rounded-lg shadow-sm border border-gray-200 mb-4'>
                         <div class='px-4 py-3'>
@@ -147,24 +145,91 @@ function renderPostHtml(p) {
                         </div>
                         ${commentsHtml}
                         <div class="px-4 py-3 border-t border-gray-100 bg-white">
-                            <form class="comment-form flex items-start gap-3" data-parent-id="${p.id}" data-root-id="${p.id}" data-group-id="${p.group || 0}" enctype="multipart/form-data">
+                            ${renderCommentFormHtml({ parentId: p.id, rootId: p.id, groupId: p.group || 0 })}
+                        </div>
+                    </div>`;
+}
+
+function renderCommentFormHtml(opts) {
+    const main = (typeof getMainCharacter === 'function') ? getMainCharacter() : null;
+    const mainId = (typeof getMainCharacterId === 'function') ? getMainCharacterId() : '';
+    const mainAvatar = main ? getAvatarUrl(main.username) : '';
+    const parentId = opts.parentId;
+    const rootId = opts.rootId != null ? opts.rootId : parentId;
+    const groupId = opts.groupId || 0;
+    const reply = !!opts.reply;
+    const placeholder = reply ? 'Write a reply...' : 'Write a comment...';
+    const formClass = reply ? 'comment-form reply-form flex items-end gap-2' : 'comment-form flex items-end gap-2';
+    const cancel = reply ? `<button type="button" class="reply-cancel">Cancel</button>` : '';
+    return `
+                            <form class="${formClass}" data-parent-id="${parentId}" data-root-id="${rootId}" data-group-id="${groupId}" enctype="multipart/form-data">
                                 <input type="hidden" name="id" value="0" />
                                 <input type="hidden" name="is_with" value="" />
                                 <input type="hidden" name="feeling" value="" />
                                 <input type="hidden" name="author" class="main-character-author" value="${mainId}" />
-                                <div class="main-character-avatar size-8 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${mainAvatar}')"></div>
-                                <div class="flex-1">
-                                    <textarea name="content" placeholder="Write a comment..." class="w-full px-3 py-2 border rounded resize-none" rows="2"></textarea>
-                                    <div class="mt-2 flex items-center justify-between">
-                                        <div class="flex items-center">
+                                <div class="main-character-avatar comment-avatar size-8 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]" style="background-image: url('${mainAvatar}')"></div>
+                                <div class="comment-box">
+                                    <div class="comment-pill">
+                                        <div class="comment-attach-preview"></div>
+                                        <textarea name="content" placeholder="${placeholder}" class="comment-input" rows="1"></textarea>
+                                        <div class="comment-tools">
+                                            <button type="button" class="comment-tool comment-sticker" title="Sticker" aria-label="Choose a sticker">${commentStickerIcon()}</button>
+                                            <button type="button" class="comment-tool comment-gif" title="GIF" aria-label="Choose a GIF"><span class="gif-badge">GIF</span></button>
+                                            <button type="button" class="comment-tool comment-emoji" title="Emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined">mood</span></button>
+                                            <button type="button" class="comment-tool comment-add-media" title="Photo or video" aria-label="Attach a photo or video"><span class="material-symbols-outlined">photo_camera</span></button>
                                             <input type="file" name="media" accept="image/*,video/*" class="hidden comment-media-input" />
-                                            <button type="button" class="comment-add-media px-2">📷</button>
                                         </div>
                                     </div>
+                                    <div class="comment-picker hidden"></div>
+                                    ${cancel}
                                 </div>
-                            </form>
-                        </div>
-                    </div>`;
+                            </form>`;
+}
+
+function commentSubtreeEnd(anchor) {
+    let after = anchor;
+    let next = after.nextElementSibling;
+    while (next && next.dataset.commentId && commentDepth(next) > commentDepth(anchor)) {
+        after = next;
+        next = after.nextElementSibling;
+    }
+    return after;
+}
+
+function openReplyComposer(replyBtn) {
+    // The Reply button also has data-comment-id. The chain wrapper is the element with data-depth.
+    const commentEl = replyBtn.closest('[data-depth]');
+    if (!commentEl) return;
+    const card = commentEl.closest('.bg-white.rounded-lg');
+    if (!card) return;
+    const commentId = commentEl.dataset.commentId;
+    const existing = card.querySelector('.reply-composer');
+    if (existing && existing.dataset.replyTo === String(commentId)) {
+        const ta = existing.querySelector('textarea[name="content"]');
+        if (ta) ta.focus();
+        return;
+    }
+    if (existing) existing.remove();
+    const postForm = card.querySelector('.comment-form:not(.reply-form)');
+    const rootId = postForm ? (postForm.dataset.rootId || postForm.dataset.parentId || '0') : '0';
+    const groupId = postForm ? (postForm.dataset.groupId || '0') : '0';
+    const depth = commentDepth(commentEl) + 1;
+    const wrap = document.createElement('div');
+    wrap.className = 'reply-composer pr-4 pl-4 py-3 border-t border-gray-100 bg-white';
+    wrap.style.marginLeft = (depth * 24) + 'px';
+    wrap.dataset.replyTo = commentId;
+    wrap.innerHTML = renderCommentFormHtml({
+        parentId: commentId,
+        rootId: rootId,
+        groupId: groupId,
+        reply: true,
+    }).trim();
+    commentSubtreeEnd(commentEl).after(wrap);
+    const ta = wrap.querySelector('textarea[name="content"]');
+    if (ta) {
+        ta.focus();
+        wrap.scrollIntoView({ block: 'nearest' });
+    }
 }
 
 function buildPostTree(posts, rootsOnly) {
@@ -316,33 +381,17 @@ function initPostOptions() {
 
 function initCommentHandlers() {
     document.addEventListener('click', function (e) {
-        const btn = e.target.closest && e.target.closest('.comment-add-media');
-        if (btn) {
-            e.preventDefault();
-            const form = btn.closest('.comment-form');
-            if (!form) return;
-            const input = form.querySelector('.comment-media-input');
-            if (input) input.click();
-        }
         const reply = e.target.closest && e.target.closest('.reply-btn');
         if (reply) {
             e.preventDefault();
-            const commentId = reply.dataset.commentId;
-            let ancestor = reply.closest('.bg-white');
-            let form = null;
-            while (ancestor) {
-                form = ancestor.querySelector && ancestor.querySelector('.comment-form');
-                if (form) break;
-                ancestor = ancestor.parentElement && ancestor.parentElement.closest
-                    ? ancestor.parentElement.closest('.bg-white')
-                    : null;
-            }
-            if (!form) form = document.querySelector('.comment-form');
-            if (form) {
-                form.dataset.parentId = commentId;
-                const ta = form.querySelector('textarea[name="content"]');
-                if (ta) ta.focus();
-            }
+            openReplyComposer(reply);
+            return;
+        }
+        const cancel = e.target.closest && e.target.closest('.reply-cancel');
+        if (cancel) {
+            e.preventDefault();
+            const box = cancel.closest('.reply-composer');
+            if (box) box.remove();
         }
     });
 
@@ -350,6 +399,20 @@ function initCommentHandlers() {
         const ta = e.target && e.target.closest && e.target.closest('.comment-form') ? e.target : null;
         if (!ta || ta.tagName !== 'TEXTAREA') return;
         if (mentionPopupOpen()) return;
+        if (e.key === 'Escape') {
+            const open = document.querySelector('.comment-picker:not(.hidden)');
+            if (open) {
+                e.preventDefault();
+                closeCommentPickers();
+                return;
+            }
+            const box = ta.closest('.reply-composer');
+            if (box) {
+                e.preventDefault();
+                box.remove();
+            }
+            return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const form = ta.closest('.comment-form');
@@ -377,6 +440,9 @@ function initCommentHandlers() {
             return;
         }
         const content = form.querySelector('textarea[name="content"]')?.value || '';
+        const mediaInputEarly = form.querySelector('.comment-media-input');
+        const hasMedia = mediaInputEarly && mediaInputEarly.files && mediaInputEarly.files.length > 0;
+        if (!content.trim() && !hasMedia) return;
         fd.set('author', author);
         fd.set('content', content);
         fd.set('is_with', '');
@@ -410,18 +476,28 @@ function initCommentHandlers() {
                 if (!comment) {
                     comment = await findNewChild(parentId, card);
                 }
+                const isReply = form.classList.contains('reply-form');
                 form.reset();
-                form.dataset.parentId = rootId;
+                if (!isReply) form.dataset.parentId = rootId;
                 const authorEl = form.querySelector('.main-character-author');
                 const authorId = (typeof getMainCharacterId === 'function') ? getMainCharacterId() : '';
                 if (authorEl && authorId) authorEl.value = authorId;
+                const preview = form.querySelector('.comment-attach-preview');
+                if (preview) preview.innerHTML = '';
+                const ta = form.querySelector('textarea[name="content"]');
+                resizeCommentInput(ta);
                 if (comment) {
                     insertCommentNode(form, parentId, comment, depth);
                 } else {
                     alert('Comment was saved, but it could not be shown. Refresh to see it.');
                 }
-                const ta = form.querySelector('textarea[name="content"]');
-                if (ta) ta.focus({ preventScroll: true });
+                if (isReply) {
+                    const box = form.closest('.reply-composer');
+                    if (box) box.remove();
+                } else {
+                    const ta = form.querySelector('textarea[name="content"]');
+                    if (ta) ta.focus({ preventScroll: true });
+                }
             } else {
                 alert('Failed to post comment: ' + (data.err || res.statusText));
             }

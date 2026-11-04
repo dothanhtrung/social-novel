@@ -112,11 +112,26 @@
                     box.innerHTML = '<div class="text-center text-fb-gray-text text-[13px] mt-6">Say hi to start a chat</div>';
                     return;
                 }
+                await Promise.all(posts.map(async (p) => {
+                    try {
+                        const mres = await fetch(`/api/media?post=${p.id}`);
+                        const mdata = await mres.json().catch(() => ({}));
+                        p.media = mdata.media || [];
+                    } catch (err) {
+                        p.media = [];
+                    }
+                }));
                 box.innerHTML = posts.map((p) => {
                     const mine = String(p.author) === String(meId);
-                    return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] break-words ${mine ? 'bg-fb-blue text-white' : 'bg-white text-[#050505]'}">${renderContentWithMentions(p.content || '')}</div>
-                    </div>`;
+                    const text = p.content ? `<div class="max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] break-words ${mine ? 'bg-fb-blue text-white' : 'bg-white text-[#050505]'}">${renderContentWithMentions(p.content)}</div>` : '';
+                    const pics = (p.media || []).map((m) => {
+                        const url = (m.url && (m.url.startsWith('/') || m.url.startsWith('http'))) ? m.url : ('/data/' + m.url);
+                        const isVideo = m.file_type === 'Video' || m.file_type === 2;
+                        return isVideo
+                            ? `<video src="${url}" class="max-w-[180px] rounded-lg" controls></video>`
+                            : `<img src="${url}" class="comment-attach-img" alt="">`;
+                    }).join('');
+                    return `<div class="flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}">${text}${pics}</div>`;
                 }).join('');
                 box.scrollTop = box.scrollHeight;
             } catch (e) {
@@ -179,6 +194,10 @@
             formData.append('liked_by', '');
             formData.append('group', '0');
             formData.append('room', String(roomId));
+            const mediaInput = document.getElementById('friend-chat-media');
+            if (mediaInput && mediaInput.files) {
+                for (const file of mediaInput.files) formData.append('media', file);
+            }
             const res = await fetch('/api/post', { method: 'POST', body: formData });
             const data = await res.json();
             if (data.err) throw new Error(data.err);
@@ -281,11 +300,16 @@
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const input = document.getElementById('friend-chat-input');
+                    const mediaInput = document.getElementById('friend-chat-media');
                     const content = input ? input.value.trim() : '';
-                    if (!content) return;
+                    const hasMedia = mediaInput && mediaInput.files && mediaInput.files.length > 0;
+                    if (!content && !hasMedia) return;
                     try {
                         await sendFriendMessage(content);
                         if (input) input.value = '';
+                        if (mediaInput) mediaInput.value = '';
+                        const preview = form.querySelector('.comment-attach-preview');
+                        if (preview) preview.innerHTML = '';
                     } catch (err) {
                         alert(err.message || String(err));
                     }
@@ -615,25 +639,6 @@
             const btn = document.getElementById('photo-video-btn');
             const input = document.getElementById('media-input');
             btn.addEventListener('click', () => input.click());
-            input.addEventListener('change', function () {
-                const preview = document.getElementById('media-preview');
-                preview.innerHTML = '';
-                for (const file of input.files) {
-                    const url = URL.createObjectURL(file);
-                    let el;
-                    if (file.type.startsWith('image/')) {
-                        el = document.createElement('img');
-                        el.src = url;
-                        el.className = 'w-20 h-20 object-cover rounded-lg';
-                    } else if (file.type.startsWith('video/')) {
-                        el = document.createElement('video');
-                        el.src = url;
-                        el.className = 'w-20 h-20 object-cover rounded-lg';
-                        el.controls = true;
-                    }
-                    if (el) preview.appendChild(el);
-                }
-            });
         }
 
         function handleFeeling() {
@@ -656,15 +661,18 @@
                     return;
                 }
                 formData.set('author', authorId);
-                if (!formData.get('content')) {
+                const mediaInput = document.getElementById('media-input');
+                const hasMedia = mediaInput && mediaInput.files && mediaInput.files.length > 0;
+                if (!String(formData.get('content') || '').trim() && !hasMedia) {
                     alert('Content cannot be empty.');
                     return;
                 }
                 // Attach all selected media files
-                const mediaInput = document.getElementById('media-input');
                 formData.delete('media');
-                for (const file of mediaInput.files) {
-                    formData.append('media', file);
+                if (mediaInput) {
+                    for (const file of mediaInput.files) {
+                        formData.append('media', file);
+                    }
                 }
                 // Add default values for other fields required by backend
                 formData.set('id', '0');
@@ -694,6 +702,8 @@
                         form.reset();
                         applyMainCharacter(getMainCharacter());
                         document.getElementById('media-preview').innerHTML = '';
+                        const postBox = document.getElementById('post-content');
+                        if (postBox && typeof resizeCommentInput === 'function') resizeCommentInput(postBox);
                         document.getElementById('feeling-input').classList.add('hidden');
                         renderPosts();
                     }
@@ -1015,16 +1025,27 @@
             </div>
             <form id="add-feed-form" class="add-feed bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-200"
                   enctype="multipart/form-data">
-                <div class="flex gap-2 items-start mb-3">
+                <div class="flex gap-2 items-end mb-3">
                     <div id="author-avatar" class="main-character-avatar author-post size-10 rounded-full bg-cover bg-center shrink-0 bg-[#E4E6EB]"></div>
                     <input type="hidden" name="author" id="author-id" class="main-character-author" />
-                    <textarea name="content" id="post-content" rows="2"
-                              class="flex-1 px-4 py-2 bg-[#F0F2F5] rounded-[20px] text-[17px] text-[#050505] focus:outline-none resize-none"
-                              placeholder="What's on your mind?"></textarea>
+                    <div class="comment-box">
+                        <div class="comment-pill">
+                            <div class="comment-attach-preview" id="media-preview"></div>
+                            <textarea name="content" id="post-content" rows="1" class="comment-input" placeholder="What's on your mind?"></textarea>
+                            <div class="comment-tools">
+                                <button type="button" class="comment-tool comment-sticker" title="Sticker" aria-label="Choose a sticker">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5 3h9.2L21 9.8V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm8 1.8V10h5.2L13 4.8zM8.2 13.1a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zm5.6 0a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zM8 16.1c.7 1.1 1.9 1.7 4 1.7s3.3-.6 4-1.7"/></svg>
+                                </button>
+                                <button type="button" class="comment-tool comment-gif" title="GIF" aria-label="Choose a GIF"><span class="gif-badge">GIF</span></button>
+                                <button type="button" class="comment-tool comment-emoji" title="Emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined">mood</span></button>
+                                <button type="button" class="comment-tool comment-add-media" title="Photo or video" aria-label="Attach a photo or video"><span class="material-symbols-outlined">photo_camera</span></button>
+                            </div>
+                        </div>
+                        <div class="comment-picker hidden"></div>
+                    </div>
                 </div>
                 <p id="posting-in" class="hidden -mt-1 mb-2 px-1 text-[13px] font-semibold text-fb-blue"></p>
-                <div class="flex flex-wrap gap-2 mb-2" id="media-preview"></div>
-                <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden"/>
+                <input type="file" id="media-input" name="media" accept="image/*,video/*" multiple class="hidden comment-media-input"/>
                 <input type="text" id="feeling-input" name="feeling"
                        class="hidden mt-2 fb-input"
                        placeholder="How are you feeling?"/>
@@ -1144,9 +1165,23 @@
         </button>
     </div>
     <div id="friend-chat-messages" class="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2 bg-[#F0F2F5]"></div>
-    <form id="friend-chat-form" class="flex items-center gap-2 px-2 py-2 border-t border-gray-200 shrink-0">
-        <input id="friend-chat-input" type="text" autocomplete="off" placeholder="Aa"
-               class="flex-1 bg-[#F0F2F5] border-none rounded-full px-3 py-2 text-[15px] focus:ring-0"/>
+    <form id="friend-chat-form" class="flex items-end gap-2 px-2 py-2 border-t border-gray-200 shrink-0">
+        <div class="comment-box">
+            <div class="comment-pill">
+                <div class="comment-attach-preview"></div>
+                <input id="friend-chat-input" type="text" autocomplete="off" placeholder="Aa" class="comment-input"/>
+                <div class="comment-tools">
+                    <button type="button" class="comment-tool comment-sticker" title="Sticker" aria-label="Choose a sticker">
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5 3h9.2L21 9.8V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm8 1.8V10h5.2L13 4.8zM8.2 13.1a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zm5.6 0a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zM8 16.1c.7 1.1 1.9 1.7 4 1.7s3.3-.6 4-1.7"/></svg>
+                    </button>
+                    <button type="button" class="comment-tool comment-gif" title="GIF" aria-label="Choose a GIF"><span class="gif-badge">GIF</span></button>
+                    <button type="button" class="comment-tool comment-emoji" title="Emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined">mood</span></button>
+                    <button type="button" class="comment-tool comment-add-media" title="Photo or video" aria-label="Attach a photo or video"><span class="material-symbols-outlined">photo_camera</span></button>
+                    <input id="friend-chat-media" type="file" accept="image/*,video/*" class="hidden comment-media-input"/>
+                </div>
+            </div>
+            <div class="comment-picker hidden"></div>
+        </div>
         <button type="submit" class="size-9 rounded-full bg-fb-blue text-white flex items-center justify-center shrink-0" title="Send">
             <span class="material-symbols-outlined !text-[18px]">send</span>
         </button>

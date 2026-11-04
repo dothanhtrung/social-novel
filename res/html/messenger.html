@@ -59,6 +59,7 @@ struct PostForm {
         <link href="/css/tailwind_output.min.css" rel="stylesheet" />
         <link href="/css/components.css" rel="stylesheet" />
         <script src="/js/utils.js"></script>
+        <script src="/js/composer.js"></script>
         <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
         <link
             href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&amp;display=swap"
@@ -514,86 +515,46 @@ struct PostForm {
                 </div>
                 <!-- Bottom Composer Bar -->
                 <footer class="p-4 bg-surface-background">
-                    <form id="composer-form" class="flex flex-col gap-2">
-                        <div
-                            id="composer-preview"
-                            class="hidden flex-wrap gap-2 px-2"
-                        ></div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex gap-1 text-primary">
-                                <button
-                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
-                                    type="button"
-                                >
-                                    <span class="material-symbols-outlined"
-                                        >add_circle</span
-                                    >
-                                </button>
-                                <button
-                                    id="composer-attach-btn"
-                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
-                                    type="button"
-                                >
-                                    <span class="material-symbols-outlined"
-                                        >image</span
-                                    >
-                                </button>
-                                <input
-                                    id="composer-media"
-                                    accept="image/*,video/*"
-                                    hidden
-                                    multiple
-                                    type="file"
-                                />
-                                <button
-                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
-                                    type="button"
-                                >
-                                    <span class="material-symbols-outlined"
-                                        >sticky_note_2</span
-                                    >
-                                </button>
-                                <button
-                                    class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors"
-                                    type="button"
-                                >
-                                    <span class="material-symbols-outlined"
-                                        >gif_box</span
-                                    >
-                                </button>
-                            </div>
-                            <div
-                                class="flex-1 bg-surface-container rounded-full px-4 py-2 flex items-center"
-                            >
+                    <form id="composer-form" class="flex items-end gap-2">
+                        <div class="comment-box">
+                            <div class="comment-pill">
+                                <div id="composer-preview" class="comment-attach-preview"></div>
                                 <input
                                     id="composer-content"
-                                    class="bg-transparent border-none w-full text-body-md focus:ring-0 focus:outline-none"
+                                    class="comment-input"
                                     placeholder="Aa"
                                     type="text"
+                                    autocomplete="off"
                                 />
-                                <button
-                                    class="text-primary hover:bg-surface-container-highest p-1 rounded-full"
-                                    type="button"
-                                >
-                                    <span class="material-symbols-outlined"
-                                        >sentiment_satisfied</span
-                                    >
-                                </button>
+                                <div class="comment-tools">
+                                    <button type="button" class="comment-tool comment-sticker" title="Sticker" aria-label="Choose a sticker">
+                                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5 3h9.2L21 9.8V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm8 1.8V10h5.2L13 4.8zM8.2 13.1a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zm5.6 0a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3zM8 16.1c.7 1.1 1.9 1.7 4 1.7s3.3-.6 4-1.7"/></svg>
+                                    </button>
+                                    <button type="button" class="comment-tool comment-gif" title="GIF" aria-label="Choose a GIF"><span class="gif-badge">GIF</span></button>
+                                    <button type="button" class="comment-tool comment-emoji" title="Emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined">mood</span></button>
+                                    <button type="button" class="comment-tool comment-add-media" title="Photo or video" aria-label="Attach a photo or video"><span class="material-symbols-outlined">photo_camera</span></button>
+                                    <input
+                                        id="composer-media"
+                                        class="comment-media-input"
+                                        accept="image/*,video/*"
+                                        hidden
+                                        multiple
+                                        type="file"
+                                    />
+                                </div>
                             </div>
-                            <button
-                                class="text-primary hover:scale-110 active:scale-95 transition-transform"
-                                type="submit"
-                            >
-                                <span
-                                    class="material-symbols-outlined"
-                                    style="
-                                        font-variation-settings: &quot;FILL&quot;
-                                            1;
-                                    "
-                                    >send</span
-                                >
-                            </button>
+                            <div class="comment-picker hidden"></div>
                         </div>
+                        <button
+                            class="text-primary hover:scale-110 active:scale-95 transition-transform shrink-0"
+                            type="submit"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                style="font-variation-settings: 'FILL' 1;"
+                                >send</span
+                            >
+                        </button>
                     </form>
                 </footer>
             </main>
@@ -1368,7 +1329,7 @@ struct PostForm {
                         if (m.file_type === 3) {
                             return `<audio src="${mediaUrl}" controls></audio>`;
                         }
-                        return `<div class="w-64 h-40 rounded-xl overflow-hidden border border-outline-variant shadow-sm hover:opacity-90 cursor-pointer transition-opacity"><img class="chat-image w-full h-full object-cover" src="${mediaUrl}"/></div>`;
+                        return `<img class="chat-image comment-attach-img cursor-pointer" src="${mediaUrl}"/>`;
                     })
                     .join("");
             }
@@ -1441,22 +1402,6 @@ struct PostForm {
             const composerMedia = document.getElementById("composer-media");
             const composerPreview = document.getElementById("composer-preview");
 
-            document
-                .getElementById("composer-attach-btn")
-                .addEventListener("click", () => composerMedia.click());
-
-            composerMedia.addEventListener("change", () => {
-                const files = Array.from(composerMedia.files || []);
-                composerPreview.classList.toggle("hidden", files.length === 0);
-                composerPreview.classList.toggle("flex", files.length > 0);
-                composerPreview.innerHTML = files
-                    .map(
-                        (f) =>
-                            `<span class="bg-surface-container text-[12px] text-text-secondary px-2 py-1 rounded-full">${escapeHtml(f.name)}</span>`,
-                    )
-                    .join("");
-            });
-
             composerForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
 
@@ -1500,7 +1445,6 @@ struct PostForm {
 
                     composerContent.value = "";
                     composerMedia.value = "";
-                    composerPreview.classList.add("hidden");
                     composerPreview.innerHTML = "";
 
                     await fetchPosts(selectedRoomId);
