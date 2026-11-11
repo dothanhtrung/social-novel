@@ -1,6 +1,6 @@
     <header class="relative top-0 z-50 w-full bg-white shadow-sm px-4 h-14">
         <div class="max-w-[100%] mx-auto flex items-center justify-between h-full">
-            <div class="flex items-center gap-2 min-w-[300px]">
+            <div class="flex items-center gap-2 min-w-0 flex-1 md:min-w-[300px]">
                 <div class="text-fb-blue">
                     <a href="/">
                         <svg class="size-10" fill="currentColor" viewBox="0 0 36 36">
@@ -10,7 +10,7 @@
                         </svg>
                     </a>
                 </div>
-                <div class="relative group">
+                <div class="relative group hidden sm:block">
                         <span
                                 class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-fb-gray-text !text-[20px]">search</span>
                     <input class="bg-[#F0F2F5] border-none rounded-full pl-10 pr-4 py-2 text-[15px] focus:ring-0 w-[240px]"
@@ -41,19 +41,19 @@
                     </a>
                 </div>
             </div>
-            <div class="flex items-center gap-2 min-w-[300px] justify-end">
+                <div class="flex items-center gap-2 min-w-0 flex-1 justify-end md:min-w-[300px]">
                 <div class="flex items-center gap-2">
                     <button
-                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
+                        class="hidden sm:flex size-10 rounded-full bg-[#E4E6EB] items-center justify-center hover:bg-[#D8DADF]">
                         <span class="material-symbols-outlined !text-[20px]">apps</span>
                     </button>
-                    <button
-                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF]">
+                        <button
+                            class="hidden sm:flex size-10 rounded-full bg-[#E4E6EB] items-center justify-center hover:bg-[#D8DADF]">
                             <span
                                     class="material-symbols-outlined !text-[20px]">chat_bubble</span>
                     </button>
-                    <button
-                            class="size-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] relative">
+                        <button
+                            class="hidden sm:flex size-10 rounded-full bg-[#E4E6EB] items-center justify-center hover:bg-[#D8DADF] relative">
                             <span
                                     class="material-symbols-outlined !text-[20px]">notifications</span>
                         <span

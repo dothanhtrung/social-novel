@@ -5,52 +5,56 @@
 <div class="layout-container flex flex-col min-h-screen">
     {% include "include/header.html" %}
 
-    <main class="flex-1 w-full flex justify-center">
-        <section class="flex-1 flex flex-col max-w-[900px] w-full">
-            <!-- Profile Header Section -->
-            <div class="bg-white mb-4">
-                <!-- Banner -->
-                <div id="banner" class="w-full h-80 bg-cover bg-center bg-gray-300">
-                </div>
+    <main class="flex-1 w-full">
+        <section class="w-full max-w-[1100px] mx-auto pb-8">
+            <div class="bg-white shadow-sm rounded-b-lg overflow-hidden">
+                <div id="banner" class="w-full h-48 md:h-80 bg-cover bg-center bg-gray-300"></div>
 
-                <!-- Profile Info -->
-                <div class="px-6 pb-6">
-                    <div class="flex items-end gap-4 -mt-20 mb-6 relative z-10">
-                        <!-- Avatar -->
-                        <div id="avatar"
-                             class="w-40 h-40 rounded-full border-4 border-white bg-cover bg-center bg-gray-200 shadow-lg">
+                <div class="px-4 md:px-10">
+                    <div class="relative z-10 -mt-12 md:-mt-16 pb-5 flex flex-col md:flex-row md:items-end gap-4">
+                        <div id="avatar" class="w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-full border-4 border-white bg-cover bg-center bg-gray-200 shadow-sm"></div>
+                        <div class="min-w-0 flex-1 text-center md:text-left md:pb-2">
+                            <h1 id="profile-name" class="text-3xl font-bold text-[#050505] leading-tight">Loading...</h1>
+                            <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
                         </div>
-
-                        <!-- Profile Details -->
-                        <div class="flex-1 pb-2 flex items-end justify-between gap-4">
-                            <div class="min-w-0">
-                                <h1 id="profile-name" class="text-4xl font-bold text-[#050505]">Loading...</h1>
-                                <p id="profile-username" class="text-fb-gray-text text-[15px] mt-1">@loading</p>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0 mb-1">
-                                <button type="button" id="edit-profile-btn" class="hidden px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]">Edit profile</button>
-                                <button type="button" id="friend-action-btn" class="hidden px-4 py-2 rounded-lg font-semibold text-[15px]"></button>
-                            </div>
+                        <div class="flex w-full md:w-auto items-center justify-center gap-2 md:pb-2">
+                            <button type="button" id="edit-profile-btn" class="hidden flex-1 md:flex-none px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]">
+                                <span class="material-symbols-outlined !text-[18px] align-middle mr-1">edit</span>Edit profile
+                            </button>
+                            <button type="button" id="friend-action-btn" class="hidden flex-1 md:flex-none px-4 py-2 rounded-lg font-semibold text-[15px]"></button>
                         </div>
                     </div>
-                    <p id="profile-bio" class="hidden text-[15px] text-[#050505] whitespace-pre-wrap"></p>
 
-                    <!-- Profile Tabs/Actions -->
-                    <div class="flex items-center gap-4 border-t border-gray-200 pt-4">
-                        <a href="#" class="text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-fb-blue">Timeline</a>
-                        <a href="#"
-                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">About</a>
-                        <a href="#"
-                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Photos</a>
-                        <a href="#"
-                           class="text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] py-2 border-b-4 border-transparent hover:border-fb-gray-text">Friends</a>
-                    </div>
+                    <nav aria-label="Profile sections" class="flex items-center gap-1 border-t border-gray-200 overflow-x-auto no-scrollbar">
+                        <a href="#timeline" class="shrink-0 text-fb-blue font-semibold text-[15px] px-4 py-4 border-b-4 border-fb-blue">Timeline</a>
+                        <a href="#about" class="shrink-0 text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] px-4 py-4 border-b-4 border-transparent hover:border-fb-gray-text">About</a>
+                        <a href="#photos" class="shrink-0 text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] px-4 py-4 border-b-4 border-transparent hover:border-fb-gray-text">Photos</a>
+                        <a href="#friends" class="shrink-0 text-fb-gray-text hover:text-fb-blue font-semibold text-[15px] px-4 py-4 border-b-4 border-transparent hover:border-fb-gray-text">Friends</a>
+                    </nav>
                 </div>
             </div>
 
-            <!-- Posts Section -->
-            <div class="px-4">
-                <div id="posts-list" data-posts-list></div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4 px-4 lg:px-0">
+                <aside class="lg:col-span-5 flex flex-col gap-4">
+                    <section id="about" class="bg-white rounded-lg p-4 shadow-sm">
+                        <h2 class="text-xl font-bold mb-3">Intro</h2>
+                        <p id="profile-bio" class="hidden text-[15px] text-[#050505] whitespace-pre-wrap text-center mb-4"></p>
+                        <div class="flex items-center gap-3 text-[15px] text-fb-gray-text">
+                            <span class="material-symbols-outlined text-fb-gray-text !text-[22px]">alternate_email</span>
+                            <span id="profile-about-username"></span>
+                        </div>
+                    </section>
+                    <section id="photos" class="bg-white rounded-lg p-4 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-bold">Photos</h2>
+                        </div>
+                        <div id="profile-photos" class="grid grid-cols-3 gap-1 overflow-hidden rounded-lg" aria-live="polite"></div>
+                    </section>
+                </aside>
+
+                <section id="timeline" class="lg:col-span-7 min-w-0" aria-label="Timeline">
+                    <div id="posts-list" data-posts-list class="flex flex-col gap-4"></div>
+                </section>
             </div>
         </section>
     </main>
@@ -145,14 +149,16 @@
         const avatar = document.getElementById('avatar');
         const name = document.getElementById('profile-name');
         const username = document.getElementById('profile-username');
+        const aboutUsername = document.getElementById('profile-about-username');
 
         const rev = user.coverRev ? `?v=${user.coverRev}` : '';
         banner.style.backgroundImage = `url('${getCoverUrl(user)}${rev}')`;
         avatar.style.backgroundImage = `url('${getAvatarUrl(user)}${rev}')`;
         name.textContent = user.name || user.username;
         username.textContent = `@${user.username}`;
+        aboutUsername.textContent = user.username || '';
         const bioEl = document.getElementById('profile-bio');
-        const bio = user.bio && user.bio.text ? user.bio.text : '';
+        const bio = (user.bio && user.bio.text) || user.description || '';
         if (bioEl) {
             bioEl.textContent = bio;
             bioEl.classList.toggle('hidden', !bio);
@@ -210,10 +216,10 @@
         btn.classList.remove('hidden');
         if (profileIsFriend) {
             btn.textContent = 'Unfriend';
-            btn.className = 'shrink-0 px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]';
+            btn.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg font-semibold text-[15px] bg-[#E4E6EB] text-[#050505] hover:bg-[#D8DADF]';
         } else {
             btn.textContent = 'Add Friend';
-            btn.className = 'shrink-0 px-4 py-2 rounded-lg font-semibold text-[15px] bg-fb-blue text-white hover:bg-[#166fe5]';
+            btn.className = 'flex-1 md:flex-none px-4 py-2 rounded-lg font-semibold text-[15px] bg-fb-blue text-white hover:bg-[#166fe5]';
         }
     }
 
@@ -242,12 +248,35 @@
         const query = new URLSearchParams();
         query.set('author', String(userData.id));
         query.set('count', '100');
-        await loadAndRenderPosts({
+        const posts = await loadAndRenderPosts({
             container: postsContainer,
             query,
             rootsOnly: true,
             emptyHtml: '<div class="card p-8 text-center text-fb-gray-text">No posts yet</div>',
         });
+        renderProfilePhotos(posts);
+    }
+
+    function renderProfilePhotos(posts) {
+        const grid = document.getElementById('profile-photos');
+        if (!grid) return;
+        const images = (posts || [])
+            .flatMap((post) => post.media || [])
+            .filter((media) => media.file_type === 'Image' && media.url)
+            .slice(0, 6);
+        grid.replaceChildren();
+        if (images.length === 0) {
+            grid.innerHTML = '<p class="col-span-3 py-6 text-center text-sm text-fb-gray-text">No photos yet</p>';
+            return;
+        }
+        for (const media of images) {
+            const image = document.createElement('img');
+            image.src = media.url;
+            image.alt = 'Profile photo';
+            image.loading = 'lazy';
+            image.className = 'aspect-square w-full object-cover';
+            grid.appendChild(image);
+        }
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
