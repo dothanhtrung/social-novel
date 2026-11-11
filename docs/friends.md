@@ -1,0 +1,10 @@
+# Friends
+
+* `friend` stores one undirected pair (`character`, `friend`). A unique index on the ordered pair stops a second row for the same two characters. Both columns cascade when a character is deleted.
+* `GET /api/friend?character={id}` returns `{friends, err}`. Each friend has `id`, `username`, `name`, `room_id` (0 if none), `last_message`, `last_author`, and `last_at`. The message is the newest root post in a room whose members are exactly those two characters. If several such rooms exist, the one with the newest message wins.
+* `POST /api/friend` with JSON `{character, friend}` adds the pair. An existing pair returns success. `GET /api/friend/delete?character={id}&friend={id}` removes it either way around.
+* Creating a room (`POST /api/room`, id 0) now returns that room's `id` on the usual `{msg, err}` body, so the first chat message can be posted into it.
+* The Contacts list and the bottom chat live on the home page (`res/html/index.html`). The person-add button next to Contacts searches characters who are not already friends. Changing the header character reloads the list and closes the chat.
+* Covers are files, not columns. A character cover is `/data/cover/{username}.png`. A group cover is `/data/cover/{id}.png`. Upload uses the same overwrite path as avatars, into `data_dir/cover`. An empty file field is omitted, so the stored image stays. Renaming a character moves the cover with the avatar. Deleting a character or group removes its cover.
+* Profile bio is `character.bio.text`. Edit profile posts to `POST /api/character` and only replaces that text, leaving other bio fields alone. Admin user edits keep the stored bio.
+* The profile page (`res/html/profile.html`) puts `#friend-action-btn` beside the name. It is hidden when no character is selected or the profile is that character. Otherwise it uses the same add and delete endpoints, and switches label when the header character changes.

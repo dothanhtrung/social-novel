@@ -1,0 +1,5 @@
+# Mentions
+
+* The home composer (`#post-content`), comment and edit `textarea[name=content]`, and the chat composer (`#composer-content`) share one suggester (`initMentionSuggestions` in `res/js/utils.js`). Comment forms created later are bound on focus. Other text fields (search, group name) do not suggest.
+* The list is characters from `GET /api/character`, filtered as the query after `@` changes. Arrow keys move the highlight; Enter or Tab inserts `@username` and a trailing space; Escape closes the list. Enter does not submit a comment while the list is open.
+* `renderContentWithMentions` escapes the stored text, then replaces `@username` with `<a class="mention-link" href="/u/{username}">` showing `name`, falling back to the username. Profile, home, and chat all use that renderer, so the link is the same after submit. The link color lives in `components.css` because the chat page does not use the home Tailwind theme.
