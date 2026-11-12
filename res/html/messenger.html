@@ -233,13 +233,14 @@ struct PostForm {
             }
             .message-layout {
                 display: flex;
-                align-items: center;
-                gap: 8px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
                 min-width: 0;
                 max-width: 100%;
             }
             .message-layout-out {
-                flex-direction: row-reverse;
+                align-items: flex-end;
             }
             .message-content {
                 min-width: 0;
@@ -253,6 +254,12 @@ struct PostForm {
             }
             .message-actions {
                 display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                order: -1;
+                gap: 4px;
+                max-width: 100%;
+                min-height: 28px;
                 flex-shrink: 0;
                 opacity: 0;
                 pointer-events: none;
@@ -277,6 +284,56 @@ struct PostForm {
                 background: #e4e6eb;
             }
             .message-action:disabled {
+                opacity: 0.5;
+            }
+            .message-actions .message-hint {
+                width: 22px;
+                height: 22px;
+            }
+            .message-hint .material-symbols-outlined {
+                font-size: 15px;
+            }
+            .message-reaction-picker,
+            .message-reactions {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 2px;
+            }
+            .message-reaction-choice {
+                width: 28px;
+                height: 28px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                font-size: 20px;
+                line-height: 1;
+            }
+            .message-reaction-choice:hover,
+            .message-reaction-choice:focus-visible {
+                background: #e4e6eb;
+            }
+            .message-reactions:empty {
+                display: none;
+            }
+            .message-reaction-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 3px;
+                padding: 2px 6px;
+                border: 1px solid #d5d8de;
+                border-radius: 8px;
+                background: white;
+                font-size: 12px;
+                color: #414754;
+            }
+            .message-reaction-badge:hover,
+            .message-reaction-badge:focus-visible {
+                background: #e7f3ff;
+            }
+            .message-reaction-choice:disabled,
+            .message-reaction-badge:disabled {
                 opacity: 0.5;
             }
             .message-editor textarea {
@@ -1436,6 +1493,18 @@ struct PostForm {
                     .join("");
             }
 
+            function messageFormData(post, content = post.content || "") {
+                const formData = new FormData();
+                for (const field of ["id", "author", "parent", "liked", "haha", "loved", "surprised", "sad", "group", "room"]) {
+                    formData.append(field, String(post[field] ?? 0));
+                }
+                for (const field of ["feeling", "is_with", "liked_by"]) {
+                    formData.append(field, post[field] ?? "");
+                }
+                formData.append("content", content);
+                return formData;
+            }
+
             function renderMessages(posts) {
                 const chatHistory = document.getElementById("chat-history");
                 chatHistory.innerHTML = "";
@@ -1485,16 +1554,70 @@ struct PostForm {
             }
 
             function setupMessageActions(post, wrapper, isOutgoing) {
+                const reactionTypes = [
+                    { field: "liked", label: "Like", icon: "&#128077;" },
+                    { field: "loved", label: "Love", icon: "&#10084;&#65039;" },
+                    { field: "haha", label: "Haha", icon: "&#128514;" },
+                    { field: "surprised", label: "Wow", icon: "&#128558;" },
+                    { field: "sad", label: "Sad", icon: "&#128546;" },
+                ];
                 const actions = document.createElement("div");
                 actions.className = "message-actions";
+                actions.setAttribute("role", "group");
+                actions.setAttribute("aria-label", "Message actions");
                 actions.innerHTML = `
-                    <button type="button" class="message-action" title="Edit message" aria-label="Edit message"><span class="material-symbols-outlined" aria-hidden="true">edit</span></button>
-                    <button type="button" class="message-action" title="Delete message" aria-label="Delete message"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                    <div class="message-reaction-picker" role="group" aria-label="React to message">
+                        ${reactionTypes.map((reaction) => `<button type="button" class="message-reaction-choice" data-reaction="${reaction.field}" title="${reaction.label}" aria-label="React with ${reaction.label}"><span aria-hidden="true">${reaction.icon}</span></button>`).join("")}
+                    </div>
+                    <button type="button" class="message-action message-hint" title="Edit message" aria-label="Edit message"><span class="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                    <button type="button" class="message-action message-hint" title="Delete message" aria-label="Delete message"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>
                 `;
                 wrapper.querySelector(".message-layout").appendChild(actions);
-                const [editButton, deleteButton] = actions.querySelectorAll("button");
+                const [editButton, deleteButton] = actions.querySelectorAll(".message-hint");
                 const messageText = wrapper.querySelector(".message-text");
+                const badges = document.createElement("div");
+                badges.className = "message-reactions";
+                badges.setAttribute("aria-label", "Message reactions");
+                badges.setAttribute("aria-live", "polite");
+                wrapper.querySelector(".message-content").appendChild(badges);
                 let busy = false;
+
+                const renderBadges = () => {
+                    badges.innerHTML = reactionTypes.filter((reaction) => Number(post[reaction.field]) > 0).map((reaction) => {
+                        const count = Number(post[reaction.field]);
+                        return `<button type="button" class="message-reaction-badge" data-reaction="${reaction.field}" title="Remove one ${reaction.label} reaction" aria-label="${reaction.label}: ${count}. Remove one reaction"><span aria-hidden="true">${reaction.icon}</span><span>${count}</span></button>`;
+                    }).join("");
+                };
+                const changeReaction = async (field, delta) => {
+                    if (busy || wrapper.classList.contains("is-editing")) return;
+                    const count = Math.max(0, (Number(post[field]) || 0) + delta);
+                    if (count > 2147483647) return;
+                    busy = true;
+                    wrapper.querySelectorAll("button").forEach((button) => button.disabled = true);
+                    try {
+                        const formData = messageFormData(post);
+                        formData.set(field, String(count));
+                        const response = await fetch("/api/post", { method: "POST", body: formData });
+                        if (!response.ok) throw new Error("Could not save reaction.");
+                        const data = await response.json();
+                        if (data.err) throw new Error(data.err);
+                        post[field] = count;
+                        renderBadges();
+                    } catch (error) {
+                        alert("Failed to save reaction: " + error.message);
+                    } finally {
+                        busy = false;
+                        wrapper.querySelectorAll("button").forEach((button) => button.disabled = false);
+                    }
+                };
+                actions.querySelectorAll(".message-reaction-choice").forEach((button) => {
+                    button.addEventListener("click", () => changeReaction(button.dataset.reaction, 1));
+                });
+                badges.addEventListener("click", (event) => {
+                    const button = event.target.closest(".message-reaction-badge");
+                    if (button) changeReaction(button.dataset.reaction, -1);
+                });
+                renderBadges();
 
                 editButton.addEventListener("click", () => {
                     if (busy || wrapper.classList.contains("is-editing")) return;
@@ -1577,14 +1700,7 @@ struct PostForm {
                             textarea.reportValidity();
                             return;
                         }
-                        const formData = new FormData();
-                        for (const field of ["id", "author", "parent", "liked", "haha", "loved", "surprised", "sad", "group", "room"]) {
-                            formData.append(field, String(post[field] ?? 0));
-                        }
-                        for (const field of ["feeling", "is_with", "liked_by"]) {
-                            formData.append(field, post[field] ?? "");
-                        }
-                        formData.append("content", content);
+                        const formData = messageFormData(post, content);
                         for (const media of post.media || []) {
                             if (!keptMedia.includes(media)) formData.append("remove_media", String(media.id));
                         }
