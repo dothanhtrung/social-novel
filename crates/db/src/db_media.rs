@@ -56,6 +56,13 @@ pub async fn unlink_posts(dbpool: &DBPool, post_ids: &[i64]) -> Result<Vec<Strin
         .map_err(|e| e.into());
 }
 
+pub async fn unlink_media(dbpool: &DBPool, post_id: i64, media_ids: &[i64]) -> Result<Vec<String>, anyhow::Error> {
+    #[cfg(feature = "postgres")]
+    return postgres::pg_media::unlink_media(&dbpool.pg_pool, post_id, media_ids)
+        .await
+        .map_err(|e| e.into());
+}
+
 pub async fn unlink_group(dbpool: &DBPool, group_id: i64) -> Result<Vec<String>, anyhow::Error> {
     #[cfg(feature = "postgres")]
     return postgres::pg_media::unlink_group(&dbpool.pg_pool, group_id)

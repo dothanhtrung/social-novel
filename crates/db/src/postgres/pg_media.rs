@@ -73,6 +73,28 @@ pub(crate) async fn unlink_posts(pool: &PgPool, post_ids: &[i64]) -> Result<Vec<
     Ok(urls)
 }
 
+pub(crate) async fn unlink_media(pool: &PgPool, post_id: i64, media_ids: &[i64]) -> Result<Vec<String>, sqlx::Error> {
+    let urls = sqlx::query_scalar!(
+        r#"WITH removed AS (
+                DELETE FROM post_media
+                WHERE post_id = $1 AND media_id = ANY($2)
+                RETURNING media_id
+            )
+            DELETE FROM media m
+            WHERE m.id IN (SELECT media_id FROM removed)
+              AND NOT EXISTS (
+                    SELECT 1 FROM post_media pm
+                    WHERE pm.media_id = m.id AND pm.post_id <> $1
+              )
+            RETURNING m.url"#,
+        post_id,
+        media_ids
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(urls)
+}
+
 pub(crate) async fn unlink_group(pool: &PgPool, group_id: i64) -> Result<Vec<String>, sqlx::Error> {
     let urls = sqlx::query_scalar!(
         r#"WITH doomed AS (

@@ -43,6 +43,7 @@ struct PostForm {
     id: Text<i64>,
     content: Text<String>,
     media: Vec<TempFile>,
+    remove_media: Vec<Text<i64>>,
     author: Text<i64>,
     parent: Text<i64>,
     liked: Text<i32>,
@@ -196,6 +197,7 @@ async fn update(
         error!("Failed to touch room {}: {}", room, e);
     }
 
+    let mut remove_media: Vec<i64> = data.remove_media.into_iter().map(Text::into_inner).collect();
     let data_dir = PathBuf::from(&config.data_dir);
     for media in data.media {
         match save_file(&data_dir, media, "").await {
@@ -206,10 +208,18 @@ async fn update(
                     blake3,
                     file_type,
                 };
-                if let Err(e) = db_media::attach(&dbpool, post_id, &media).await {
-                    err = e.to_string();
+                match db_media::attach(&dbpool, post_id, &media).await {
+                    Ok(id) => remove_media.retain(|media_id| *media_id != id),
+                    Err(e) => err = e.to_string(),
                 }
             }
+            Err(e) => err = e.to_string(),
+        }
+    }
+
+    if err.is_empty() && !is_new && !remove_media.is_empty() {
+        match db_media::unlink_media(&dbpool, post_id, &remove_media).await {
+            Ok(urls) => delete_files(&data_dir, &urls).await,
             Err(e) => err = e.to_string(),
         }
     }

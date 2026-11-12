@@ -49,6 +49,11 @@ If codegraph was installed and configured, use codegraph_explore first (MCP).
 Grep only for strings, comments, configs, generated files.
 Do not dump whole crates to find one symbol.
 
+Database
+--------
+
+Database is running inside podman. If you need psql command, go there.
+
 Others
 ------
 

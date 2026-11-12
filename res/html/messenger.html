@@ -231,6 +231,108 @@ struct PostForm {
             .message-bubble-out {
                 border-radius: 18px 4px 18px 18px;
             }
+            .message-layout {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .message-layout-out {
+                flex-direction: row-reverse;
+            }
+            .message-content {
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
+            .message-text {
+                max-width: 100%;
+            }
+            .message-editor {
+                width: 280px;
+            }
+            .message-actions {
+                display: flex;
+                flex-shrink: 0;
+                opacity: 0;
+                pointer-events: none;
+            }
+            .chat-message:hover .message-actions,
+            .chat-message:focus-within .message-actions {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .message-action {
+                width: 32px;
+                height: 32px;
+                flex-shrink: 0;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                color: #65676b;
+            }
+            .message-action:hover,
+            .message-action:focus-visible {
+                background: #e4e6eb;
+            }
+            .message-action:disabled {
+                opacity: 0.5;
+            }
+            .message-editor textarea {
+                display: block;
+                width: 100%;
+                min-width: 0;
+                min-height: 80px;
+                border: 1px solid #005bb3;
+                border-radius: 8px;
+                padding: 8px;
+                color: #050505;
+                background: white;
+                resize: vertical;
+            }
+            .message-editor-controls {
+                display: flex;
+                justify-content: flex-end;
+                gap: 4px;
+                margin-top: 4px;
+            }
+            .chat-message.is-editing .message-actions {
+                display: none;
+            }
+            .chat-message.is-editing .message-media {
+                display: none;
+            }
+            .message-editor-media {
+                display: grid;
+                gap: 8px;
+                margin-top: 8px;
+            }
+            .message-editor-attachment {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                min-width: 0;
+            }
+            .message-editor-attachment > div {
+                flex: 1;
+                min-width: 0;
+            }
+            .message-editor-attachment img,
+            .message-editor-attachment video {
+                width: 100%;
+                max-height: 120px;
+                object-fit: contain;
+            }
+            .message-editor-attachment audio {
+                width: 100%;
+            }
+            @media (hover: none) {
+                .message-actions {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+            }
         </style>
     </head>
     <body class="bg-surface-background text-on-surface">
@@ -1320,13 +1422,13 @@ struct PostForm {
                     .map((m) => {
                         const mediaUrl =
                             m.url &&
-                            (m.url.startsWith("/") || m.url.startsWith("http"))
+                            (m.url.startsWith("/") || m.url.startsWith("http") || m.url.startsWith("blob:"))
                                 ? m.url
                                 : "/data/" + m.url;
-                        if (m.file_type === 2) {
+                        if (m.file_type === 2 || m.file_type === "Video") {
                             return `<video class="w-64 rounded-xl border border-outline-variant shadow-sm" src="${mediaUrl}" controls></video>`;
                         }
-                        if (m.file_type === 3) {
+                        if (m.file_type === 3 || m.file_type === "Audio") {
                             return `<audio src="${mediaUrl}" controls></audio>`;
                         }
                         return `<img class="chat-image comment-attach-img cursor-pointer" src="${mediaUrl}"/>`;
@@ -1350,29 +1452,192 @@ struct PostForm {
                     const wrapper = document.createElement("div");
 
                     if (isOutgoing) {
-                        wrapper.className = "flex flex-col items-end gap-1";
+                        wrapper.className = "chat-message flex flex-col items-end gap-1";
                         wrapper.innerHTML = `
-                        ${contentHtml ? `<div class="bg-secondary text-on-primary p-3 max-w-[80%] message-bubble-out text-body-md shadow-sm">${contentHtml}</div>` : ""}
-                        ${mediaHtml}
+                        <div class="message-layout message-layout-out" style="max-width: 80%">
+                            <div class="message-content flex flex-col items-end gap-1">
+                                <div class="message-text${contentHtml ? " bg-secondary text-on-primary p-3 message-bubble-out text-body-md shadow-sm" : ""}">${contentHtml}</div>
+                                <div class="message-media">${mediaHtml}</div>
+                            </div>
+                        </div>
                     `;
                     } else {
-                        wrapper.className = "flex gap-2 max-w-[80%] items-end";
+                        wrapper.className = "chat-message flex gap-2 max-w-[80%] items-end";
                         wrapper.innerHTML = `
                         <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
                             <img alt="${escapeHtml(author ? author.name : "")}" src="${author ? getAvatarUrl(author) : ""}"/>
                         </div>
-                        <div class="space-y-1">
-                            <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : "Unknown")}</span>
-                            ${contentHtml ? `<div class="bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm">${contentHtml}</div>` : ""}
-                            ${mediaHtml}
+                        <div class="message-layout">
+                            <div class="message-content space-y-1">
+                                <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : "Unknown")}</span>
+                                <div class="message-text${contentHtml ? " bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm" : ""}">${contentHtml}</div>
+                                <div class="message-media">${mediaHtml}</div>
+                            </div>
                         </div>
                     `;
                     }
 
+                    setupMessageActions(post, wrapper, isOutgoing);
                     chatHistory.appendChild(wrapper);
                 });
 
                 chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            function setupMessageActions(post, wrapper, isOutgoing) {
+                const actions = document.createElement("div");
+                actions.className = "message-actions";
+                actions.innerHTML = `
+                    <button type="button" class="message-action" title="Edit message" aria-label="Edit message"><span class="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                    <button type="button" class="message-action" title="Delete message" aria-label="Delete message"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                `;
+                wrapper.querySelector(".message-layout").appendChild(actions);
+                const [editButton, deleteButton] = actions.querySelectorAll("button");
+                const messageText = wrapper.querySelector(".message-text");
+                let busy = false;
+
+                editButton.addEventListener("click", () => {
+                    if (busy || wrapper.classList.contains("is-editing")) return;
+                    const originalClass = messageText.className;
+                    const originalHtml = messageText.innerHTML;
+                    wrapper.classList.add("is-editing");
+                    messageText.className = "message-text message-editor";
+                    messageText.innerHTML = `
+                        <form>
+                            <textarea aria-label="Edit message text" rows="3"></textarea>
+                            <div class="message-editor-media"></div>
+                            <input type="file" accept="image/*,video/*,audio/*" multiple hidden aria-label="Choose message attachments" />
+                            <div class="message-editor-controls">
+                                <button type="button" class="message-action message-editor-add" title="Add attachments" aria-label="Add attachments"><span class="material-symbols-outlined" aria-hidden="true">attach_file</span></button>
+                                <button type="button" class="message-action" title="Cancel editing" aria-label="Cancel editing"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+                                <button type="submit" class="message-action" title="Save message" aria-label="Save message"><span class="material-symbols-outlined" aria-hidden="true">check</span></button>
+                            </div>
+                        </form>
+                    `;
+                    const form = messageText.querySelector("form");
+                    const textarea = form.querySelector("textarea");
+                    const mediaInput = form.querySelector('input[type="file"]');
+                    const mediaPreview = form.querySelector(".message-editor-media");
+                    let keptMedia = [...(post.media || [])];
+                    let addedMedia = [];
+                    const releasePreviews = () => addedMedia.forEach((media) => URL.revokeObjectURL(media.url));
+                    const renderEditorMedia = () => {
+                        mediaPreview.innerHTML = "";
+                        const entries = [...keptMedia, ...addedMedia];
+                        entries.forEach((media, index) => {
+                            const attachment = document.createElement("div");
+                            attachment.className = "message-editor-attachment";
+                            attachment.innerHTML = `<div>${renderMediaHtml([media])}</div><button type="button" class="message-action" title="Remove attachment" aria-label="Remove attachment"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>`;
+                            attachment.querySelector("button").addEventListener("click", () => {
+                                if (index < keptMedia.length) {
+                                    keptMedia = keptMedia.filter((entry) => entry !== media);
+                                } else {
+                                    URL.revokeObjectURL(media.url);
+                                    addedMedia = addedMedia.filter((entry) => entry !== media);
+                                }
+                                textarea.setCustomValidity("");
+                                renderEditorMedia();
+                            });
+                            mediaPreview.appendChild(attachment);
+                        });
+                    };
+                    form.querySelector(".message-editor-add").addEventListener("click", () => mediaInput.click());
+                    mediaInput.addEventListener("change", () => {
+                        for (const file of mediaInput.files) {
+                            addedMedia.push({ file, url: URL.createObjectURL(file), file_type: file.type.startsWith("video/") ? 2 : file.type.startsWith("audio/") ? 3 : 1 });
+                        }
+                        mediaInput.value = "";
+                        textarea.setCustomValidity("");
+                        renderEditorMedia();
+                    });
+                    renderEditorMedia();
+                    textarea.value = post.content || "";
+                    textarea.focus();
+                    const cancel = () => {
+                        if (busy) return;
+                        releasePreviews();
+                        messageText.className = originalClass;
+                        messageText.innerHTML = originalHtml;
+                        wrapper.classList.remove("is-editing");
+                        editButton.focus();
+                    };
+                    form.querySelector('[aria-label="Cancel editing"]').addEventListener("click", cancel);
+                    textarea.addEventListener("keydown", (event) => {
+                        if (event.key === "Escape") {
+                            event.preventDefault();
+                            cancel();
+                        }
+                    });
+                    form.addEventListener("submit", async (event) => {
+                        event.preventDefault();
+                        if (busy) return;
+                        const content = textarea.value.trim();
+                        if (!content && !keptMedia.length && !addedMedia.length) {
+                            textarea.setCustomValidity("Enter a message or keep an attachment.");
+                            textarea.reportValidity();
+                            return;
+                        }
+                        const formData = new FormData();
+                        for (const field of ["id", "author", "parent", "liked", "haha", "loved", "surprised", "sad", "group", "room"]) {
+                            formData.append(field, String(post[field] ?? 0));
+                        }
+                        for (const field of ["feeling", "is_with", "liked_by"]) {
+                            formData.append(field, post[field] ?? "");
+                        }
+                        formData.append("content", content);
+                        for (const media of post.media || []) {
+                            if (!keptMedia.includes(media)) formData.append("remove_media", String(media.id));
+                        }
+                        for (const media of addedMedia) formData.append("media", media.file);
+                        busy = true;
+                        form.querySelectorAll("button, textarea, input").forEach((control) => control.disabled = true);
+                        try {
+                            const response = await fetch("/api/post", { method: "POST", body: formData });
+                            if (!response.ok) throw new Error("Could not save message.");
+                            const data = await response.json();
+                            if (data.err) throw new Error(data.err);
+                            const mediaResponse = await fetch(`/api/media?post=${post.id}`);
+                            if (!mediaResponse.ok) throw new Error("Message saved, but attachments could not be refreshed.");
+                            const mediaData = await mediaResponse.json();
+                            if (mediaData.err) throw new Error(mediaData.err);
+                            post.content = content;
+                            post.media = mediaData.media || [];
+                            wrapper.querySelector(".message-media").innerHTML = renderMediaHtml(post.media);
+                            releasePreviews();
+                            messageText.className = "message-text" + (content ? (isOutgoing
+                                ? " bg-secondary text-on-primary p-3 message-bubble-out text-body-md shadow-sm"
+                                : " bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm") : "");
+                            messageText.innerHTML = content ? renderContentWithMentions(content) : "";
+                            wrapper.classList.remove("is-editing");
+                            editButton.focus();
+                        } catch (error) {
+                            alert("Failed to save message: " + error.message);
+                        } finally {
+                            busy = false;
+                            form.querySelectorAll("button, textarea, input").forEach((control) => control.disabled = false);
+                        }
+                    });
+                    textarea.addEventListener("input", () => textarea.setCustomValidity(""));
+                });
+
+                deleteButton.addEventListener("click", async () => {
+                    if (busy || !confirm("Delete this message? This cannot be undone.")) return;
+                    busy = true;
+                    editButton.disabled = deleteButton.disabled = true;
+                    try {
+                        const response = await fetch(`/api/post/delete/${post.id}`);
+                        if (!response.ok) throw new Error("Could not delete message.");
+                        const data = await response.json();
+                        if (data.err) throw new Error(data.err);
+                        currentPosts = currentPosts.filter((message) => message.id !== post.id);
+                        wrapper.remove();
+                    } catch (error) {
+                        alert("Failed to delete message: " + error.message);
+                    } finally {
+                        busy = false;
+                        editButton.disabled = deleteButton.disabled = false;
+                    }
+                });
             }
 
             // Enlarge chat images in an overlay on click

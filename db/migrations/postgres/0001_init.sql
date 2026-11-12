@@ -96,10 +96,12 @@ create table if not exists post
     updated_at timestamp with time zone default now()    not null,
     parent     bigint
         constraint post_post_id_fk
-            references post,
+            references post
+            on update cascade on delete cascade,
     author     bigint                                    not null
         constraint post_character_id_fk
-            references character,
+            references character
+            on update cascade on delete cascade,
     haha       integer                  default 0        not null,
     loved      integer                  default 0        not null,
     surprised  integer                  default 0        not null,
