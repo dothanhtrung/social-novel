@@ -61,3 +61,6 @@ Others
 * If cargo check is clean, stop. Do not keep editing for style.
 * The database is already started with podman.
 * The web server is already started with bacon.
+* Do not use google-chrome or chromium. Firefox is already installed with flatpak. Use flatpak run command.
+* If you need temp data, put it in folder /tmp.
+* Clean your test after finished.

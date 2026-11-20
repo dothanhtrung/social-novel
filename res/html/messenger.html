@@ -231,13 +231,17 @@ struct PostForm {
             .message-bubble-out {
                 border-radius: 18px 4px 18px 18px;
             }
+            .chat-message {
+                position: relative;
+            }
             .message-layout {
                 display: flex;
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 4px;
+                gap: 0;
                 min-width: 0;
                 max-width: 100%;
+                position: relative;
             }
             .message-layout-out {
                 align-items: flex-end;
@@ -246,28 +250,52 @@ struct PostForm {
                 min-width: 0;
                 overflow-wrap: anywhere;
             }
+            .message-body {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                width: fit-content;
+                max-width: 100%;
+            }
+            .message-layout-out .message-body {
+                align-items: flex-end;
+            }
+            .chat-message:has(.message-reactions:not(:empty)) {
+                padding-bottom: 10px;
+            }
             .message-text {
                 max-width: 100%;
+            }
+            .message-text:empty,
+            .message-media:empty {
+                display: none;
             }
             .message-editor {
                 width: 280px;
             }
             .message-actions {
-                display: flex;
+                display: none;
+                position: absolute;
+                left: 0;
+                bottom: 100%;
                 align-items: center;
                 flex-wrap: wrap;
-                order: -1;
                 gap: 4px;
                 max-width: 100%;
-                min-height: 28px;
-                flex-shrink: 0;
-                opacity: 0;
-                pointer-events: none;
+                z-index: 4;
+                padding: 2px 4px;
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            }
+            .message-layout-out .message-actions {
+                left: auto;
+                right: 0;
             }
             .chat-message:hover .message-actions,
             .chat-message:focus-within .message-actions {
-                opacity: 1;
-                pointer-events: auto;
+                display: flex;
             }
             .message-action {
                 width: 32px;
@@ -293,12 +321,28 @@ struct PostForm {
             .message-hint .material-symbols-outlined {
                 font-size: 15px;
             }
-            .message-reaction-picker,
-            .message-reactions {
+            .message-reaction-picker {
                 display: flex;
                 align-items: center;
                 flex-wrap: wrap;
                 gap: 2px;
+            }
+            .message-reactions {
+                position: absolute;
+                bottom: 0;
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 2px;
+                max-width: calc(100% - 12px);
+                transform: translateY(50%);
+                z-index: 2;
+            }
+            .message-layout-out .message-reactions {
+                right: 8px;
+            }
+            .message-layout:not(.message-layout-out) .message-reactions {
+                left: 8px;
             }
             .message-reaction-choice {
                 width: 28px;
@@ -321,11 +365,13 @@ struct PostForm {
                 display: inline-flex;
                 align-items: center;
                 gap: 3px;
-                padding: 2px 6px;
+                padding: 1px 6px;
                 border: 1px solid #d5d8de;
-                border-radius: 8px;
+                border-radius: 9999px;
                 background: white;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
                 font-size: 12px;
+                line-height: 1.2;
                 color: #414754;
             }
             .message-reaction-badge:hover,
@@ -354,7 +400,11 @@ struct PostForm {
                 gap: 4px;
                 margin-top: 4px;
             }
-            .chat-message.is-editing .message-actions {
+            .chat-message.is-editing {
+                padding-bottom: 0;
+            }
+            .chat-message.is-editing .message-actions,
+            .chat-message.is-editing .message-reactions {
                 display: none;
             }
             .chat-message.is-editing .message-media {
@@ -386,8 +436,7 @@ struct PostForm {
             }
             @media (hover: none) {
                 .message-actions {
-                    opacity: 1;
-                    pointer-events: auto;
+                    display: flex;
                 }
             }
         </style>
@@ -560,7 +609,7 @@ struct PostForm {
                 <!-- Chat History -->
                 <div
                     id="chat-history"
-                    class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6"
+                    class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2"
                 >
                     <!-- Time divider -->
                     <div class="flex justify-center">
@@ -1521,26 +1570,30 @@ struct PostForm {
                     const wrapper = document.createElement("div");
 
                     if (isOutgoing) {
-                        wrapper.className = "chat-message flex flex-col items-end gap-1";
+                        wrapper.className = "chat-message flex flex-col items-end";
                         wrapper.innerHTML = `
                         <div class="message-layout message-layout-out" style="max-width: 80%">
-                            <div class="message-content flex flex-col items-end gap-1">
-                                <div class="message-text${contentHtml ? " bg-secondary text-on-primary p-3 message-bubble-out text-body-md shadow-sm" : ""}">${contentHtml}</div>
-                                <div class="message-media">${mediaHtml}</div>
+                            <div class="message-content flex flex-col items-end">
+                                <div class="message-body">
+                                    <div class="message-text${contentHtml ? " bg-secondary text-on-primary p-3 message-bubble-out text-body-md shadow-sm" : ""}">${contentHtml}</div>
+                                    <div class="message-media">${mediaHtml}</div>
+                                </div>
                             </div>
                         </div>
                     `;
                     } else {
                         wrapper.className = "chat-message flex gap-2 max-w-[80%] items-end";
                         wrapper.innerHTML = `
-                        <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1">
+                        <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                             <img alt="${escapeHtml(author ? author.name : "")}" src="${author ? getAvatarUrl(author) : ""}"/>
                         </div>
                         <div class="message-layout">
                             <div class="message-content space-y-1">
                                 <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(author ? author.name : "Unknown")}</span>
-                                <div class="message-text${contentHtml ? " bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm" : ""}">${contentHtml}</div>
-                                <div class="message-media">${mediaHtml}</div>
+                                <div class="message-body">
+                                    <div class="message-text${contentHtml ? " bg-bubble-recipient text-on-surface p-3 message-bubble-in text-body-md shadow-sm" : ""}">${contentHtml}</div>
+                                    <div class="message-media">${mediaHtml}</div>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1579,7 +1632,7 @@ struct PostForm {
                 badges.className = "message-reactions";
                 badges.setAttribute("aria-label", "Message reactions");
                 badges.setAttribute("aria-live", "polite");
-                wrapper.querySelector(".message-content").appendChild(badges);
+                wrapper.querySelector(".message-body").appendChild(badges);
                 let busy = false;
 
                 const renderBadges = () => {
