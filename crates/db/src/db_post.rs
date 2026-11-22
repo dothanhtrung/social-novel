@@ -50,6 +50,7 @@ pub struct Post {
 pub struct SearchPostCondition {
     pub authors: Option<Vec<i64>>,
     pub groups: Option<Vec<i64>>,
+    /// When Some, only posts in these rooms. When None, chat-room posts are excluded.
     pub rooms: Option<Vec<i64>>,
     /// When true, only root posts (no parent) are returned.
     pub roots_only: bool,

@@ -24,7 +24,7 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 * Creating a post on a group page stores that group id on the new post.
 * Creating a comment (or reply) on a post that belongs to a group stores the same group id. If the client omits it, the API copies the group from the parent post, walking up ancestors if the immediate parent has none.
 * Posts created on the home feed (no group selected) are not assigned to a group.
-* Chat messages belong to a room, not a group.
+* Chat messages belong to a room, not a group. They are not listed on the home feed, group feeds, or profiles. Messenger and the home friend chat load them with `room={id}`.
 
 ## Comments
 

@@ -64,6 +64,8 @@
 
     <!-- Media (optional) -->
     <div>
+        <label class="fb-label">Current media</label>
+        <div id="current-media" class="flex flex-wrap gap-2 mb-3"></div>
         <label class="fb-label">Attach media</label>
         <input name="media" type="file" accept="image/*,video/*" class="w-full" multiple />
     </div>
@@ -174,6 +176,34 @@ async function fetchCharactersPopulate() {
     }
 }
 
+let originalMedia = [];
+let keptMedia = [];
+
+function isDisplayableMedia(m) {
+    return m && (m.file_type === 'Image' || m.file_type === 'Video' || m.file_type === 1 || m.file_type === 2);
+}
+
+function renderCurrentMedia() {
+    const box = document.getElementById('current-media');
+    if (!box) return;
+    box.innerHTML = '';
+    if (keptMedia.length === 0) {
+        box.innerHTML = '<p class="text-sm text-fb-gray-text">No media attached</p>';
+        return;
+    }
+    keptMedia.forEach((m, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'relative inline-block';
+        wrap.innerHTML = (typeof renderMediaHtml === 'function' ? renderMediaHtml([m], '', 'max-h-40 rounded-lg object-cover') : '')
+            + `<button type="button" class="absolute top-1 right-1 bg-white rounded-full w-6 h-6 leading-6 text-center shadow" data-index="${index}" aria-label="Remove media">×</button>`;
+        wrap.querySelector('button').addEventListener('click', () => {
+            keptMedia = keptMedia.filter((_, i) => i !== index);
+            renderCurrentMedia();
+        });
+        box.appendChild(wrap);
+    });
+}
+
 // Load post if id is present in query param or in path (/p/edit/{id})
 async function loadPostForEdit() {
     const params = new URLSearchParams(window.location.search);
@@ -212,6 +242,19 @@ async function loadPostForEdit() {
                 const sel = document.getElementById('author-select');
                 if (sel) sel.value = post.author || '';
             }, 200);
+            try {
+                const mres = await fetch(`/api/media?post=${post.id}`);
+                const mdata = await mres.json().catch(() => ({}));
+                originalMedia = (mdata.media || []).filter(isDisplayableMedia).map((m) => ({
+                    ...m,
+                    url: (typeof mediaUrl === 'function') ? mediaUrl(m) : m.url,
+                }));
+                keptMedia = originalMedia.slice();
+            } catch (err) {
+                originalMedia = [];
+                keptMedia = [];
+            }
+            renderCurrentMedia();
         } else if (data.err) {
             alert('Error loading post: ' + data.err);
         }
@@ -229,6 +272,19 @@ document.getElementById('post-form').addEventListener('submit', async function(e
     const dt = document.getElementById('updated_at').value;
     if (dt) {
         formData.set('updated_at', toBackendTimestampFromLocal(dt));
+    }
+    formData.delete('media');
+    formData.delete('remove_media');
+    const mediaInput = form.querySelector('input[name="media"]');
+    if (mediaInput && mediaInput.files) {
+        for (const file of mediaInput.files) {
+            if (file && file.size > 0 && file.name) formData.append('media', file);
+        }
+    }
+    for (const media of originalMedia) {
+        if (!keptMedia.some((kept) => kept.id === media.id)) {
+            formData.append('remove_media', String(media.id));
+        }
     }
     try {
         console.log("Submitting edit POST: ", formData);

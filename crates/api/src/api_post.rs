@@ -200,6 +200,11 @@ async fn update(
     let mut remove_media: Vec<i64> = data.remove_media.into_iter().map(Text::into_inner).collect();
     let data_dir = PathBuf::from(&config.data_dir);
     for media in data.media {
+        // Browsers send an empty file part when the file input is unused. Skip it so
+        // a blank NA attachment cannot sort ahead of real media and hide it.
+        if media.size == 0 || media.file_name.as_deref().unwrap_or("").is_empty() {
+            continue;
+        }
         match save_file(&data_dir, media, "").await {
             Ok((blake3, file_name, file_type)) => {
                 let media = Media {

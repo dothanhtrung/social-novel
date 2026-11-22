@@ -3,15 +3,24 @@ function mediaUrl(m) {
     return (m.url.startsWith('/') || m.url.startsWith('http')) ? m.url : ('/data/' + m.url);
 }
 
+function isPostImage(m) {
+    return m && (m.file_type === 'Image' || m.file_type === 1);
+}
+
+function isPostVideo(m) {
+    return m && (m.file_type === 'Video' || m.file_type === 2);
+}
+
 function renderMediaHtml(media, wrapperClass, imgClass) {
     if (!media || media.length === 0) return '';
-    const m = media[0];
+    const m = media.find((item) => isPostImage(item) || isPostVideo(item));
+    if (!m) return '';
     const url = mediaUrl(m);
     const imageClass = imgClass || 'w-full rounded-lg object-cover';
-    if (m.file_type === 'Image') {
+    if (isPostImage(m)) {
         return `<div class='${wrapperClass}'><img src="${url}" class='${imageClass}' alt='media' /></div>`;
     }
-    if (m.file_type === 'Video') {
+    if (isPostVideo(m)) {
         return `<div class='${wrapperClass}'><video src="${url}" class='plyr-video w-full rounded-lg' playsinline controls></video></div>`;
     }
     return '';
