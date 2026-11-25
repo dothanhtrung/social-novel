@@ -94,7 +94,7 @@ need_stdout = true
 allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
-watch = ["src", "res/html", "res/js"]
+watch = ["src", "res"]
 # kill = ["pkill", "-TERM", "-P"]'
 
 # This parameterized job runs the example of your choice, as soon

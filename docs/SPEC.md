@@ -4,6 +4,10 @@ Fake Facebook-style social stories for anime characters. One real user (the admi
 
 Detailed behavior and implementation notes are organized by topic in [DESIGN.md](DESIGN.md).
 
+## Characters
+
+* The admin Users tab can set a character back story. That text is only shown and edited on the admin page. It is stored for later use when sending a character to the LLM.
+
 ## Relations
 
 * A relation is directed: the from character is that relation of the to character. Example: Himawari is daughter of Hinata.
@@ -47,6 +51,8 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 * The main character's messages sit on the right. Other members' messages sit on the left. New messages are posted as that character.
 * The main character is one of the open chat room's members. The top-right header avatar opens a searchable list of those members. Clicking a row in the right-hand member list selects the same character.
 * Search matches name or username. If the chosen character is not in the room, the first member becomes the main character.
+* The right sidebar has LLM reply settings for the open room: a checkbox to enable or disable replies, and how many recent messages to send with the new one (1–50). Those values are stored on the room.
+* When LLM replies are on and a new root chat message is created, the app sends the configured chat setup prompt to the LLM server. The prompt includes the sender and receiver names, usernames, and back stories, the recent messages, and the new message. The LLM is told to answer as the receiver. The reply is posted in the same room as that receiver. A failed LLM call does not undo the user's message. The other member is the first room member who is not the sender.
 
 ## Friends
 
@@ -61,3 +67,9 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 * Uploading a file that is already stored attaches that media to the new post instead of dropping it.
 * Deleting a post removes its link. The file is deleted only when no other post still uses that media.
 * Deleting a group or chat room does the same for every post in it.
+
+## Settings
+
+* The admin page Settings tab edits the application config: data directory, database URL, listen address and port, API page size, parallel, basic auth, LLM server URL, and chat setup prompt.
+* Save writes those values to the RON config file and reloads them into the running application. Leave both auth fields empty to disable basic auth.
+* The chat setup prompt is the overall text sent to the LLM for a messenger reply. It can be changed without rebuilding the app. Placeholders are `{sender_name}`, `{sender_username}`, `{sender_back_story}`, `{receiver_name}`, `{receiver_username}`, `{receiver_back_story}`, `{recent_messages}`, and `{current_message}`. An empty prompt uses the built-in default.

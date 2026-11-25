@@ -3,10 +3,29 @@ use crate::postgres;
 use serde::{Deserialize, Serialize};
 use web_misc::db::DBPool;
 
+fn default_llm_recent() -> i32 {
+    10
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChatRoom {
     pub id: i64,
     pub name: String,
+    #[serde(default)]
+    pub llm_enabled: bool,
+    #[serde(default = "default_llm_recent")]
+    pub llm_recent: i32,
+}
+
+impl Default for ChatRoom {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            name: String::new(),
+            llm_enabled: false,
+            llm_recent: default_llm_recent(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -61,4 +80,14 @@ pub async fn kick_all(db_pool: &DBPool, room_id: i64) -> Result<u64, sqlx::Error
 pub async fn touch(db_pool: &DBPool, room_id: i64) -> Result<u64, sqlx::Error> {
     #[cfg(feature = "postgres")]
     postgres::pg_room::touch(&db_pool.pg_pool, room_id).await
+}
+
+pub async fn get(db_pool: &DBPool, id: i64) -> Result<ChatRoom, sqlx::Error> {
+    #[cfg(feature = "postgres")]
+    postgres::pg_room::get(&db_pool.pg_pool, id).await
+}
+
+pub async fn update_llm(db_pool: &DBPool, room: &ChatRoom) -> Result<u64, sqlx::Error> {
+    #[cfg(feature = "postgres")]
+    postgres::pg_room::update_llm(&db_pool.pg_pool, room).await
 }

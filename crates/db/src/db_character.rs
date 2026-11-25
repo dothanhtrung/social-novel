@@ -14,6 +14,9 @@ pub struct Character {
     pub description: String,
     #[serde(default)]
     pub bio: Json<Bio>,
+    /// Admin-only notes for later LLM prompts. Not shown on public pages.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub back_story: String,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -36,7 +39,13 @@ pub async fn search(db_pool: &DBPool, search: &CharacterCond) -> Result<Vec<Char
 
 pub async fn insert(db_pool: &DBPool, character: &Character) -> Result<i64, sqlx::Error> {
     #[cfg(feature = "postgres")]
-    postgres::pg_character::insert(&db_pool.pg_pool, character.name.as_str(), character.username.as_str()).await
+    postgres::pg_character::insert(
+        &db_pool.pg_pool,
+        character.name.as_str(),
+        character.username.as_str(),
+        character.back_story.as_str(),
+    )
+    .await
 }
 
 pub async fn get(db_pool: &DBPool, id: i64) -> Result<Character, sqlx::Error> {
@@ -63,6 +72,7 @@ pub async fn update(dbpool: &DBPool, character: &Character) -> Result<u64, sqlx:
         character.username.as_str(),
         character.description.as_str(),
         &character.bio,
+        character.back_story.as_str(),
     )
     .await
 }

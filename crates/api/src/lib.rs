@@ -5,6 +5,7 @@ mod api_room;
 mod api_group;
 mod api_media;
 mod api_post;
+mod llm;
 
 use actix_multipart::form::tempfile::TempFile;
 use actix_web::http::StatusCode;

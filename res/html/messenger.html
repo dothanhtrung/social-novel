@@ -21,6 +21,8 @@ Fake Facebook Messenger like page.
 
 * Right side bar: Room members with name and avatar. Avatar is "/data/avatar/{username}.png"
     * Hover on member will show "Delete" icon allow to kick the member out of room by send GET "/api/room/kick?room={room_id}&member={username}".
+    * LLM reply: checkbox enables replies for this room. Number is how many recent messages are sent with the new one.
+      POST "/api/room/llm" JSON {id, llm_enabled, llm_recent}. The prompt is config.llm.chat_setup_prompt.
 
 
 API call:
@@ -852,6 +854,27 @@ struct PostForm {
                             <!-- Member items are rendered by renderMemberList() -->
                         </div>
                     </div>
+                    <!-- LLM reply settings for this room -->
+                    <div class="px-4 py-2">
+                        <div class="w-full py-2 px-2 text-on-surface font-semibold text-body-lg">
+                            LLM reply
+                        </div>
+                        <label class="flex items-center gap-3 p-2 text-body-md text-on-surface">
+                            <input id="room-llm-enabled" type="checkbox" class="rounded border-outline-variant" />
+                            Enable LLM replies
+                        </label>
+                        <label class="flex flex-col gap-1 p-2 text-body-md text-on-surface">
+                            Recent messages
+                            <input
+                                id="room-llm-recent"
+                                type="number"
+                                min="1"
+                                max="50"
+                                value="10"
+                                class="w-full rounded-lg border border-outline-variant bg-surface-container px-3 py-2 text-body-md"
+                            />
+                        </label>
+                    </div>
                     <!-- Media, Files & Links -->
                     <div class="px-4 py-2">
                         <button
@@ -1187,6 +1210,7 @@ struct PostForm {
                 document.getElementById("group-header-name").textContent = room
                     ? room.name
                     : "";
+                fillRoomLlm(room);
 
                 await fetchMembers(roomId);
                 await fetchPosts(roomId);
@@ -1305,6 +1329,64 @@ struct PostForm {
                     buildRoomAvatarHtml(room ? room.members : [], "w-20 h-20");
                 refreshMessengerCharacterPicker();
             }
+
+            let fillingRoomLlm = false;
+
+            function fillRoomLlm(room) {
+                fillingRoomLlm = true;
+                const enabled = document.getElementById("room-llm-enabled");
+                const recent = document.getElementById("room-llm-recent");
+                enabled.checked = Boolean(room && room.llm_enabled);
+                const n = room && Number(room.llm_recent);
+                recent.value =
+                    Number.isFinite(n) && n > 0
+                        ? String(Math.min(50, Math.max(1, Math.round(n))))
+                        : "10";
+                fillingRoomLlm = false;
+            }
+
+            async function saveRoomLlm() {
+                if (fillingRoomLlm || !selectedRoomId) return;
+                const enabledEl = document.getElementById("room-llm-enabled");
+                const recentEl = document.getElementById("room-llm-recent");
+                const enabled = enabledEl.checked;
+                let recent = Number(recentEl.value);
+                if (!Number.isFinite(recent)) recent = 10;
+                recent = Math.min(50, Math.max(1, Math.round(recent)));
+                recentEl.value = String(recent);
+                try {
+                    const res = await fetch("/api/room/llm", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: Number(selectedRoomId),
+                            llm_enabled: enabled,
+                            llm_recent: recent,
+                        }),
+                    });
+                    const data = await res.json();
+                    if (data.err) {
+                        alert("Error: " + data.err);
+                        return;
+                    }
+                    const room = currentRooms.find(
+                        (r) => Number(r.id) === Number(selectedRoomId),
+                    );
+                    if (room) {
+                        room.llm_enabled = enabled;
+                        room.llm_recent = recent;
+                    }
+                } catch (err) {
+                    alert("Failed to save LLM settings: " + err);
+                }
+            }
+
+            document
+                .getElementById("room-llm-enabled")
+                .addEventListener("change", saveRoomLlm);
+            document
+                .getElementById("room-llm-recent")
+                .addEventListener("change", saveRoomLlm);
 
             function currentRoomMembers() {
                 const room = currentRooms.find(

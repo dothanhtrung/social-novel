@@ -10,7 +10,9 @@ pub(crate) async fn search(pool: &PgPool, query: &RoomQuery) -> Result<Vec<ChatR
 
     sqlx::query_as!(
         ChatRoom,
-        r#"SELECT chat_room.id as "id!", chat_room.name as "name!" FROM chat_room
+        r#"SELECT chat_room.id as "id!", chat_room.name as "name!",
+            chat_room.llm_enabled as "llm_enabled!", chat_room.llm_recent as "llm_recent!"
+        FROM chat_room
         LEFT JOIN chat_room_member ON chat_room.id = chat_room_member.room
         WHERE
             (CASE WHEN $1::INT8[] IS NOT NULL THEN chat_room.id = ANY($1) ELSE TRUE END)
@@ -105,5 +107,29 @@ pub(crate) async fn touch(pool: &PgPool, room_id: i64) -> Result<u64, sqlx::Erro
         .execute(pool)
         .await?
         .rows_affected();
+    Ok(count)
+}
+
+pub(crate) async fn get(pool: &PgPool, id: i64) -> Result<ChatRoom, sqlx::Error> {
+    sqlx::query_as!(
+        ChatRoom,
+        r#"SELECT id as "id!", name as "name!", llm_enabled as "llm_enabled!", llm_recent as "llm_recent!"
+           FROM chat_room WHERE id = $1"#,
+        id
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub(crate) async fn update_llm(pool: &PgPool, room: &ChatRoom) -> Result<u64, sqlx::Error> {
+    let count = sqlx::query!(
+        r#"UPDATE chat_room SET llm_enabled = $1, llm_recent = $2 WHERE id = $3"#,
+        room.llm_enabled,
+        room.llm_recent,
+        room.id
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
     Ok(count)
 }

@@ -48,13 +48,18 @@ struct CharacterResponse {
     err: String,
 }
 
+fn public_character(mut character: Character) -> Character {
+    character.back_story.clear();
+    character
+}
+
 #[get("")]
 async fn search(db_pool: web::Data<DBPool>, queries: web::Query<CharacterQuery>) -> impl Responder {
     let mut characters = Vec::new();
     let mut err = String::new();
     if let Some(username) = queries.username.as_ref() {
         match db_character::get_by_username(&db_pool, username.as_str()).await {
-            Ok(c) => characters.push(c),
+            Ok(c) => characters.push(public_character(c)),
             Err(e) => err = e.to_string(),
         }
     } else {
@@ -67,7 +72,7 @@ async fn search(db_pool: web::Data<DBPool>, queries: web::Query<CharacterQuery>)
             },
         };
         match db_character::search(&db_pool, &cond).await {
-            Ok(c) => characters = c,
+            Ok(c) => characters = c.into_iter().map(public_character).collect(),
             Err(e) => err = e.to_string(),
         }
     }
@@ -79,7 +84,7 @@ async fn get(db_pool: web::Data<DBPool>, id: web::Path<i64>) -> impl Responder {
     let mut characters = Vec::new();
     let mut err = String::new();
     match db_character::get(&db_pool, id.into_inner()).await {
-        Ok(c) => characters.push(c),
+        Ok(c) => characters.push(public_character(c)),
         Err(e) => err = e.to_string(),
     }
     web::Json(CharacterResponse { characters, err })
@@ -113,10 +118,12 @@ async fn update(
     let id = data.id.0;
     let mut bio = Json(Bio::default());
     let mut description = data.description.0;
+    let mut back_story = String::new();
     if id > 0
         && let Ok(old) = db_character::get(&db_pool, id).await
     {
         bio = old.bio;
+        back_story = old.back_story;
         if description.is_empty() {
             description = old.description;
         }
@@ -137,6 +144,7 @@ async fn update(
         id,
         description,
         bio,
+        back_story,
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {

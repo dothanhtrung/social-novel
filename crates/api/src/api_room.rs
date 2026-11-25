@@ -10,7 +10,7 @@ use my_config::ConfigData;
 use my_db::db_media;
 use my_db::db_room::{self, RoomMember};
 use my_db::db_room::{ChatRoom, RoomQuery};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use web_misc::db::{self, DBPool};
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
@@ -19,6 +19,7 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
             .service(get)
             .service(delete)
             .service(update)
+            .service(update_llm)
             .service(invite)
             .service(kick),
     );
@@ -71,6 +72,7 @@ async fn update(
     let room = ChatRoom {
         id: data.id.0,
         name: data.name.0,
+        ..ChatRoom::default()
     };
     let members: Vec<String> = data
         .members
@@ -103,6 +105,35 @@ async fn update(
     }
 
     web::Json(ret)
+}
+
+#[derive(Deserialize)]
+struct RoomLlmBody {
+    id: i64,
+    llm_enabled: bool,
+    llm_recent: i32,
+}
+
+fn clamp_llm_recent(n: i32) -> i32 {
+    n.clamp(1, 50)
+}
+
+#[post("llm")]
+async fn update_llm(dbpool: web::Data<DBPool>, body: web::Json<RoomLlmBody>) -> impl Responder {
+    if body.id <= 0 {
+        return web::Json(CommonMessage::from_err("Room is required".to_string()));
+    }
+    let room = ChatRoom {
+        id: body.id,
+        llm_enabled: body.llm_enabled,
+        llm_recent: clamp_llm_recent(body.llm_recent),
+        ..ChatRoom::default()
+    };
+    match db_room::update_llm(&dbpool, &room).await {
+        Ok(0) => web::Json(CommonMessage::from_err("Room not found".to_string())),
+        Ok(_) => web::Json(CommonMessage::from_msg("Success".to_string())),
+        Err(e) => web::Json(CommonMessage::from_err(e.to_string())),
+    }
 }
 
 #[get("delete/{id}")]

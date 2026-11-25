@@ -20,6 +20,10 @@
                         class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover">
                     Relations
                 </button>
+                <button type="button" id="tab-settings"
+                        class="flex-1 py-2.5 rounded-lg text-[15px] font-semibold text-fb-gray-text hover:bg-fb-hover">
+                    Settings
+                </button>
             </div>
 
             <div id="panel-users">
@@ -49,6 +53,12 @@
                         <div>
                             <label class="fb-label">Avatar</label>
                             <input name="avatar" type="file" accept="image/*" class="fb-input-file"/>
+                        </div>
+
+                        <div>
+                            <label class="fb-label" for="user-back-story">Back story</label>
+                            <textarea id="user-back-story" name="back_story" rows="6" class="fb-input"
+                                      placeholder="Private notes for this character. Used later for the LLM. Not shown on the public profile."></textarea>
                         </div>
 
                         <div class="flex flex-wrap gap-3">
@@ -185,6 +195,79 @@
                     <div id="relation-list" class="flex flex-col gap-3"></div>
                 </div>
             </div>
+
+            <div id="panel-settings" class="hidden">
+                <div class="form-section">
+                    <h2 class="section-title">App settings</h2>
+                    <form id="settings-form" class="space-y-4" autocomplete="off">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="fb-label" for="settings-data-dir">Data directory</label>
+                                <input id="settings-data-dir" name="data_dir" type="text" class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-db-postgres">Database URL</label>
+                                <input id="settings-db-postgres" name="db_postgres" type="text" class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-listen-addr">Listen address</label>
+                                <input id="settings-listen-addr" name="listen_addr" type="text" class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-listen-port">Listen port</label>
+                                <input id="settings-listen-port" name="listen_port" type="number" min="1" max="65535"
+                                       class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-api-per-page">API items per page</label>
+                                <input id="settings-api-per-page" name="api_per_page" type="number" min="1"
+                                       class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-parallel">Parallel</label>
+                                <input id="settings-parallel" name="parallel" type="number" min="1"
+                                       class="fb-input" required/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-auth-user">Basic auth user</label>
+                                <input id="settings-auth-user" name="basic_auth_user" type="text" class="fb-input"/>
+                            </div>
+                            <div>
+                                <label class="fb-label" for="settings-auth-pass">Basic auth password</label>
+                                <input id="settings-auth-pass" name="basic_auth_pass" type="password" class="fb-input"
+                                       autocomplete="new-password"/>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-[17px] font-bold mb-3">LLM</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="fb-label" for="settings-llm-url">LLM server URL</label>
+                                    <input id="settings-llm-url" name="llm_url" type="url" class="fb-input"
+                                           placeholder="http://127.0.0.1:8080"/>
+                                </div>
+                                <div>
+                                    <label class="fb-label" for="settings-llm-chat-setup">Chat setup prompt</label>
+                                    <textarea id="settings-llm-chat-setup" name="chat_setup_prompt" rows="12"
+                                              class="fb-input"
+                                              placeholder="Instructions for the LLM chat reply."></textarea>
+                                    <p class="text-[13px] text-fb-gray-text mt-1">Used when a chat room asks the LLM to reply. Placeholders: {sender_name}, {sender_username}, {sender_back_story}, {receiver_name}, {receiver_username}, {receiver_back_story}, {recent_messages}, {current_message}.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-[13px] text-fb-gray-text">Save writes the RON config file and reloads the running application. Leave both auth fields empty to disable basic auth.</p>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="submit" class="fb-btn">Save</button>
+                            <button type="button" id="settings-reset-btn"
+                                    class="px-6 py-2 rounded-lg font-semibold bg-fb-hover text-[#050505]">
+                                Reset
+                            </button>
+                            <span id="settings-status" class="text-[13px] text-fb-gray-text"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </section>
     </main>
 </div>
@@ -218,9 +301,11 @@
         document.getElementById("panel-users").classList.toggle("hidden", name !== "users");
         document.getElementById("panel-sponsored").classList.toggle("hidden", name !== "sponsored");
         document.getElementById("panel-relations").classList.toggle("hidden", name !== "relations");
+        document.getElementById("panel-settings").classList.toggle("hidden", name !== "settings");
         document.getElementById("tab-users").className = tabClass(name === "users");
         document.getElementById("tab-sponsored").className = tabClass(name === "sponsored");
         document.getElementById("tab-relations").className = tabClass(name === "relations");
+        document.getElementById("tab-settings").className = tabClass(name === "settings");
     }
 
     function resetUserForm() {
@@ -236,6 +321,7 @@
         userForm.elements["id"].value = user.id;
         userForm.elements["username"].value = user.username || "";
         userForm.elements["name"].value = user.name || "";
+        userForm.elements["back_story"].value = user.back_story || "";
         userForm.elements["avatar"].value = "";
         userFormTitle.textContent = "Edit user";
         userDeleteBtn.classList.remove("hidden");
@@ -544,6 +630,99 @@
     document.getElementById("tab-users").addEventListener("click", () => setTab("users"));
     document.getElementById("tab-sponsored").addEventListener("click", () => setTab("sponsored"));
     document.getElementById("tab-relations").addEventListener("click", () => setTab("relations"));
+    document.getElementById("tab-settings").addEventListener("click", () => {
+        setTab("settings");
+        fetchSettings();
+    });
+
+    const settingsForm = document.getElementById("settings-form");
+    const settingsResetBtn = document.getElementById("settings-reset-btn");
+    const settingsStatus = document.getElementById("settings-status");
+    let loadedSettings = null;
+
+    function fillSettingsForm(cfg) {
+        loadedSettings = cfg || {};
+        settingsForm.elements["data_dir"].value = loadedSettings.data_dir || "";
+        settingsForm.elements["listen_addr"].value = loadedSettings.listen_addr || "";
+        settingsForm.elements["listen_port"].value = loadedSettings.listen_port || "";
+        settingsForm.elements["api_per_page"].value = (loadedSettings.api && loadedSettings.api.per_page) || 20;
+        settingsForm.elements["parallel"].value = loadedSettings.parallel || 8;
+        settingsForm.elements["db_postgres"].value =
+            (loadedSettings.db && loadedSettings.db.postgres && loadedSettings.db.postgres.db_path) || "";
+        settingsForm.elements["basic_auth_user"].value = loadedSettings.basic_auth_user || "";
+        settingsForm.elements["basic_auth_pass"].value = loadedSettings.basic_auth_pass || "";
+        const llm = loadedSettings.llm || {};
+        settingsForm.elements["llm_url"].value = llmUrlValue(llm.url);
+        settingsForm.elements["chat_setup_prompt"].value =
+            llm.chat_setup_prompt || llm.character_setup_prompt || "";
+    }
+
+    function llmUrlValue(url) {
+        if (Array.isArray(url)) {
+            return url[0] || "";
+        }
+        return url || "";
+    }
+
+    async function fetchSettings() {
+        try {
+            const res = await fetch("/api/admin/config");
+            const data = await res.json();
+            if (data.err) {
+                alert("Error: " + data.err);
+                return;
+            }
+            fillSettingsForm(data.config);
+            settingsStatus.textContent = "";
+        } catch (err) {
+            alert("Failed to load settings: " + err);
+        }
+    }
+
+    settingsForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const payload = {
+            ...(loadedSettings || {}),
+            data_dir: settingsForm.elements["data_dir"].value.trim(),
+            listen_addr: settingsForm.elements["listen_addr"].value.trim(),
+            listen_port: Number(settingsForm.elements["listen_port"].value),
+            parallel: Number(settingsForm.elements["parallel"].value),
+            basic_auth_user: settingsForm.elements["basic_auth_user"].value,
+            basic_auth_pass: settingsForm.elements["basic_auth_pass"].value,
+            api: {per_page: Number(settingsForm.elements["api_per_page"].value)},
+            db: {
+                sqlite: (loadedSettings && loadedSettings.db && loadedSettings.db.sqlite) || {db_path: ""},
+                postgres: {db_path: settingsForm.elements["db_postgres"].value.trim()},
+            },
+            llm: {
+                url: settingsForm.elements["llm_url"].value.trim(),
+                chat_setup_prompt: settingsForm.elements["chat_setup_prompt"].value,
+            },
+        };
+        try {
+            settingsStatus.textContent = "Saving...";
+            const res = await fetch("/api/admin/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.err) {
+                throw new Error(data.err || await res.text());
+            }
+            loadedSettings = payload;
+            settingsStatus.textContent = "Saved. Reloading...";
+            setTimeout(() => {
+                location.hash = "settings";
+                location.reload();
+            }, 800);
+        } catch (err) {
+            settingsStatus.textContent = "";
+            alert("Failed to save settings: " + (err.message || err));
+        }
+    });
+
+    settingsResetBtn.addEventListener("click", fetchSettings);
 
     const relationForm = document.getElementById("relation-form");
     const relationDeleteBtn = document.getElementById("relation-delete-btn");
@@ -797,6 +976,10 @@
     fetchUsers();
     fetchSponsored();
     loadRelationCharacters().then(fetchRelations);
+    if (location.hash.replace("#", "") === "settings") {
+        setTab("settings");
+        fetchSettings();
+    }
 </script>{% endraw %}
 </body>
 

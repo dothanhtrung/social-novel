@@ -6,6 +6,14 @@ The messenger page is `res/html/messenger.html` at `GET /messenger`. It does not
 * The list is the open room's members (`GET /api/character?room={id}`), already loaded for the sidebar. The search box filters that list by name or username; it does not call the API again.
 * Choosing a row calls `selectMainCharacter`. That updates the header avatar, the member-list highlight, which side each message is on, and two-person room titles. Clicking a sidebar member does the same.
 
+## LLM reply
+
+* The right sidebar, under Chat Members, has an Enable LLM replies checkbox and a Recent messages number (1–50, default 10).
+* Changing either field saves `POST /api/room/llm` with JSON `{id, llm_enabled, llm_recent}`. The columns are `chat_room.llm_enabled` and `chat_room.llm_recent` (`db/migrations/postgres/0006_room_llm.sql`). `GET /api/room` returns both, and opening a room fills the controls.
+* A new root message in that room (`POST /api/post`, no parent) with non-empty text, when the room flag is on and `config.llm.url` is set, waits for the LLM and then inserts the reply before the request returns. The page's normal reload of the room then shows both messages.
+* The receiver is the first other member of the room. The prompt is `config.llm.chat_setup_prompt` (Settings tab), filled with both characters' names, usernames, and back stories, the previous N messages (oldest first, not including the new one), and the new message. The LLM is asked to answer as the receiver.
+* The call is `POST {url}/v1/chat/completions`. A failure is logged and the user's message stays. Editing a message does not call the LLM. The reply is inserted directly, not through `POST /api/post`, so it does not trigger another reply.
+
 ## Message Actions
 
 * Every message, including attachment-only messages and messages from other characters, has a toolbar above it with a reaction picker and compact 22-pixel edit/delete buttons. It appears on hover or keyboard focus and remains visible on touch devices. Toolbar space is reserved so hovering does not shift messages.

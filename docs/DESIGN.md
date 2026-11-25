@@ -2,6 +2,7 @@
 
 The design notes are split by topic:
 
+- [Characters](characters.md)
 - [Relations](relations.md)
 - [Groups](groups.md)
 - [Comments](comments.md)
@@ -9,6 +10,7 @@ The design notes are split by topic:
 - [Messenger](messenger.md)
 - [Friends](friends.md)
 - [Media](media.md)
+- [Settings](settings.md)
 
 
 Source code tree

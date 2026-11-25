@@ -6,7 +6,7 @@ use sqlx::types::Json;
 pub(crate) async fn search(pool: &PgPool, search: &CharacterCond) -> Result<Vec<Character>, sqlx::Error> {
     sqlx::query_as!(
         Character,
-        r#"SELECT character.id, character.name, character.username, character.description, character.bio AS "bio: Json<Bio>"
+        r#"SELECT character.id, character.name, character.username, character.description, character.bio AS "bio: Json<Bio>", character.back_story
             FROM character LEFT JOIN chat_room_member ON character.id = chat_room_member.character
             WHERE 
             (CASE WHEN $1::TEXT IS NOT NULL THEN name ILIKE '%' || $1 || '%' OR username ILIKE '%' || $1 || '%' ELSE TRUE END)
@@ -19,11 +19,12 @@ pub(crate) async fn search(pool: &PgPool, search: &CharacterCond) -> Result<Vec<
     .await
 }
 
-pub(crate) async fn insert(pool: &PgPool, name: &str, username: &str) -> Result<i64, sqlx::Error> {
+pub(crate) async fn insert(pool: &PgPool, name: &str, username: &str, back_story: &str) -> Result<i64, sqlx::Error> {
     let id = sqlx::query_scalar!(
-        "INSERT INTO character (name, username) VALUES ($1, $2) RETURNING id",
+        "INSERT INTO character (name, username, back_story) VALUES ($1, $2, $3) RETURNING id",
         name,
-        username
+        username,
+        back_story
     )
     .fetch_one(pool)
     .await?;
@@ -37,13 +38,15 @@ pub(crate) async fn update(
     username: &str,
     description: &str,
     bio: &Json<Bio>,
+    back_story: &str,
 ) -> Result<u64, sqlx::Error> {
     let count = sqlx::query!(
-        "UPDATE character SET name = $1, username = $2, description = $3, bio = $4 WHERE id = $5",
+        "UPDATE character SET name = $1, username = $2, description = $3, bio = $4, back_story = $5 WHERE id = $6",
         name,
         username,
         description,
         bio as _,
+        back_story,
         id
     )
     .execute(pool)
@@ -63,7 +66,7 @@ pub(crate) async fn delete(pool: &PgPool, id: i64) -> Result<u64, sqlx::Error> {
 pub(crate) async fn get(pool: &PgPool, id: i64) -> Result<Character, sqlx::Error> {
     sqlx::query_as!(
         Character,
-        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
+        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>", back_story
                                     FROM character WHERE id = $1"#,
         id
     )
@@ -74,7 +77,7 @@ pub(crate) async fn get(pool: &PgPool, id: i64) -> Result<Character, sqlx::Error
 pub(crate) async fn get_by_username(pool: &PgPool, username: &str) -> Result<Character, sqlx::Error> {
     sqlx::query_as!(
         Character,
-        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>"
+        r#"SELECT id, name, username, description, bio AS "bio: Json<Bio>", back_story
                                     FROM character WHERE username = $1"#,
         username
     )

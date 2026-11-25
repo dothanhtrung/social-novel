@@ -3,7 +3,7 @@ use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::text::Text;
 use actix_multipart::form::MultipartForm;
 use actix_web::{get, post, web, Responder};
-use my_config::ConfigData;
+use my_config::{Config, ConfigData};
 use my_db::db_ads::{self, Ads, AdsCond};
 use my_db::db_character::{self, Bio, Character};
 use my_db::db_relation::{self, Relation, RelationCond};
@@ -37,6 +37,11 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
                     .service(relation_get)
                     .service(relation_delete)
                     .service(relation_update),
+            )
+            .service(
+                web::scope("/config")
+                    .service(config_get)
+                    .service(config_update),
             ),
     );
 }
@@ -82,6 +87,7 @@ struct UserForm {
     id: Text<i64>,
     username: Text<String>,
     name: Text<String>,
+    back_story: Text<String>,
     avatar: Option<TempFile>,
 }
 
@@ -162,6 +168,7 @@ async fn user_update(
     let data_dir = PathBuf::from(&config.data_dir);
     let username = data.username.0.trim().to_string();
     let name = data.name.0.trim().to_string();
+    let back_story = data.back_story.0;
     let id = data.id.0;
 
     if username.is_empty() || name.is_empty() {
@@ -208,6 +215,7 @@ async fn user_update(
         id,
         description,
         bio,
+        back_story,
     };
     if character.id > 0 {
         if let Err(e) = db_character::update(&db_pool, &character).await {
@@ -458,4 +466,45 @@ async fn relation_update(db_pool: web::Data<DBPool>, body: web::Json<RelationFor
     }
 
     web::Json(CommonMessage::new(msg, err))
+}
+
+#[derive(Serialize)]
+struct ConfigResponse {
+    config: Config,
+    err: String,
+}
+
+#[get("")]
+async fn config_get(config_data: web::Data<ConfigData>) -> impl Responder {
+    let config = config_data.config.read().await.clone();
+    web::Json(ConfigResponse {
+        config,
+        err: String::new(),
+    })
+}
+
+#[post("")]
+async fn config_update(config_data: web::Data<ConfigData>, body: web::Json<Config>) -> impl Responder {
+    let new_config = body.into_inner();
+    if new_config.data_dir.trim().is_empty() {
+        return web::Json(CommonMessage::from_err("Data directory is required".to_string()));
+    }
+    if new_config.listen_addr.trim().is_empty() {
+        return web::Json(CommonMessage::from_err("Listen address is required".to_string()));
+    }
+    if new_config.listen_port == 0 || new_config.listen_port > 65535 {
+        return web::Json(CommonMessage::from_err("Listen port must be 1-65535".to_string()));
+    }
+    if new_config.api.per_page == 0 {
+        return web::Json(CommonMessage::from_err("API per page must be greater than 0".to_string()));
+    }
+
+    let res = match config_data.apply(new_config).await {
+        Ok(()) => CommonMessage::from_msg(String::from("Success")),
+        Err(e) => {
+            error!("Failed to save config: {}", e);
+            CommonMessage::from_err(e.to_string())
+        }
+    };
+    web::Json(res)
 }

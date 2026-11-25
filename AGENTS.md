@@ -52,15 +52,19 @@ Do not dump whole crates to find one symbol.
 Database
 --------
 
-Database is running inside podman. If you need psql command, go there.
+* Database is running inside podman. If you need psql command, go there.
+* Do not run migration by psql, use `cargo sqlx migrate run --source db/migrations/postgres/ -D postgresql://dev:dev@localhost:5432/mediaboard` instead.
+* `cargo sqlx prepare` is not necessary. Do not run it. I will run it by myself.
 
 Others
 ------
 
 * Search the repo (rg) before creating a helper that already exists.
 * If cargo check is clean, stop. Do not keep editing for style.
-* The database is already started with podman.
-* The web server is already started with bacon.
+* Always tell me what are you want to do when asking for permision to run shell command.
+* Server is already watched on both `src` and `res`, and auto restart when have change by `bacon`. Do not need to check the binary status or start/restart server by yourself.
 * Do not use google-chrome or chromium. Firefox is already installed with flatpak. Use flatpak run command.
-* If you need temp data, put it in folder /tmp.
-* Clean your test after finished.
+* Temp data and output should be put in /tmp.
+* If you get too much trouble to test, stop testing and tell me. I will check by myself.
+* I do not want you flood the project with your test code. Remove your test code after the job is done.
+* Only create and perform test if you think the fix is big, difficult or uncertain. For small changes or easy changes or confident changes, skip the test. I can check by myself.

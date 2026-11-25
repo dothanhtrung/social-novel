@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sqlx::types::time::OffsetDateTime;
 use tracing::{info, warn};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Post {
     #[serde(default)]
     pub id: i64,

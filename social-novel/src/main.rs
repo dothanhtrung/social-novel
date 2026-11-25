@@ -96,11 +96,13 @@ async fn main() -> anyhow::Result<()> {
         let config_data = Arc::new(ConfigData {
             config: RwLock::new(config.clone()),
             config_path: args.config.clone(),
+            restart: tokio::sync::Notify::new(),
         });
         let broadcaster = Broadcaster::create();
 
         let srv = HttpServer::new({
             let stop_handle = stop_handle.clone();
+            let config_data = config_data.clone();
             move || {
                 let enable_basic_auth = !config.basic_auth_user.is_empty() || !config.basic_auth_pass.is_empty();
                 let mut app = App::new()
@@ -129,6 +131,19 @@ async fn main() -> anyhow::Result<()> {
 
         // register the server handle with the stop handle
         stop_handle.read().await.register(srv.handle());
+
+        tokio::spawn({
+            let stop_handle = stop_handle.clone();
+            let config_data = config_data.clone();
+            async move {
+                config_data.restart.notified().await;
+                // Let the save response reach the browser before the bind drops.
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                let mut handle = stop_handle.write().await;
+                handle.is_restarted = true;
+                handle.stop(true);
+            }
+        });
 
         // run server until stopped (either by ctrl-c or stop endpoint)
         let _ = srv.await;
