@@ -12,12 +12,20 @@ use my_db::{db_media, db_post, db_room};
 use serde::{Deserialize, Serialize};
 use sqlx::types::time::OffsetDateTime;
 use std::cmp::max;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use tracing::{debug, error};
 use web_misc::db::DBPool;
 
 pub fn scope(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/post").service(get).service(update).service(delete));
+    cfg.service(
+        web::scope("/post")
+            .service(get)
+            .service(llm_status)
+            .service(update)
+            .service(delete),
+    );
 }
 
 #[derive(Serialize)]
@@ -230,42 +238,151 @@ async fn update(
         }
     }
 
-    // A new root chat message can ask the LLM to answer as the other member.
-    // The user's message is already stored; a failed reply does not fail this request.
+    // Start an LLM reply after the user message is stored. Do not wait for it.
+    let mut response = CommonMessage::new(msg, err).with_id(post_id);
     if is_new && parent.is_none() && !post.content.trim().is_empty() {
         if let Some(room_id) = room {
             let llm = config.llm.clone();
             drop(config);
-            maybe_llm_reply(&dbpool, &llm, room_id, post.author, post_id, &post.content).await;
+            if let Some(plan) = prepare_llm_reply(&dbpool, &llm, room_id, post.author, post_id, &post.content).await {
+                let author = plan.receiver_id;
+                llm_job_begin(post_id, author);
+                let pool = dbpool.clone();
+                actix_web::rt::spawn(async move {
+                    let _fail_if_still_pending = LlmJobFailGuard(post_id);
+                    if run_llm_reply(&pool, plan).await {
+                        llm_job_finish(post_id, true);
+                    }
+                });
+                response = response.with_llm_author(author);
+            }
         }
     }
 
     // id lets the page insert the new comment without reloading.
-    web::Json(CommonMessage::new(msg, err).with_id(post_id))
+    web::Json(response)
 }
 
-/// When the room has LLM replies on, post a reply as the other member.
-async fn maybe_llm_reply(
+#[derive(Serialize)]
+struct LlmStatusResponse {
+    author: i64,
+    /// `pending`, `done`, or `failed`. Empty when this post has no LLM job.
+    state: String,
+    err: String,
+}
+
+/// Poll while a background LLM reply for `id` (the user message) is running.
+/// A finished job is removed after it is read.
+#[get("llm/{id}")]
+async fn llm_status(id: web::Path<i64>) -> impl Responder {
+    match llm_job_status(id.into_inner()) {
+        Some((author, state)) => web::Json(LlmStatusResponse {
+            author,
+            state: state.to_string(),
+            err: String::new(),
+        }),
+        None => web::Json(LlmStatusResponse {
+            author: 0,
+            state: String::new(),
+            err: "not found".to_string(),
+        }),
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LlmJobState {
+    Pending,
+    Done,
+    Failed,
+}
+
+struct LlmJob {
+    author: i64,
+    state: LlmJobState,
+}
+
+fn llm_jobs() -> &'static Mutex<HashMap<i64, LlmJob>> {
+    static JOBS: OnceLock<Mutex<HashMap<i64, LlmJob>>> = OnceLock::new();
+    JOBS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn llm_job_begin(post_id: i64, author: i64) {
+    let mut jobs = llm_jobs().lock().unwrap_or_else(|err| err.into_inner());
+    jobs.insert(
+        post_id,
+        LlmJob {
+            author,
+            state: LlmJobState::Pending,
+        },
+    );
+}
+
+fn llm_job_finish(post_id: i64, ok: bool) {
+    let mut jobs = llm_jobs().lock().unwrap_or_else(|err| err.into_inner());
+    if let Some(job) = jobs.get_mut(&post_id) {
+        job.state = if ok { LlmJobState::Done } else { LlmJobState::Failed };
+    }
+}
+
+/// If the background task stops while the job is still pending, mark it failed.
+struct LlmJobFailGuard(i64);
+
+impl Drop for LlmJobFailGuard {
+    fn drop(&mut self) {
+        let mut jobs = llm_jobs().lock().unwrap_or_else(|err| err.into_inner());
+        if let Some(job) = jobs.get_mut(&self.0) {
+            if job.state == LlmJobState::Pending {
+                job.state = LlmJobState::Failed;
+            }
+        }
+    }
+}
+
+fn llm_job_status(post_id: i64) -> Option<(i64, &'static str)> {
+    let mut jobs = llm_jobs().lock().unwrap_or_else(|err| err.into_inner());
+    let job = jobs.get(&post_id)?;
+    let state = match job.state {
+        LlmJobState::Pending => "pending",
+        LlmJobState::Done => "done",
+        LlmJobState::Failed => "failed",
+    };
+    let author = job.author;
+    if job.state != LlmJobState::Pending {
+        jobs.remove(&post_id);
+    }
+    Some((author, state))
+}
+
+struct LlmReplyPlan {
+    url: String,
+    prompt: String,
+    room_id: i64,
+    receiver_id: i64,
+}
+
+/// Decide whether this message should get an LLM reply, and build the prompt.
+/// Returns none when replies are off, the URL is empty, or there is no other member.
+async fn prepare_llm_reply(
     dbpool: &DBPool,
     llm: &LLMConfig,
     room_id: i64,
     sender_id: i64,
     current_post_id: i64,
     current_message: &str,
-) {
+) -> Option<LlmReplyPlan> {
     if llm.url.trim().is_empty() {
-        return;
+        return None;
     }
 
     let room = match db_room::get(dbpool, room_id).await {
         Ok(room) => room,
         Err(e) => {
             error!("LLM reply: load room {room_id}: {e}");
-            return;
+            return None;
         }
     };
     if !room.llm_enabled {
-        return;
+        return None;
     }
     let recent_n = room.llm_recent.clamp(1, 50);
 
@@ -281,11 +398,11 @@ async fn maybe_llm_reply(
         Ok(members) => members,
         Err(e) => {
             error!("LLM reply: load room {room_id} members: {e}");
-            return;
+            return None;
         }
     };
     let Some(receiver) = members.iter().find(|member| member.id != sender_id).cloned() else {
-        return;
+        return None;
     };
     let sender = match members.iter().find(|member| member.id == sender_id).cloned() {
         Some(sender) => sender,
@@ -293,7 +410,7 @@ async fn maybe_llm_reply(
             Ok(sender) => sender,
             Err(e) => {
                 error!("LLM reply: load sender {sender_id}: {e}");
-                return;
+                return None;
             }
         },
     };
@@ -305,7 +422,7 @@ async fn maybe_llm_reply(
         Ok(posts) => format_recent_messages(&posts, current_post_id, recent_n, &members),
         Err(e) => {
             error!("LLM reply: load recent messages: {e}");
-            return;
+            return None;
         }
     };
 
@@ -320,11 +437,21 @@ async fn maybe_llm_reply(
         current_message: current_message.trim(),
     });
 
-    let reply = match crate::llm::chat_completion(&llm.url, &prompt).await {
+    Some(LlmReplyPlan {
+        url: llm.url.clone(),
+        prompt,
+        room_id,
+        receiver_id: receiver.id,
+    })
+}
+
+/// Call the LLM and insert the reply. Does not go through `POST /api/post`.
+async fn run_llm_reply(dbpool: &DBPool, plan: LlmReplyPlan) -> bool {
+    let reply = match crate::llm::chat_completion(&plan.url, &plan.prompt).await {
         Ok(reply) => reply,
         Err(e) => {
             error!("LLM reply failed: {e}");
-            return;
+            return false;
         }
     };
 
@@ -332,7 +459,7 @@ async fn maybe_llm_reply(
     let reply_post = Post {
         id: 0,
         content: reply,
-        author: receiver.id,
+        author: plan.receiver_id,
         parent: None,
         liked_by: String::new(),
         liked: 0,
@@ -345,16 +472,16 @@ async fn maybe_llm_reply(
         created_at: now,
         updated_at: now,
         group: None,
-        room: Some(room_id),
+        room: Some(plan.room_id),
     };
-    // insert, not update: update is the HTTP handler and would call this again.
     if let Err(e) = db_post::insert(dbpool, &reply_post).await {
         error!("LLM reply: insert failed: {e}");
-        return;
+        return false;
     }
-    if let Err(e) = db_room::touch(dbpool, room_id).await {
-        error!("LLM reply: touch room {room_id}: {e}");
+    if let Err(e) = db_room::touch(dbpool, plan.room_id).await {
+        error!("LLM reply: touch room {}: {e}", plan.room_id);
     }
+    true
 }
 
 fn format_recent_messages(posts: &[Post], current_post_id: i64, recent_n: i32, members: &[Character]) -> String {

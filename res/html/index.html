@@ -132,7 +132,7 @@
                             : `<img src="${url}" class="comment-attach-img" alt="">`;
                     }).join('');
                     return `<div class="flex flex-col gap-1 ${mine ? 'items-end' : 'items-start'}">${text}${pics}</div>`;
-                }).join('');
+                }).join('') + friendTypingHtml(roomId);
                 box.scrollTop = box.scrollHeight;
             } catch (e) {
                 box.innerHTML = '<div class="text-red-500 text-[13px] px-2">Failed to load messages</div>';
@@ -203,6 +203,47 @@
             if (data.err) throw new Error(data.err);
             await loadFriendMessages(roomId);
             await renderContacts();
+            if (Number(data.llm_author) > 0 && Number(data.id) > 0) {
+                watchFriendLlmReply(roomId, data.id);
+            }
+        }
+
+        let friendLlmPostId = 0;
+        let friendLlmRoomId = 0;
+
+        function friendTypingHtml(roomId) {
+            if (!friendLlmPostId || Number(friendLlmRoomId) !== Number(roomId)) return '';
+            return '<div class="flex items-start"><div class="max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] italic bg-white text-[#65676B]">typing...</div></div>';
+        }
+
+        function watchFriendLlmReply(roomId, postId) {
+            friendLlmPostId = Number(postId);
+            friendLlmRoomId = Number(roomId);
+            loadFriendMessages(roomId);
+            const started = Date.now();
+            const tick = async () => {
+                if (friendLlmPostId !== Number(postId)) return;
+                if (Date.now() - started > 90000) {
+                    friendLlmPostId = 0;
+                    loadFriendMessages(roomId);
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/post/llm/${postId}`);
+                    const data = await res.json();
+                    if (data.state === 'pending') {
+                        setTimeout(tick, 800);
+                        return;
+                    }
+                    friendLlmPostId = 0;
+                    await loadFriendMessages(roomId);
+                    await renderContacts();
+                } catch (err) {
+                    if (friendLlmPostId !== Number(postId)) return;
+                    setTimeout(tick, 1500);
+                }
+            };
+            setTimeout(tick, 800);
         }
 
         function setAddFriendOpen(open) {

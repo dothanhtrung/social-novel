@@ -52,13 +52,13 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 * The main character is one of the open chat room's members. The top-right header avatar opens a searchable list of those members. Clicking a row in the right-hand member list selects the same character.
 * Search matches name or username. If the chosen character is not in the room, the first member becomes the main character.
 * The right sidebar has LLM reply settings for the open room: a checkbox to enable or disable replies, and how many recent messages to send with the new one (1–50). Those values are stored on the room.
-* When LLM replies are on and a new root chat message is created, the app sends the configured chat setup prompt to the LLM server. The prompt includes the sender and receiver names, usernames, and back stories, the recent messages, and the new message. The LLM is told to answer as the receiver. The reply is posted in the same room as that receiver. A failed LLM call does not undo the user's message. The other member is the first room member who is not the sender.
+* When LLM replies are on and a new root chat message is created, the user's message is saved and shown immediately. The app then asks the LLM to answer as the receiver, using the chat setup prompt with both characters' names, usernames, and back stories, the recent messages, and the new message. While that reply is running, the receiver is shown as typing. When the reply is stored, the typing line goes away and the reply is shown. A failed LLM call removes the typing line and does not undo the user's message. The receiver is the first room member who is not the sender.
 
 ## Friends
 
 * Friendship is mutual. A character cannot be friends with themselves.
 * The home feed Contacts list is the selected character's friends, not every character. Each row shows the friend's avatar, name, and the latest message from the chat room that contains only those two characters. Group rooms are ignored. A friend with no such room shows "No messages yet".
-* Clicking a friend opens a chat at the bottom of the page. Sending a message when that pair has no two-person room creates one, then posts the message as the selected character.
+* Clicking a friend opens a chat at the bottom of the page. Sending a message when that pair has no two-person room creates one, then posts the message as the selected character. If that room has LLM replies on, the message is shown immediately and the friend is shown as typing until the reply arrives or the call fails.
 * A profile shows Add Friend when the selected character is not friends with that profile, and Unfriend when they already are. The button is hidden on the selected character's own profile.
 
 ## Media

@@ -60,6 +60,9 @@ struct CommonMessage {
     /// Set when the caller needs the id of a row that was just created.
     #[serde(default, skip_serializing_if = "is_zero")]
     id: i64,
+    /// Character who is producing an LLM reply for this new message.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    llm_author: i64,
 }
 
 fn is_zero(id: &i64) -> bool {
@@ -72,6 +75,7 @@ impl CommonMessage {
             msg,
             err,
             id: 0,
+            llm_author: 0,
         }
     }
 
@@ -80,6 +84,7 @@ impl CommonMessage {
             msg,
             err: "".to_string(),
             id: 0,
+            llm_author: 0,
         }
     }
 
@@ -88,11 +93,17 @@ impl CommonMessage {
             msg: "".to_string(),
             err,
             id: 0,
+            llm_author: 0,
         }
     }
 
     fn with_id(mut self, id: i64) -> Self {
         self.id = id;
+        self
+    }
+
+    fn with_llm_author(mut self, llm_author: i64) -> Self {
+        self.llm_author = llm_author;
         self
     }
 }

@@ -1685,7 +1685,69 @@ struct PostForm {
                     chatHistory.appendChild(wrapper);
                 });
 
+                appendLlmTyping(chatHistory);
                 chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            // post id -> {roomId, authorId} while that reply is still running
+            const pendingLlm = new Map();
+
+            function appendLlmTyping(chatHistory) {
+                const jobs = [...pendingLlm.values()].filter(
+                    (job) => Number(job.roomId) === Number(selectedRoomId),
+                );
+                if (jobs.length === 0) return;
+                const author = charactersById[jobs[jobs.length - 1].authorId];
+                const name = author ? author.name : "";
+                const row = document.createElement("div");
+                row.className = "chat-message flex gap-2 max-w-[80%] items-end";
+                row.innerHTML = `
+                    <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                        <img alt="${escapeHtml(name)}" src="${author ? getAvatarUrl(author) : ""}"/>
+                    </div>
+                    <div class="message-layout">
+                        <div class="message-content space-y-1">
+                            <span class="text-[12px] text-text-secondary ml-1">${escapeHtml(name)}</span>
+                            <div class="bg-bubble-recipient text-text-secondary p-3 message-bubble-in text-body-md shadow-sm italic">typing...</div>
+                        </div>
+                    </div>`;
+                chatHistory.appendChild(row);
+            }
+
+            function watchLlmReply(roomId, postId, authorId) {
+                pendingLlm.set(Number(postId), {
+                    roomId: Number(roomId),
+                    authorId: Number(authorId),
+                });
+                renderMessages(currentPosts);
+
+                const started = Date.now();
+                const tick = async () => {
+                    if (!pendingLlm.has(Number(postId))) return;
+                    if (Date.now() - started > 90000) {
+                        pendingLlm.delete(Number(postId));
+                        if (Number(selectedRoomId) === Number(roomId)) {
+                            renderMessages(currentPosts);
+                        }
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/post/llm/${postId}`);
+                        const data = await res.json();
+                        if (data.state === "pending") {
+                            setTimeout(tick, 800);
+                            return;
+                        }
+                        pendingLlm.delete(Number(postId));
+                        if (Number(selectedRoomId) === Number(roomId)) {
+                            await fetchPosts(roomId);
+                        }
+                    } catch (err) {
+                        if (!pendingLlm.has(Number(postId))) return;
+                        setTimeout(tick, 1500);
+                    }
+                };
+                setTimeout(tick, 800);
             }
 
             function setupMessageActions(post, wrapper, isOutgoing) {
@@ -1964,6 +2026,9 @@ struct PostForm {
                     composerPreview.innerHTML = "";
 
                     await fetchPosts(selectedRoomId);
+                    if (Number(data.llm_author) > 0 && Number(data.id) > 0) {
+                        watchLlmReply(selectedRoomId, data.id, data.llm_author);
+                    }
                 } catch (err) {
                     alert("Failed to send message: " + err);
                 }
