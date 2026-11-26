@@ -62,7 +62,7 @@ Others
 * Search the repo (rg) before creating a helper that already exists.
 * If cargo check is clean, stop. Do not keep editing for style.
 * Always tell me what are you want to do when asking for permision to run shell command.
-* Server is already watched on both `src` and `res`, and auto restart when have change by `bacon`. Do not need to check the binary status or start/restart server by yourself.
+* Server is already watched on both `src` and `res`, and auto restart when have change by `bacon`. Do not need to check the binary status or start/restart server by yourself. Just use the running web.
 * Do not use google-chrome or chromium. Firefox is already installed with flatpak. Use flatpak run command.
 * Temp data and output should be put in /tmp.
 * If you get too much trouble to test, stop testing and tell me. I will check by myself.

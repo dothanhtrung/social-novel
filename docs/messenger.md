@@ -19,7 +19,7 @@ The messenger page is `res/html/messenger.html` at `GET /messenger`. It does not
 
 ## Message Actions
 
-* Every message, including attachment-only messages and messages from other characters, has a toolbar above it with a reaction picker and compact 22-pixel edit/delete buttons. It appears on hover or keyboard focus and remains visible on touch devices. Toolbar space is reserved so hovering does not shift messages.
+* Every message, including attachment-only messages and messages from other characters, has a toolbar above it with a reaction picker and compact 22-pixel edit/delete buttons. On a wide window with a mouse it appears on hover or keyboard focus. On a phone (narrower than 1024px, or a touch device) it stays hidden until the message bubble is held, and a tap outside or a short tap on that bubble hides it again. Toolbar space is reserved so showing it does not shift messages.
 * Editing replaces the message text with an inline textarea and attachment previews. Existing or newly selected attachments can be removed, and the attachment picker accepts multiple images, videos, and audio files. To replace media, remove it and select a new file.
 * Save submits text, new `media` files, and repeated `remove_media` IDs to `POST /api/post`. Cancel or Escape discards both text and attachment changes without saving. Authorship, room, and reactions are preserved. A message without retained or new attachments cannot be saved with empty text.
 * Delete opens a browser confirmation. Only confirmation sends `GET /api/post/delete/{id}`, and the message disappears only after the API reports success.

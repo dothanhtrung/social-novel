@@ -182,9 +182,10 @@ async fn user_update(
             description = old.description.clone();
             bio = old.bio.clone();
             if old.username != username {
+                let replacing_avatar = data.avatar.as_ref().is_some_and(is_real_upload);
                 let old_avatar = data_dir.join("avatar").join(format!("{}.png", old.username));
                 let new_avatar = data_dir.join("avatar").join(format!("{username}.png"));
-                if old_avatar.exists() && !new_avatar.exists() && data.avatar.is_none() {
+                if old_avatar.exists() && !new_avatar.exists() && !replacing_avatar {
                     if let Err(e) = fs::rename(&old_avatar, &new_avatar).await {
                         error!("Failed to rename avatar {} -> {}: {}", old.username, username, e);
                     }
@@ -205,7 +206,8 @@ async fn user_update(
     }
 
     let file_name = format!("{username}.png");
-    if let Some(avatar) = data.avatar {
+    // An unused file input arrives as an empty part. Ignore it so the stored avatar stays.
+    if let Some(avatar) = data.avatar.filter(is_real_upload) {
         save_avatar(&data_dir, avatar, file_name.as_str()).await;
     }
 

@@ -13,7 +13,7 @@ Fake Facebook Messenger like page.
 
 * Middle main content: Chat content which is Post for specific room id.
     * Each message show its reaction if any (liked, haha, loved, surprised, sad)
-    * Hover mouse on message will show:
+    * On a wide window, hovering a message shows its reaction picker and edit/delete buttons. On a phone those stay hidden until the bubble is held.
         * "Edit" icon to enter edit mode to edit that message. POST "/api/post".
         * "Trash" icon to delete message. GET "/api/post/delete/{post_id}".
     * Background of chat room is "/data/background/{room_id}.png".
@@ -296,8 +296,16 @@ struct PostForm {
                 left: auto;
                 right: 0;
             }
-            .chat-message:hover .message-actions,
-            .chat-message:focus-within .message-actions {
+            /* Phones have no hover, so a narrow screen or a touch device
+               keeps this hidden until a hold on the bubble adds .actions-open.
+               A mouse on a wide window still reveals it by hovering. */
+            @media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
+                .chat-message:hover .message-actions,
+                .chat-message:focus-within .message-actions {
+                    display: flex;
+                }
+            }
+            .chat-message.actions-open .message-actions {
                 display: flex;
             }
             .message-action {
@@ -437,9 +445,28 @@ struct PostForm {
             .message-editor-attachment audio {
                 width: 100%;
             }
-            @media (hover: none) {
-                .message-actions {
-                    display: flex;
+            .message-avatar {
+                width: 1.75rem;
+                height: 1.75rem;
+                border-radius: 9999px;
+                overflow: hidden;
+                flex-shrink: 0;
+            }
+            .message-avatar img {
+                display: block;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            @media (max-width: 1023px) {
+                .message-body {
+                    -webkit-touch-callout: none;
+                    user-select: none;
+                }
+                .message-editor,
+                .message-editor textarea {
+                    -webkit-touch-callout: default;
+                    user-select: text;
                 }
             }
             /* Side columns stay in the row on a desktop. Under 1024px they
@@ -719,7 +746,7 @@ struct PostForm {
                     <!-- Recipient Message -->
                     <div class="flex gap-2 max-w-[80%] items-end">
                         <div
-                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                            class="message-avatar mb-1"
                         >
                             <img
                                 alt="Alex Rivera"
@@ -742,7 +769,7 @@ struct PostForm {
                     <!-- Recipient Message 2 -->
                     <div class="flex gap-2 max-w-[80%] items-end">
                         <div
-                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                            class="message-avatar mb-1"
                         >
                             <img
                                 alt="Sarah Jenkins"
@@ -781,7 +808,7 @@ struct PostForm {
                     <!-- Recipient Message 3 -->
                     <div class="flex gap-2 max-w-[80%] items-end">
                         <div
-                            class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 mb-1"
+                            class="message-avatar mb-1"
                         >
                             <img
                                 alt="Marcus Chen"
@@ -1189,6 +1216,16 @@ struct PostForm {
                 return window.matchMedia("(max-width: 1023px)").matches;
             }
 
+            function messageActionsUseHold() {
+                return window.matchMedia("(hover: none), (max-width: 1023px)").matches;
+            }
+
+            function closeMessageActions(except) {
+                document.querySelectorAll(".chat-message.actions-open").forEach((el) => {
+                    if (el !== except) el.classList.remove("actions-open");
+                });
+            }
+
             function setMessengerPanel(which) {
                 const rooms = document.getElementById("room-sidebar");
                 const details = document.getElementById("details-sidebar");
@@ -1234,7 +1271,12 @@ struct PostForm {
             document.getElementById("close-details-btn").addEventListener("click", () => {
                 setMessengerPanel("chat");
             });
+            document.addEventListener("pointerdown", (e) => {
+                const open = e.target.closest(".chat-message.actions-open");
+                closeMessageActions(open);
+            });
             document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") closeMessageActions();
                 if (e.key !== "Escape" || !messengerIsNarrow()) return;
                 const dropdown = document.getElementById("messenger-character-dropdown");
                 if (dropdown && !dropdown.classList.contains("hidden")) return;
@@ -1853,7 +1895,7 @@ struct PostForm {
                     } else {
                         wrapper.className = "chat-message flex gap-2 max-w-[80%] items-end";
                         wrapper.innerHTML = `
-                        <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                        <div class="message-avatar">
                             <img alt="${escapeHtml(author ? author.name : "")}" src="${author ? getAvatarUrl(author) : ""}"/>
                         </div>
                         <div class="message-layout">
@@ -1889,7 +1931,7 @@ struct PostForm {
                 const row = document.createElement("div");
                 row.className = "chat-message flex gap-2 max-w-[80%] items-end";
                 row.innerHTML = `
-                    <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                    <div class="message-avatar">
                         <img alt="${escapeHtml(name)}" src="${author ? getAvatarUrl(author) : ""}"/>
                     </div>
                     <div class="message-layout">
@@ -1935,6 +1977,51 @@ struct PostForm {
                     }
                 };
                 setTimeout(tick, 800);
+            }
+
+            function bindMessageHold(wrapper) {
+                const bubble = wrapper.querySelector(".message-body");
+                if (!bubble) return;
+                let timer = null;
+                let startX = 0;
+                let startY = 0;
+                const clear = () => {
+                    if (timer) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }
+                };
+                bubble.addEventListener("pointerdown", (event) => {
+                    if (!messageActionsUseHold() || event.button !== 0) return;
+                    if (wrapper.classList.contains("is-editing")) return;
+                    if (event.target.closest("button, a, video, audio, input, textarea")) return;
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    clear();
+                    timer = setTimeout(() => {
+                        timer = null;
+                        closeMessageActions(wrapper);
+                        wrapper.classList.add("actions-open");
+                    }, 450);
+                });
+                bubble.addEventListener("pointermove", (event) => {
+                    if (!timer) return;
+                    if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) clear();
+                });
+                bubble.addEventListener("pointerup", (event) => {
+                    const waiting = timer != null;
+                    clear();
+                    if (!waiting) return;
+                    if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) return;
+                    if (wrapper.classList.contains("actions-open")) {
+                        wrapper.classList.remove("actions-open");
+                    }
+                });
+                bubble.addEventListener("pointercancel", clear);
+                bubble.addEventListener("contextmenu", (event) => {
+                    if (!messageActionsUseHold()) return;
+                    event.preventDefault();
+                });
             }
 
             function setupMessageActions(post, wrapper, isOutgoing) {
@@ -1994,6 +2081,7 @@ struct PostForm {
                         wrapper.querySelectorAll("button").forEach((button) => button.disabled = false);
                     }
                 };
+                bindMessageHold(wrapper);
                 actions.querySelectorAll(".message-reaction-choice").forEach((button) => {
                     button.addEventListener("click", () => changeReaction(button.dataset.reaction, 1));
                 });
@@ -2007,6 +2095,7 @@ struct PostForm {
                     if (busy || wrapper.classList.contains("is-editing")) return;
                     const originalClass = messageText.className;
                     const originalHtml = messageText.innerHTML;
+                    wrapper.classList.remove("actions-open");
                     wrapper.classList.add("is-editing");
                     messageText.className = "message-text message-editor";
                     messageText.innerHTML = `

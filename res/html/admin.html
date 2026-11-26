@@ -53,6 +53,7 @@
                         <div>
                             <label class="fb-label">Avatar</label>
                             <input name="avatar" type="file" accept="image/*" class="fb-input-file"/>
+                            <p class="text-[13px] text-fb-gray-text mt-1">Leave empty to keep the current avatar.</p>
                         </div>
 
                         <div>
@@ -434,6 +435,8 @@
     userForm.addEventListener("submit", async function (e) {
         e.preventDefault();
         const formData = new FormData(userForm);
+        const avatar = formData.get("avatar");
+        if (!avatar || !avatar.name || avatar.size === 0) formData.delete("avatar");
         try {
             const res = await fetch(userForm.action, {method: "POST", body: formData});
             const data = await res.json().catch(() => ({}));
