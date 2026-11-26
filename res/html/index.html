@@ -391,42 +391,157 @@
             return Number.isFinite(id) && id > 0 ? id : 0;
         }
 
-        // Feed query keeps pagination params and, on a group page, only root posts of that group.
-        function feedQuery() {
-            const {page, count} = getPageParams();
-            const params = new URLSearchParams(window.location.search);
+        // Prepared feed pages. Only the current page and its neighbors stay.
+        let feedPages = new Map();
+        let feedLoads = new Map();
+        let feedEpoch = 0;
+        let feedRenderSeq = 0;
+
+        function currentFeedPage() {
+            const page = Number(new URLSearchParams(window.location.search).get('page') || 1);
+            return Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+        }
+
+        function feedKey(page) {
+            return currentGroupId() + ':' + page;
+        }
+
+        // Page size is config.api.per_page. Never send count, and drop a leftover ?count=.
+        function feedQueryFor(page) {
+            const params = new URLSearchParams();
             params.set('page', String(page));
-            params.set('count', String(count));
+            params.set('roots', 'true');
             const groupId = currentGroupId();
-            if (groupId > 0) {
-                params.set('group', String(groupId));
-                params.set('roots', 'true');
-            } else {
-                params.delete('group');
-                params.delete('roots');
-            }
+            if (groupId > 0) params.set('group', String(groupId));
             return params;
         }
 
-        async function renderPosts() {
-            const postsContainer = document.querySelector("[data-posts-list]");
-            if (!postsContainer) return;
-            const {page, count} = getPageParams();
-            const groupId = currentGroupId();
-            const roots = await loadAndRenderPosts({
-                container: postsContainer,
-                query: feedQuery(),
-                emptyHtml: groupId > 0
-                    ? '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts in this group yet</div>'
-                    : '',
-            });
-            if (roots) renderPager(roots.length, page, count);
+        function setFeedPage(page, mode) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('page', String(page));
+            params.delete('count');
+            const qs = params.toString();
+            const url = window.location.pathname + (qs ? '?' + qs : '');
+            if (mode === 'replace') window.history.replaceState({}, '', url);
+            else window.history.pushState({}, '', url);
         }
 
+        function clearFeedCache() {
+            feedEpoch += 1;
+            feedPages.clear();
+            feedLoads.clear();
+        }
 
-        // Render pagination controls. We don't have total posts from API, so allow next until empty result.
-        function renderPager(returnedCount, page, count) {
-            // Ensure a pager container exists after posts list
+        function dropCurrentFeedPage() {
+            const key = feedKey(currentFeedPage());
+            feedPages.delete(key);
+            feedLoads.delete(key);
+        }
+
+        // Drop page-2, page+2, and anything from another group.
+        function trimFeedCache(page) {
+            const group = String(currentGroupId());
+            for (const map of [feedPages, feedLoads]) {
+                for (const key of [...map.keys()]) {
+                    const parts = key.split(':');
+                    const n = Number(parts[1]);
+                    if (parts[0] !== group || Math.abs(n - page) > 1) map.delete(key);
+                }
+            }
+        }
+
+        async function fetchFeedPage(page) {
+            const key = feedKey(page);
+            if (feedPages.has(key)) return feedPages.get(key);
+            if (feedLoads.has(key)) return feedLoads.get(key);
+            const epoch = feedEpoch;
+            const job = (async () => {
+                const res = await fetch('/api/post?' + feedQueryFor(page).toString());
+                const data = await res.json();
+                const posts = data.posts || [];
+                const roots = await preparePosts(posts, true);
+                const perPage = Number(data.per_page);
+                return {
+                    roots,
+                    rawCount: posts.length,
+                    perPage: Number.isFinite(perPage) && perPage > 0 ? perPage : 0,
+                };
+            })();
+            feedLoads.set(key, job);
+            try {
+                const result = await job;
+                // A trimmed or cleared key must not be stored.
+                if (epoch === feedEpoch && feedLoads.get(key) === job) feedPages.set(key, result);
+                return result;
+            } finally {
+                if (feedLoads.get(key) === job) feedLoads.delete(key);
+            }
+        }
+
+        function preloadFeedPages(page) {
+            const jobs = [];
+            if (page > 1) jobs.push(fetchFeedPage(page - 1).catch(() => null));
+            jobs.push(fetchFeedPage(page + 1).catch(() => null));
+            return Promise.all(jobs).then(() => trimFeedCache(page));
+        }
+
+        function feedIsLast(prepared, next) {
+            if (!prepared || prepared.rawCount === 0) return true;
+            if (prepared.perPage > 0 && prepared.rawCount < prepared.perPage) return true;
+            return !!(next && next.rawCount === 0);
+        }
+
+        function feedEmptyHtml() {
+            return currentGroupId() > 0
+                ? '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-fb-gray-text">No posts in this group yet</div>'
+                : '';
+        }
+
+        async function renderPosts(opts) {
+            const postsContainer = document.querySelector("[data-posts-list]");
+            if (!postsContainer) return;
+            const token = ++feedRenderSeq;
+            const epoch = feedEpoch;
+            const page = currentFeedPage();
+            let prepared;
+            try {
+                prepared = await fetchFeedPage(page);
+            } catch (e) {
+                if (token !== feedRenderSeq) return;
+                postsContainer.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
+                return;
+            }
+            if (token !== feedRenderSeq || epoch !== feedEpoch) return;
+            if (prepared.rawCount === 0 && page > 1) {
+                setFeedPage(page - 1, 'replace');
+                return renderPosts(opts);
+            }
+            renderPreparedPosts(postsContainer, prepared.roots, feedEmptyHtml());
+            if (opts && opts.scroll) {
+                postsContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+            renderPager(page, feedIsLast(prepared, feedPages.get(feedKey(page + 1))));
+            preloadFeedPages(page).then(() => {
+                if (token !== feedRenderSeq || epoch !== feedEpoch || currentFeedPage() !== page) return;
+                renderPager(page, feedIsLast(prepared, feedPages.get(feedKey(page + 1))));
+            });
+        }
+
+        function goToFeedPage(page) {
+            setFeedPage(page, 'push');
+            renderPosts({scroll: true});
+        }
+
+        // Count posts on a page without putting it in the neighbor cache.
+        async function probeFeedCount(page) {
+            const res = await fetch('/api/post?' + feedQueryFor(page).toString());
+            const data = await res.json().catch(() => ({}));
+            const got = (data.posts && data.posts.length) || 0;
+            const perPage = Number(data.per_page) > 0 ? Number(data.per_page) : got;
+            return {got, perPage};
+        }
+
+        function renderPager(page, isLast) {
             let pager = document.getElementById('posts-pager');
             if (!pager) {
                 pager = document.createElement('div');
@@ -436,90 +551,56 @@
                 if (postsList && postsList.parentElement) postsList.parentElement.appendChild(pager);
             }
 
-            // If returnedCount is 0 and page > 1, we are past last page — move back
-            if (returnedCount === 0 && page > 1) {
-                // Go back one page silently
-                page = Math.max(1, page - 1);
-                updateUrlParams(page, count);
-                // refetch
-                renderPosts();
-                return;
-            }
-
             const isFirst = page <= 1;
-            // If returnedCount < count, we assume this is the last page
-            const isLast = returnedCount < count;
-
+            const idle = 'px-3 py-1 rounded border bg-white disabled:opacity-40 disabled:cursor-not-allowed';
+            const active = idle + ' hover:bg-fb-hover';
             pager.innerHTML = `
             <div class="flex items-center gap-2">
-                <button id="pager-first" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst ? 'disabled' : ''}>First</button>
-                <button id="pager-prev" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isFirst ? 'disabled' : ''}>Prev</button>
+                <button id="pager-first" type="button" class="${isFirst ? idle : active}" ${isFirst ? 'disabled' : ''}>First</button>
+                <button id="pager-prev" type="button" class="${isFirst ? idle : active}" ${isFirst ? 'disabled' : ''}>Prev</button>
                 <div class="px-3">Page <strong>${page}</strong></div>
-                <button id="pager-next" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast ? 'disabled' : ''}>Next</button>
-                <button id="pager-last" class="px-3 py-1 rounded border bg-white hover:bg-fb-hover" ${isLast ? 'disabled' : ''}>Last</button>
+                <button id="pager-next" type="button" class="${isLast ? idle : active}" ${isLast ? 'disabled' : ''}>Next</button>
+                <button id="pager-last" type="button" class="${isLast ? idle : active}" ${isLast ? 'disabled' : ''}>Last</button>
             </div>
         `;
 
-            // Attach handlers
             pager.querySelector('#pager-first').addEventListener('click', () => {
                 if (isFirst) return;
-                updateUrlParams(1, count);
-                renderPosts();
+                goToFeedPage(1);
             });
             pager.querySelector('#pager-prev').addEventListener('click', () => {
                 if (isFirst) return;
-                const np = Math.max(1, page - 1);
-                updateUrlParams(np, count);
-                renderPosts();
+                goToFeedPage(Math.max(1, page - 1));
             });
             pager.querySelector('#pager-next').addEventListener('click', () => {
                 if (isLast) return;
-                const np = page + 1;
-                updateUrlParams(np, count);
-                renderPosts();
+                goToFeedPage(page + 1);
             });
             pager.querySelector('#pager-last').addEventListener('click', async () => {
-                // Try to find last page by exponential/backoff search
-                // Start from current page and double until we get empty result
-                let low = 1, high = page;
-                // find a high that returns less than count (or empty)
+                if (isLast) return;
+                let low = 1;
+                let high = Math.max(1, page);
                 while (true) {
-                    const q = feedQuery();
-                    q.set('page', String(high));
-                    q.set('count', String(count));
-                    const r = await fetch('/api/post?' + q.toString());
-                    const d = await r.json().catch(() => ({}));
-                    const got = (d.posts && d.posts.length) || 0;
+                    const {got, perPage} = await probeFeedCount(high);
                     if (got === 0) break;
-                    if (got < count) {
+                    if (perPage > 0 && got < perPage) {
                         low = high;
                         break;
                     }
                     low = high;
                     high = high * 2;
-                    // avoid runaway
                     if (high > 10000) break;
                 }
-                // binary search between low and high to find last non-empty
-                let lo = low, hi = Math.max(high, low + 1);
+                let lo = low;
+                let hi = Math.max(high, low + 1);
                 while (lo + 1 < hi) {
                     const mid = Math.floor((lo + hi) / 2);
-                    const q = feedQuery();
-                    q.set('page', String(mid));
-                    q.set('count', String(count));
-                    const r = await fetch('/api/post?' + q.toString());
-                    const d = await r.json().catch(() => ({}));
-                    const got = (d.posts && d.posts.length) || 0;
-                    if (got === 0) {
-                        hi = mid;
-                    } else {
-                        lo = mid;
-                    }
+                    const {got} = await probeFeedCount(mid);
+                    if (got === 0) hi = mid;
+                    else lo = mid;
                     if (hi - lo <= 1) break;
                 }
-                const lastPage = Math.max(1, lo);
-                updateUrlParams(lastPage, count);
-                renderPosts();
+                goToFeedPage(Math.max(1, lo));
             });
         }
 
@@ -746,6 +827,7 @@
                         const postBox = document.getElementById('post-content');
                         if (postBox && typeof resizeCommentInput === 'function') resizeCommentInput(postBox);
                         document.getElementById('feeling-input').classList.add('hidden');
+                        clearFeedCache();
                         renderPosts();
                     }
                 } catch (err) {
@@ -970,6 +1052,8 @@
                 if (nameEl) nameEl.textContent = 'Failed to load group';
             }
         }
+
+        window.addEventListener('popstate', () => renderPosts());
 
         window.addEventListener("DOMContentLoaded", async () => {
             await fetchUsers();

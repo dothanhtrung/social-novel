@@ -307,6 +307,24 @@ async function fetchMediaForPosts(roots) {
     }));
 }
 
+async function preparePosts(posts, rootsOnly) {
+    const roots = buildPostTree(posts || [], !!rootsOnly);
+    await Promise.all(roots.map(fetchCommentTree));
+    await fetchMediaForPosts(roots);
+    roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
+    return roots;
+}
+
+function renderPreparedPosts(container, roots, emptyHtml) {
+    if (!container) return;
+    if (!roots || roots.length === 0) {
+        container.innerHTML = emptyHtml || '';
+        return;
+    }
+    container.innerHTML = roots.map(renderPostHtml).join('');
+    initPlyrVideos(container);
+}
+
 async function loadAndRenderPosts(options) {
     const container = options.container;
     if (!container) return null;
@@ -320,23 +338,8 @@ async function loadAndRenderPosts(options) {
         const res = await fetch('/api/post?' + query.toString());
         const data = await res.json();
         const posts = data.posts || [];
-        if (posts.length === 0) {
-            container.innerHTML = emptyHtml;
-            return [];
-        }
-
-        const roots = buildPostTree(posts, rootsOnly);
-        await Promise.all(roots.map(fetchCommentTree));
-        await fetchMediaForPosts(roots);
-        roots.sort((a, b) => parseTimestamp(b.updated_at || b.created_at) - parseTimestamp(a.updated_at || a.created_at));
-
-        if (roots.length === 0) {
-            container.innerHTML = emptyHtml;
-            return roots;
-        }
-
-        container.innerHTML = roots.map(renderPostHtml).join('');
-        initPlyrVideos(container);
+        const roots = await preparePosts(posts, rootsOnly);
+        renderPreparedPosts(container, roots, emptyHtml);
         return roots;
     } catch (e) {
         container.innerHTML = '<div class="text-red-500">Failed to load posts</div>';
@@ -497,6 +500,7 @@ function initCommentHandlers() {
                 resizeCommentInput(ta);
                 if (comment) {
                     insertCommentNode(form, parentId, comment, depth);
+                    if (typeof dropCurrentFeedPage === 'function') dropCurrentFeedPage();
                 } else {
                     alert('Comment was saved, but it could not be shown. Refresh to see it.');
                 }

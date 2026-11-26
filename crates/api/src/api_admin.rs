@@ -471,7 +471,16 @@ async fn relation_update(db_pool: web::Data<DBPool>, body: web::Json<RelationFor
 #[derive(Serialize)]
 struct ConfigResponse {
     config: Config,
+    /// File this process loaded and will overwrite on save.
+    path: String,
     err: String,
+}
+
+fn config_file_path(path: &std::path::Path) -> String {
+    path.canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf())
+        .display()
+        .to_string()
 }
 
 #[get("")]
@@ -479,6 +488,7 @@ async fn config_get(config_data: web::Data<ConfigData>) -> impl Responder {
     let config = config_data.config.read().await.clone();
     web::Json(ConfigResponse {
         config,
+        path: config_file_path(&config_data.config_path),
         err: String::new(),
     })
 }

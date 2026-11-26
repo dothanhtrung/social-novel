@@ -32,6 +32,8 @@ pub fn scope(cfg: &mut web::ServiceConfig) {
 struct PostResponse {
     posts: Vec<Post>,
     err: String,
+    /// Limit applied to a paged list. `0` when this response is not a page.
+    per_page: i64,
 }
 
 #[derive(Deserialize)]
@@ -77,7 +79,10 @@ async fn get(
     let config = config_data.config.read().await;
     let mut ret = Vec::new();
     let mut err = String::new();
+    let mut per_page = 0;
     let page = max(1, query_params.page.unwrap_or(1)) - 1;
+    // Omit `count` to use the Settings page size. An explicit count is for
+    // callers that want a different window (a profile, a chat transcript).
     let limit = max(0, query_params.count.unwrap_or(config.api.per_page as i64));
     let offset = page * limit;
     let mut cond = SearchPostCondition::default();
@@ -109,13 +114,18 @@ async fn get(
             Err(e) => err = e.to_string(),
         }
     } else {
+        per_page = limit;
         match db_post::get_all(&dbpool, limit, offset, &cond).await {
             Ok(posts) => ret = posts,
             Err(e) => err = e.to_string(),
         }
     }
 
-    web::Json(PostResponse { posts: ret, err })
+    web::Json(PostResponse {
+        posts: ret,
+        err,
+        per_page,
+    })
 }
 
 /// Walk parents until a post that belongs to a group is found.

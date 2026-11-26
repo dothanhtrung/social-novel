@@ -25,6 +25,7 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 * Edit on the group page changes the group's name, description, avatar, and cover. Leaving an image empty keeps the current file.
 * A character profile shows Edit profile only for the selected character. That form changes the avatar, cover, and bio. Leaving an image empty keeps the current file.
 * The feed shows root posts whose `group` field equals that group id. Comments stay nested under those posts and are not listed as their own posts.
+* The home feed and a group feed list root posts only. The page size is the Settings value `api.per_page`; the browser does not send `count`. The previous and next pages are loaded ahead of time, and pages further away (page−2, page+2, and beyond) are dropped. Changing page updates `?page=` without a reload.
 * Creating a post on a group page stores that group id on the new post.
 * Creating a comment (or reply) on a post that belongs to a group stores the same group id. If the client omits it, the API copies the group from the parent post, walking up ancestors if the immediate parent has none.
 * Posts created on the home feed (no group selected) are not assigned to a group.
@@ -71,5 +72,6 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 ## Settings
 
 * The admin page Settings tab edits the application config: data directory, database URL, listen address and port, API page size, parallel, basic auth, LLM server URL, and chat setup prompt.
-* Save writes those values to the RON config file and reloads them into the running application. Leave both auth fields empty to disable basic auth.
+* `api.per_page` is how many root posts the home feed and a group feed load per page.
+* Save writes those values to the RON file this process was started with (shown on the Settings tab) and reloads them into the running application. Leave both auth fields empty to disable basic auth.
 * The chat setup prompt is the overall text sent to the LLM for a messenger reply. It can be changed without rebuilding the app. Placeholders are `{sender_name}`, `{sender_username}`, `{sender_back_story}`, `{receiver_name}`, `{receiver_username}`, `{receiver_back_story}`, `{recent_messages}`, and `{current_message}`. An empty prompt uses the built-in default.

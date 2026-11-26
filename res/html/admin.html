@@ -220,8 +220,9 @@
                             </div>
                             <div>
                                 <label class="fb-label" for="settings-api-per-page">API items per page</label>
-                                <input id="settings-api-per-page" name="api_per_page" type="number" min="1"
+                                <input id="settings-api-per-page" name="api_per_page" type="number" min="1" step="1"
                                        class="fb-input" required/>
+                                <p class="text-[13px] text-fb-gray-text mt-1">Root posts on the home feed and group pages.</p>
                             </div>
                             <div>
                                 <label class="fb-label" for="settings-parallel">Parallel</label>
@@ -256,7 +257,8 @@
                                 </div>
                             </div>
                         </div>
-                        <p class="text-[13px] text-fb-gray-text">Save writes the RON config file and reloads the running application. Leave both auth fields empty to disable basic auth.</p>
+                        <p id="settings-config-path" class="text-[13px] text-fb-gray-text"></p>
+                        <p class="text-[13px] text-fb-gray-text">Save writes the RON file shown above and reloads the running application. Leave both auth fields empty to disable basic auth.</p>
                         <div class="flex flex-wrap items-center gap-3">
                             <button type="submit" class="fb-btn">Save</button>
                             <button type="button" id="settings-reset-btn"
@@ -638,7 +640,9 @@
     const settingsForm = document.getElementById("settings-form");
     const settingsResetBtn = document.getElementById("settings-reset-btn");
     const settingsStatus = document.getElementById("settings-status");
+    const settingsConfigPath = document.getElementById("settings-config-path");
     let loadedSettings = null;
+    let settingsPath = "";
 
     function fillSettingsForm(cfg) {
         loadedSettings = cfg || {};
@@ -673,6 +677,8 @@
                 return;
             }
             fillSettingsForm(data.config);
+            settingsPath = data.path || "";
+            settingsConfigPath.textContent = settingsPath ? "Saves to " + settingsPath : "";
             settingsStatus.textContent = "";
         } catch (err) {
             alert("Failed to load settings: " + err);
@@ -681,6 +687,11 @@
 
     settingsForm.addEventListener("submit", async function (e) {
         e.preventDefault();
+        const perPage = parseInt(settingsForm.elements["api_per_page"].value, 10);
+        if (!Number.isFinite(perPage) || perPage < 1) {
+            alert("Items per page must be a whole number of at least 1.");
+            return;
+        }
         const payload = {
             ...(loadedSettings || {}),
             data_dir: settingsForm.elements["data_dir"].value.trim(),
@@ -689,7 +700,7 @@
             parallel: Number(settingsForm.elements["parallel"].value),
             basic_auth_user: settingsForm.elements["basic_auth_user"].value,
             basic_auth_pass: settingsForm.elements["basic_auth_pass"].value,
-            api: {per_page: Number(settingsForm.elements["api_per_page"].value)},
+            api: {per_page: perPage},
             db: {
                 sqlite: (loadedSettings && loadedSettings.db && loadedSettings.db.sqlite) || {db_path: ""},
                 postgres: {db_path: settingsForm.elements["db_postgres"].value.trim()},
@@ -711,7 +722,9 @@
                 throw new Error(data.err || await res.text());
             }
             loadedSettings = payload;
-            settingsStatus.textContent = "Saved. Reloading...";
+            settingsStatus.textContent = settingsPath
+                ? "Saved to " + settingsPath + ". Reloading..."
+                : "Saved. Reloading...";
             setTimeout(() => {
                 location.hash = "settings";
                 location.reload();
