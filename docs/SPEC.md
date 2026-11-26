@@ -49,6 +49,7 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 
 ## Messenger
 
+* On a narrow screen the chat list and the member sidebar are full-screen panels opened from the conversation, and the message box stays at the bottom. A wide screen keeps the chat list, the conversation, and the member sidebar side by side.
 * The main character's messages sit on the right. Other members' messages sit on the left. New messages are posted as that character.
 * The main character is one of the open chat room's members. The top-right header avatar opens a searchable list of those members. Clicking a row in the right-hand member list selects the same character.
 * Search matches name or username. If the chosen character is not in the room, the first member becomes the main character.
@@ -71,7 +72,7 @@ Detailed behavior and implementation notes are organized by topic in [DESIGN.md]
 
 ## Settings
 
-* The admin page Settings tab edits the application config: data directory, database URL, listen address and port, API page size, parallel, basic auth, LLM server URL, and chat setup prompt.
+* The admin page Settings tab edits the application config: data directory, database URL, listen address and port, API page size, parallel, basic auth, LLM server URLs, and chat setup prompt. The LLM URLs are tried in order; the first server that answers is used.
 * `api.per_page` is how many root posts the home feed and a group feed load per page.
 * Save writes those values to the RON file this process was started with (shown on the Settings tab) and reloads them into the running application. Leave both auth fields empty to disable basic auth.
 * The chat setup prompt is the overall text sent to the LLM for a messenger reply. It can be changed without rebuilding the app. Placeholders are `{sender_name}`, `{sender_username}`, `{sender_back_story}`, `{receiver_name}`, `{receiver_username}`, `{receiver_back_story}`, `{recent_messages}`, and `{current_message}`. An empty prompt uses the built-in default.

@@ -6,6 +6,7 @@
 use serde::Deserialize;
 
 const CHAT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// `{base}` or `{base}/v1` both become `{base}/v1/chat/completions`.
 pub fn chat_completions_url(base: &str) -> String {
@@ -35,7 +36,10 @@ struct ChatMessage {
 /// Send one prompt and return the assistant text. Non-streaming.
 pub async fn chat_completion(base_url: &str, prompt: &str) -> anyhow::Result<String> {
     let url = chat_completions_url(base_url);
-    let client = reqwest::Client::builder().timeout(CHAT_TIMEOUT).build()?;
+    let client = reqwest::Client::builder()
+        .connect_timeout(CONNECT_TIMEOUT)
+        .timeout(CHAT_TIMEOUT)
+        .build()?;
     let body = serde_json::json!({
         "model": "local",
         "messages": [
@@ -61,4 +65,20 @@ pub async fn chat_completion(base_url: &str, prompt: &str) -> anyhow::Result<Str
         anyhow::bail!("LLM returned an empty reply");
     }
     Ok(content)
+}
+
+/// Try each base URL in order. The first server that returns a reply is used.
+pub async fn chat_completion_first(base_urls: &[String], prompt: &str) -> anyhow::Result<String> {
+    let urls: Vec<&str> = base_urls.iter().map(|url| url.trim()).filter(|url| !url.is_empty()).collect();
+    if urls.is_empty() {
+        anyhow::bail!("No LLM server URL");
+    }
+    let mut errors = Vec::new();
+    for base in urls {
+        match chat_completion(base, prompt).await {
+            Ok(text) => return Ok(text),
+            Err(e) => errors.push(format!("{base}: {e}")),
+        }
+    }
+    anyhow::bail!("{}", errors.join("; "))
 }

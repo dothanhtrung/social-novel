@@ -1,5 +1,6 @@
 
 use ron::ser::{to_string_pretty, PrettyConfig};
+use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
@@ -51,20 +52,59 @@ fn default_chat_setup_prompt() -> String {
     DEFAULT_CHAT_SETUP_PROMPT.to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct LLMConfig {
-    /// Base URL of the LLM server, e.g. `http://127.0.0.1:8080`.
-    #[serde(default)]
-    pub url: String,
+    /// Base URLs of LLM servers, tried in order. The first one that answers is used.
+    /// An older config may still say `url` (one string, or a list). That loads into this field.
+    pub urls: Vec<String>,
     /// Overall prompt for an LLM chat reply. Placeholders are replaced at send time.
-    #[serde(default = "default_chat_setup_prompt", alias = "character_setup_prompt")]
     pub chat_setup_prompt: String,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum LlmUrlField {
+    Many(Vec<String>),
+    One(String),
+}
+
+impl Default for LlmUrlField {
+    fn default() -> Self {
+        Self::One(String::new())
+    }
+}
+
+impl<'de> Deserialize<'de> for LLMConfig {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Raw {
+            #[serde(default)]
+            urls: Vec<String>,
+            #[serde(default)]
+            url: LlmUrlField,
+            #[serde(default = "default_chat_setup_prompt", alias = "character_setup_prompt")]
+            chat_setup_prompt: String,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+        let mut urls = raw.urls;
+        if urls.iter().all(|url| url.trim().is_empty()) {
+            urls = match raw.url {
+                LlmUrlField::Many(urls) => urls,
+                LlmUrlField::One(url) => vec![url],
+            };
+        }
+        Ok(Self {
+            urls: urls.into_iter().map(|url| url.trim().to_string()).filter(|url| !url.is_empty()).collect(),
+            chat_setup_prompt: raw.chat_setup_prompt,
+        })
+    }
 }
 
 impl Default for LLMConfig {
     fn default() -> Self {
         Self {
-            url: String::new(),
+            urls: Vec::new(),
             chat_setup_prompt: default_chat_setup_prompt(),
         }
     }
@@ -180,5 +220,60 @@ impl ConfigData {
         *self.config.write().await = new_config;
         self.restart.notify_one();
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config_with_llm(llm: &str) -> String {
+        format!(
+            r#"(
+            data_dir: "./data",
+            api: (per_page: 3),
+            llm: ({llm}),
+        )"#
+        )
+    }
+
+    #[test]
+    fn llm_urls_load_from_legacy_url_string() {
+        let cfg: Config = ron::from_str(&config_with_llm(r#"url: "http://127.0.0.1:8080", chat_setup_prompt: "hi""#)).unwrap();
+        assert_eq!(cfg.llm.urls, vec!["http://127.0.0.1:8080"]);
+        assert_eq!(cfg.llm.chat_setup_prompt, "hi");
+
+        let empty: Config = ron::from_str(&config_with_llm(r#"url: """#)).unwrap();
+        assert!(empty.llm.urls.is_empty());
+
+        let listed: Config = ron::from_str(&config_with_llm(r#"url: ["http://a", "http://b"]"#)).unwrap();
+        assert_eq!(listed.llm.urls, vec!["http://a".to_string(), "http://b".to_string()]);
+    }
+
+    #[test]
+    fn llm_urls_load_from_array_and_old_prompt_name() {
+        let cfg: Config = ron::from_str(&config_with_llm(
+            r#"urls: ["http://a", " http://b "], character_setup_prompt: "old""#,
+        ))
+        .unwrap();
+        assert_eq!(cfg.llm.urls, vec!["http://a".to_string(), "http://b".to_string()]);
+        assert_eq!(cfg.llm.chat_setup_prompt, "old");
+    }
+
+    #[test]
+    fn llm_urls_round_trip() {
+        let cfg: Config = ron::from_str(&config_with_llm(r#"urls: ["http://a", "http://b"]"#)).unwrap();
+        let saved = to_string_pretty(&cfg.llm, PrettyConfig::default()).unwrap();
+        let loaded: LLMConfig = ron::from_str(&saved).unwrap();
+        assert_eq!(loaded.urls, vec!["http://a".to_string(), "http://b".to_string()]);
+        assert!(saved.lines().any(|line| line.trim_start().starts_with("urls:")));
+        assert!(!saved.lines().any(|line| line.trim_start().starts_with("url:")));
+    }
+
+    #[test]
+    fn live_ron_still_loads() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../social-novel.test.ron");
+        let cfg = Config::load(&path).expect("social-novel.test.ron");
+        assert!(!cfg.llm.chat_setup_prompt.trim().is_empty());
     }
 }

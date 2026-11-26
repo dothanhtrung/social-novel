@@ -364,14 +364,14 @@ fn llm_job_status(post_id: i64) -> Option<(i64, &'static str)> {
 }
 
 struct LlmReplyPlan {
-    url: String,
+    urls: Vec<String>,
     prompt: String,
     room_id: i64,
     receiver_id: i64,
 }
 
 /// Decide whether this message should get an LLM reply, and build the prompt.
-/// Returns none when replies are off, the URL is empty, or there is no other member.
+/// Returns none when replies are off, every URL is empty, or there is no other member.
 async fn prepare_llm_reply(
     dbpool: &DBPool,
     llm: &LLMConfig,
@@ -380,7 +380,13 @@ async fn prepare_llm_reply(
     current_post_id: i64,
     current_message: &str,
 ) -> Option<LlmReplyPlan> {
-    if llm.url.trim().is_empty() {
+    let urls: Vec<String> = llm
+        .urls
+        .iter()
+        .map(|url| url.trim().to_string())
+        .filter(|url| !url.is_empty())
+        .collect();
+    if urls.is_empty() {
         return None;
     }
 
@@ -448,7 +454,7 @@ async fn prepare_llm_reply(
     });
 
     Some(LlmReplyPlan {
-        url: llm.url.clone(),
+        urls,
         prompt,
         room_id,
         receiver_id: receiver.id,
@@ -457,7 +463,7 @@ async fn prepare_llm_reply(
 
 /// Call the LLM and insert the reply. Does not go through `POST /api/post`.
 async fn run_llm_reply(dbpool: &DBPool, plan: LlmReplyPlan) -> bool {
-    let reply = match crate::llm::chat_completion(&plan.url, &plan.prompt).await {
+    let reply = match crate::llm::chat_completion_first(&plan.urls, &plan.prompt).await {
         Ok(reply) => reply,
         Err(e) => {
             error!("LLM reply failed: {e}");

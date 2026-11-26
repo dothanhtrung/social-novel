@@ -244,9 +244,14 @@
                             <h3 class="text-[17px] font-bold mb-3">LLM</h3>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="fb-label" for="settings-llm-url">LLM server URL</label>
-                                    <input id="settings-llm-url" name="llm_url" type="url" class="fb-input"
-                                           placeholder="http://127.0.0.1:8080"/>
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <span class="font-semibold text-[15px]">LLM server URLs</span>
+                                        <button type="button" id="settings-llm-url-add"
+                                                class="shrink-0 w-10 h-10 rounded-lg font-semibold bg-fb-hover text-[#050505]"
+                                                aria-label="Add LLM server URL">+</button>
+                                    </div>
+                                    <div id="settings-llm-urls" class="space-y-2"></div>
+                                    <p class="text-[13px] text-fb-gray-text mt-1">Tried in order. The first server that answers is used.</p>
                                 </div>
                                 <div>
                                     <label class="fb-label" for="settings-llm-chat-setup">Chat setup prompt</label>
@@ -656,17 +661,62 @@
         settingsForm.elements["basic_auth_user"].value = loadedSettings.basic_auth_user || "";
         settingsForm.elements["basic_auth_pass"].value = loadedSettings.basic_auth_pass || "";
         const llm = loadedSettings.llm || {};
-        settingsForm.elements["llm_url"].value = llmUrlValue(llm.url);
+        renderLlmUrls(llmUrlList(llm));
         settingsForm.elements["chat_setup_prompt"].value =
             llm.chat_setup_prompt || llm.character_setup_prompt || "";
     }
 
-    function llmUrlValue(url) {
-        if (Array.isArray(url)) {
-            return url[0] || "";
+    function llmUrlList(llm) {
+        if (Array.isArray(llm.urls) && llm.urls.some((url) => String(url).trim())) {
+            return llm.urls.map((url) => String(url));
         }
-        return url || "";
+        if (Array.isArray(llm.url)) {
+            return llm.url.length ? llm.url.map((url) => String(url)) : [""];
+        }
+        if (llm.url) return [String(llm.url)];
+        return [""];
     }
+
+    function renderLlmUrls(urls) {
+        const list = document.getElementById("settings-llm-urls");
+        list.innerHTML = "";
+        const values = urls && urls.length ? urls : [""];
+        values.forEach((url) => addLlmUrlRow(url));
+    }
+
+    function addLlmUrlRow(value) {
+        const list = document.getElementById("settings-llm-urls");
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-2";
+        const input = document.createElement("input");
+        input.type = "url";
+        input.className = "fb-input";
+        input.placeholder = "http://127.0.0.1:8080";
+        input.value = value || "";
+        input.setAttribute("aria-label", "LLM server URL");
+        input.style.width = "auto";
+        input.style.flex = "1";
+        input.style.minWidth = "0";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "shrink-0 w-10 h-10 rounded-lg font-semibold bg-fb-hover text-[#050505]";
+        remove.textContent = "\u2212";
+        remove.setAttribute("aria-label", "Remove LLM server URL");
+        remove.addEventListener("click", () => {
+            row.remove();
+            if (!list.children.length) addLlmUrlRow("");
+        });
+        row.append(input, remove);
+        list.append(row);
+    }
+
+    function collectLlmUrls() {
+        return Array.from(document.querySelectorAll("#settings-llm-urls input"))
+            .map((input) => input.value.trim())
+            .filter(Boolean);
+    }
+
+    document.getElementById("settings-llm-url-add").addEventListener("click", () => addLlmUrlRow(""));
 
     async function fetchSettings() {
         try {
@@ -706,7 +756,7 @@
                 postgres: {db_path: settingsForm.elements["db_postgres"].value.trim()},
             },
             llm: {
-                url: settingsForm.elements["llm_url"].value.trim(),
+                urls: collectLlmUrls(),
                 chat_setup_prompt: settingsForm.elements["chat_setup_prompt"].value,
             },
         };
